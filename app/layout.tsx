@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Caveat } from "next/font/google";
+import { Fraunces, Caveat, Caveat_Brush } from "next/font/google";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -11,12 +11,21 @@ const fraunces = Fraunces({
 });
 
 // Caveat — a calm cursive used only for the "From <place> —" greeting
-// and a couple of tiny flourishes. Pulls the whole page toward
+// and the Polaroid caption. Pulls the whole page toward
 // "handwritten postcard" without tipping into cartoonish.
 const caveat = Caveat({
   subsets: ["latin", "latin-ext"],
   display: "swap",
   variable: "--font-caveat"
+});
+
+// Caveat Brush — chunkier brush variant, used only on the wooden sign
+// to stand in for chalk lettering.
+const caveatBrush = Caveat_Brush({
+  subsets: ["latin"],
+  weight: "400",
+  display: "swap",
+  variable: "--font-caveat-brush"
 });
 
 const description =
@@ -58,7 +67,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${caveat.variable}`}>
+    <html
+      lang="en"
+      className={`${fraunces.variable} ${caveat.variable} ${caveatBrush.variable}`}
+    >
       <body>{children}</body>
     </html>
   );

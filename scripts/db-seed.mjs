@@ -39,7 +39,8 @@ for (const s of stories) {
       currency_code, currency_symbol,
       milk_price_local, eggs_price_local,
       milk_price_usd, eggs_price_usd,
-      selected_hour, source_url, source_name
+      selected_hour, source_url, source_name,
+      lat, lng
     ) values (
       ${s.id}, ${s.photo_url ?? null}, ${s.country}, ${s.region ?? null},
       ${s.city}, ${s.timezone}, ${s.local_hour},
@@ -47,9 +48,12 @@ for (const s of stories) {
       ${s.currency_code}, ${s.currency_symbol},
       ${s.milk_price_local}, ${s.eggs_price_local},
       ${s.milk_price_usd}, ${s.eggs_price_usd},
-      ${s.selected_hour ?? null}, ${s.source_url ?? null}, ${s.source_name ?? null}
+      ${s.selected_hour ?? null}, ${s.source_url ?? null}, ${s.source_name ?? null},
+      ${s.lat ?? null}, ${s.lng ?? null}
     )
-    on conflict (id) do nothing
+    on conflict (id) do update set
+      lat = coalesce(excluded.lat, stories.lat),
+      lng = coalesce(excluded.lng, stories.lng)
     returning id
   `;
   if (result.length > 0) inserted++;

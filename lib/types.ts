@@ -15,6 +15,11 @@ export interface Story {
   /** Local hour (0-23) at which the moment took place. */
   local_hour: number;
 
+  /** Approximate latitude of the city (degrees). Used for the watercolor map postmark. */
+  lat?: number;
+  /** Approximate longitude of the city (degrees). */
+  lng?: number;
+
   currency_code: string;   // ISO 4217
   currency_symbol: string; // €, ¥, kr, ...
 
@@ -25,4 +30,9 @@ export interface Story {
 
   published_at?: string; // ISO datetime
   selected_hour?: number; // optional pinned slot
+
+  /** Original news source URL (shown as a small link below the moment). */
+  source_url?: string;
+  /** Human-readable source name (shown if source_url is set). */
+  source_name?: string;
 }

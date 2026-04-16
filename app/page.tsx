@@ -1,7 +1,8 @@
 import { getCurrentStory } from "@/lib/stories";
 import { formatLocal, formatUsd } from "@/lib/format";
+import PencilText from "./_components/PencilText";
+import MapPostmark from "./_components/MapPostmark";
 
-// ISR: the page recomputes once per hour.
 export const revalidate = 3600;
 
 function localClockString(tz: string, now: Date): string {
@@ -20,11 +21,17 @@ function localWeekday(tz: string, now: Date): string {
   }).format(now);
 }
 
+/** Stable hash from an id string to a deterministic small int — used to
+ *  pick a fixed tilt for each story so the Polaroid lands the same way
+ *  every time.  */
+function idHash(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
 export default async function Page() {
   const s = await getCurrentStory();
-
-  // Round UTC to the current hour: the page is cached hourly, so
-  // showing minute precision would lie. "19:00" is honest.
   const now = new Date();
   const rounded = new Date(
     Math.floor(now.getTime() / (60 * 60 * 1000)) * 60 * 60 * 1000
@@ -40,7 +47,8 @@ export default async function Page() {
     .filter((p, i, arr) => arr.indexOf(p) === i);
   const altText = `A photograph from ${placeParts.join(", ")}.`;
 
-  const showRegion = !!s.region && s.region !== s.city;
+  // Fixed-per-story polaroid tilt in [-2.5°, +2.5°].
+  const tilt = ((idHash(s.id) % 50) - 25) / 10;
 
   return (
     <>
@@ -50,67 +58,72 @@ export default async function Page() {
 
       <main>
         <div className="stage">
-          <figure className="postcard">
-            {s.photo_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                className="photo"
-                src={s.photo_url}
-                alt={altText}
-                width={1500}
-                height={1000}
-              />
-            ) : (
-              <div className="photo photo-empty" aria-hidden="true" />
-            )}
+          <figure
+            className="polaroid"
+            style={{ "--tilt": `${tilt}deg` } as React.CSSProperties}
+          >
+            <div className="photo-well">
+              {s.photo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  className="photo"
+                  src={s.photo_url}
+                  alt={altText}
+                  width={1500}
+                  height={1000}
+                />
+              ) : (
+                <div className="photo photo-empty" aria-hidden="true" />
+              )}
+              <div className="grain" aria-hidden="true" />
+              {s.lat != null && s.lng != null ? (
+                <div className="postmark-slot">
+                  <MapPostmark
+                    lat={s.lat}
+                    lng={s.lng}
+                    place={`${s.city}, ${s.country}`}
+                  />
+                </div>
+              ) : null}
+            </div>
+            <figcaption className="caption">
+              {s.city} &middot; {weekday}
+            </figcaption>
           </figure>
 
           <aside className="sign" aria-label="Today's prices and place">
             <div className="nail" aria-hidden="true" />
             <div className="panel">
-              <div className="brand" aria-hidden="true">
-                <span>·</span>
+              <div className="topline" aria-hidden="true">
                 <em>Once</em>
-                <span>·</span>
               </div>
-
-              <div className="place">
+              <div className="head">
                 <span className="city">{s.city}</span>
-                {showRegion ? (
-                  <span className="region">{s.region}</span>
-                ) : null}
-                <span className="country">{s.country}</span>
+                <span className="dot" aria-hidden="true">·</span>
+                <span className="clock">{clock}</span>
               </div>
-
-              <div className="dots" aria-hidden="true">
-                · · ·
-              </div>
-
-              <div className="time">
-                <div className="day">{weekday}</div>
-                <div className="clock">{clock}</div>
-              </div>
-
-              <div className="dots" aria-hidden="true">
-                · · ·
-              </div>
-
-              <dl className="prices">
+              <div className="rule" aria-hidden="true" />
+              <div className="prices">
                 <div className="row">
-                  <dt>Milk</dt>
-                  <dd>{formatLocal(s.milk_price_local, s.currency_symbol)}</dd>
+                  <span className="label">Milk</span>
+                  <span className="value">
+                    {formatLocal(s.milk_price_local, s.currency_symbol)}
+                  </span>
                 </div>
                 <div className="row">
-                  <dt>Eggs</dt>
-                  <dd>{formatLocal(s.eggs_price_local, s.currency_symbol)}</dd>
+                  <span className="label">Eggs</span>
+                  <span className="value">
+                    {formatLocal(s.eggs_price_local, s.currency_symbol)}
+                  </span>
                 </div>
-                <div className="usd" aria-label="USD approximations">
-                  {formatUsd(s.milk_price_usd)}&nbsp;·&nbsp;
-                  {formatUsd(s.eggs_price_usd)}
-                </div>
-              </dl>
-
-              <div className="currency-stamp">{s.currency_code}</div>
+              </div>
+              <div className="rule" aria-hidden="true" />
+              <div className="footline">
+                <span className="currency">{s.currency_code}</span>
+                <span className="usd">
+                  {formatUsd(s.milk_price_usd)} · {formatUsd(s.eggs_price_usd)}
+                </span>
+              </div>
             </div>
           </aside>
         </div>
@@ -119,12 +132,22 @@ export default async function Page() {
           <p className="greeting" aria-hidden="true">
             From {s.city}, this {weekday} &mdash;
           </p>
-          <p className="original" lang={s.original_language}>
-            {s.original_text}
-          </p>
+          <PencilText
+            className="original"
+            text={s.original_text}
+            lang={s.original_language}
+            memoryKey={s.id}
+          />
           {showTranslation ? (
             <p className="translation" lang="en">
               {s.english_text}
+            </p>
+          ) : null}
+          {s.source_url ? (
+            <p className="source">
+              <a href={s.source_url} target="_blank" rel="noreferrer">
+                source{s.source_name ? ` · ${s.source_name}` : ""}
+              </a>
             </p>
           ) : null}
         </article>
@@ -137,11 +160,11 @@ export default async function Page() {
       <style>{`
         main {
           width: 100%;
-          max-width: 1080px;
-          padding: clamp(24px, 3.5vh, 48px) clamp(16px, 3vw, 32px);
+          max-width: 1120px;
+          padding: clamp(28px, 4vh, 56px) clamp(16px, 3vw, 40px);
           display: flex;
           flex-direction: column;
-          gap: clamp(20px, 2.8vh, 32px);
+          gap: clamp(22px, 3vh, 36px);
           min-height: 100svh;
           opacity: 0;
           animation: enter 900ms cubic-bezier(0.22, 0.61, 0.36, 1) 80ms forwards;
@@ -154,26 +177,32 @@ export default async function Page() {
           main { opacity: 1; animation: none; transform: none; }
         }
 
-        /* ── stage: photo + wooden sign side by side ───────────────────── */
+        /* ── stage ─────────────────────────────────────────────────── */
         .stage {
           display: grid;
-          grid-template-columns: 1fr minmax(200px, 232px);
-          gap: clamp(20px, 3vw, 40px);
+          grid-template-columns: 1fr minmax(180px, 220px);
+          gap: clamp(24px, 4vw, 56px);
           align-items: start;
         }
 
-        /* ── postcard photo frame ─────────────────────────────────────── */
-        .postcard {
+        /* ── Polaroid ──────────────────────────────────────────────── */
+        .polaroid {
+          --tilt: 0deg;
           margin: 0;
-          padding: clamp(8px, 1vw, 14px);
-          background: #fbf3dd;
-          border-radius: 3px;
+          padding: 12px 12px 46px;
+          background: #f7f0dc;
+          border-radius: 2px;
           box-shadow:
-            0 1px 0 rgba(32, 23, 8, 0.05),
-            0 22px 48px -22px rgba(42, 23, 8, 0.35),
-            inset 0 0 0 1px rgba(42, 23, 8, 0.04);
-          transform: rotate(-0.3deg);
-          transform-origin: center;
+            0 1px 0 rgba(32, 23, 8, 0.06),
+            0 24px 44px -22px rgba(42, 23, 8, 0.38),
+            inset 0 0 0 1px rgba(42, 23, 8, 0.05);
+          transform: rotate(var(--tilt));
+          transition: transform 600ms cubic-bezier(0.2, 0.8, 0.25, 1);
+        }
+        .photo-well {
+          position: relative;
+          overflow: hidden;
+          border-radius: 1px;
         }
         .photo {
           display: block;
@@ -181,8 +210,9 @@ export default async function Page() {
           height: auto;
           aspect-ratio: 3 / 2;
           object-fit: cover;
-          border-radius: 2px;
           background: var(--hairline);
+          /* Slight warmth + a touch less saturation — that analog softness. */
+          filter: sepia(0.08) saturate(0.92) contrast(0.99) brightness(0.98);
         }
         .photo-empty {
           background:
@@ -192,16 +222,49 @@ export default async function Page() {
               transparent 12px 24px
             );
         }
+        /* Film grain layer over the photo */
+        .grain {
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.1  0 0 0 0 0.07  0 0 0 0 0.03  0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.38'/%3E%3C/svg%3E");
+          background-size: 200px 200px;
+          mix-blend-mode: multiply;
+          opacity: 0.55;
+        }
+        .caption {
+          margin-top: 14px;
+          text-align: center;
+          font-family: var(--cursive);
+          font-size: clamp(17px, 2.1vw, 21px);
+          line-height: 1;
+          letter-spacing: 0.005em;
+          color: var(--accent-dark);
+          opacity: 0.78;
+        }
+        /* Watercolor postmark tucked in the photo's top-right */
+        .postmark-slot {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          z-index: 2;
+        }
 
-        /* ── wooden sign ──────────────────────────────────────────────── */
+        /* ── wooden sign ───────────────────────────────────────────── */
         .sign {
           position: relative;
-          margin-top: clamp(10px, 2vh, 24px);
-          transform: rotate(-1.4deg);
+          margin-top: clamp(20px, 3vh, 40px);
           transform-origin: top center;
+          animation: sway 8s ease-in-out infinite;
           padding-top: 6px;
         }
-        /* a single dark nail at the top */
+        @keyframes sway {
+          0%, 100% { transform: rotate(-0.5deg); }
+          50%      { transform: rotate(0.3deg); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .sign { animation: none; transform: rotate(-0.3deg); }
+        }
         .nail {
           position: absolute;
           top: 0;
@@ -221,202 +284,180 @@ export default async function Page() {
         .panel {
           position: relative;
           padding: 16px 16px 14px;
-          border-radius: 4px;
-          color: var(--wood-ink);
+          border-radius: 3px;
           text-align: center;
-          /* warm wood gradient — sun-weathered oak */
+          /* Honey birch — lighter, more real-wood */
           background:
             linear-gradient(
-              174deg,
-              var(--wood-light) 0%,
-              var(--wood-mid) 58%,
-              var(--wood-dark) 100%
+              175deg,
+              #efcf9e 0%,
+              #dcb583 55%,
+              #c89865 100%
             );
-          /* dark frame + interior shading + drop shadow */
+          /* Subtler frame + softer depth */
           box-shadow:
-            0 0 0 2px var(--wood-frame),
-            0 0 0 3px rgba(0, 0, 0, 0.08),
-            inset 0 0 32px rgba(0, 0, 0, 0.14),
-            inset 0 -3px 0 rgba(0, 0, 0, 0.22),
-            inset 0 2px 0 rgba(255, 230, 200, 0.2),
-            0 14px 28px -10px rgba(0, 0, 0, 0.4);
+            0 0 0 1px rgba(120, 80, 40, 0.5),
+            inset 0 0 24px rgba(80, 45, 15, 0.08),
+            inset 0 -2px 0 rgba(80, 45, 15, 0.16),
+            inset 0 2px 0 rgba(255, 240, 215, 0.35),
+            0 10px 22px -10px rgba(80, 45, 15, 0.35);
         }
-        /* grain: two overlapping repeating-linear-gradients */
+        /* grain: very subtle lines, lots of transparent space */
         .panel::before {
           content: "";
           position: absolute;
-          inset: 3px;
+          inset: 2px;
           border-radius: inherit;
           background:
             repeating-linear-gradient(
               90deg,
-              transparent 0 3px,
-              rgba(60, 30, 10, 0.05) 3px 4px
+              transparent 0 4px,
+              rgba(100, 60, 20, 0.03) 4px 5px
             ),
             repeating-linear-gradient(
               90deg,
-              transparent 0 32px,
-              rgba(60, 30, 10, 0.08) 32px 34px
+              transparent 0 48px,
+              rgba(100, 60, 20, 0.05) 48px 50px
             );
           pointer-events: none;
           mix-blend-mode: multiply;
         }
-        /* a second faint knot to break symmetry */
+        /* faint knot asymmetry */
         .panel::after {
           content: "";
           position: absolute;
-          top: 18%;
-          right: -5%;
-          width: 28px;
-          height: 28px;
+          top: 22%;
+          left: -8%;
+          width: 22px;
+          height: 22px;
           border-radius: 50%;
           background: radial-gradient(
             circle at 40% 40%,
-            rgba(60, 30, 10, 0.2) 0%,
-            rgba(60, 30, 10, 0) 55%
+            rgba(80, 45, 15, 0.18) 0%,
+            rgba(80, 45, 15, 0) 55%
           );
           pointer-events: none;
         }
 
-        .sign .brand {
+        /* Chalk-like white ink */
+        .sign .topline {
+          font-family: var(--cursive);
+          font-style: italic;
+          font-size: 12px;
+          color: #5a3818;
+          opacity: 0.7;
+          margin-bottom: 2px;
+        }
+        .sign .head {
           display: flex;
+          align-items: baseline;
           justify-content: center;
-          align-items: center;
           gap: 8px;
-          font-family: var(--serif);
-          font-style: italic;
-          font-size: 11px;
-          color: #6b4420;
-          letter-spacing: 0.08em;
-          opacity: 0.9;
-          margin-bottom: 6px;
+          font-family: var(--chalk);
+          color: #fbf3e3;
+          text-shadow:
+            0 0 1px rgba(0, 0, 0, 0.08),
+            0 1px 0 rgba(80, 45, 15, 0.25);
+          margin: 2px 0 6px;
         }
-        .sign .brand em { font-style: italic; font-weight: 500; }
-        .sign .brand span { opacity: 0.6; }
-
-        .sign .place {
-          margin: 4px 0 8px;
-          line-height: 1.18;
+        .sign .head .city {
+          font-size: clamp(16px, 1.7vw, 19px);
+          letter-spacing: 0.02em;
         }
-        .sign .place .city {
-          display: block;
-          font-family: var(--serif);
-          font-variation-settings: "opsz" 72, "wght" 700;
-          font-weight: 700;
-          font-size: clamp(17px, 1.6vw, 19px);
-          color: var(--wood-ink);
-          text-transform: uppercase;
-          letter-spacing: 0.12em;
+        .sign .head .dot {
+          font-size: 16px;
+          opacity: 0.7;
         }
-        .sign .place .region {
-          display: block;
-          font-family: var(--serif);
-          font-style: italic;
-          font-size: 10px;
-          color: #5a3818;
-          letter-spacing: 0.16em;
-          text-transform: uppercase;
-          margin-top: 3px;
-        }
-        .sign .place .country {
-          display: block;
-          font-family: var(--serif);
-          font-size: 10px;
-          font-weight: 500;
-          color: #3a220c;
-          letter-spacing: 0.18em;
-          text-transform: uppercase;
-          margin-top: 3px;
-        }
-
-        .sign .dots {
-          color: #6b4420;
-          font-size: 10px;
-          letter-spacing: 0.5em;
-          opacity: 0.65;
-          margin: 8px 0 6px;
-        }
-
-        .sign .time { margin: 2px 0 4px; }
-        .sign .time .day {
-          font-family: var(--serif);
-          font-style: italic;
-          font-size: 11px;
-          color: #5a3818;
-          letter-spacing: 0.06em;
-        }
-        .sign .time .clock {
-          font-family: var(--serif);
-          font-variation-settings: "opsz" 72, "wght" 600;
-          font-weight: 600;
-          font-size: 28px;
-          color: var(--wood-ink);
+        .sign .head .clock {
+          font-size: clamp(15px, 1.7vw, 18px);
           letter-spacing: 0.03em;
-          line-height: 1;
-          margin-top: 2px;
-          font-variant-numeric: tabular-nums oldstyle-nums;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .sign .rule {
+          height: 1px;
+          margin: 4px auto;
+          width: 72%;
+          background:
+            linear-gradient(
+              90deg,
+              transparent 0%,
+              rgba(80, 45, 15, 0.35) 20%,
+              rgba(80, 45, 15, 0.35) 80%,
+              transparent 100%
+            );
         }
 
         .sign .prices {
-          margin: 4px 4px 6px;
+          margin: 12px 6px;
           display: flex;
           flex-direction: column;
-          gap: 3px;
+          gap: 6px;
         }
         .sign .prices .row {
           display: flex;
+          justify-content: center;
+          align-items: baseline;
+          gap: 10px;
+          font-family: var(--chalk);
+          color: #fbf3e3;
+          text-shadow:
+            0 0 1px rgba(0, 0, 0, 0.1),
+            0 1px 0 rgba(80, 45, 15, 0.28);
+        }
+        .sign .prices .label {
+          font-size: clamp(20px, 2.2vw, 24px);
+          letter-spacing: 0.02em;
+          min-width: 56px;
+          text-align: right;
+          opacity: 0.92;
+        }
+        .sign .prices .value {
+          font-size: clamp(26px, 2.9vw, 32px);
+          letter-spacing: 0.02em;
+          font-variant-numeric: tabular-nums;
+          min-width: 76px;
+          text-align: left;
+        }
+
+        .sign .footline {
+          display: flex;
           justify-content: space-between;
           align-items: baseline;
+          padding: 0 4px;
           font-family: var(--serif);
-          font-size: 12.5px;
-          color: var(--wood-ink);
-          font-variant-numeric: tabular-nums oldstyle-nums;
+          margin-top: 6px;
         }
-        .sign .prices dt {
-          font-style: italic;
-          font-weight: 400;
+        .sign .footline .currency {
+          font-weight: 700;
+          font-variation-settings: "opsz" 72, "wght" 700;
+          font-size: 11px;
           color: #3a220c;
+          letter-spacing: 0.22em;
+          padding: 2px 8px;
+          background: rgba(80, 45, 15, 0.08);
+          border: 1px solid rgba(80, 45, 15, 0.3);
+          border-radius: 2px;
         }
-        .sign .prices dd {
-          margin: 0;
-          font-weight: 600;
-        }
-        .sign .prices .usd {
-          font-family: var(--serif);
+        .sign .footline .usd {
           font-style: italic;
           font-size: 10px;
           color: #5a3818;
+          opacity: 0.8;
           letter-spacing: 0.02em;
-          margin-top: 3px;
-          opacity: 0.75;
-          text-align: center;
+          font-variant-numeric: tabular-nums;
         }
 
-        .sign .currency-stamp {
-          margin-top: 8px;
-          padding: 4px 10px;
-          display: inline-block;
-          font-family: var(--serif);
-          font-variation-settings: "opsz" 72, "wght" 700;
-          font-weight: 700;
-          font-size: 10.5px;
-          color: #3a220c;
-          letter-spacing: 0.35em;
-          background: rgba(60, 30, 10, 0.09);
-          border: 1px solid rgba(60, 30, 10, 0.4);
-          border-radius: 2px;
-        }
-
-        /* ── moment ───────────────────────────────────────────────────── */
+        /* ── moment ───────────────────────────────────────────────── */
         .moment {
           width: 100%;
           max-width: 640px;
           margin: clamp(4px, 1.5vh, 18px) auto 0;
         }
         .greeting {
-          margin: 0 0 10px;
+          margin: 0 0 12px;
           font-family: var(--cursive);
-          font-size: clamp(20px, 2.4vw, 26px);
+          font-size: clamp(22px, 2.6vw, 28px);
           color: var(--accent);
           line-height: 1;
           letter-spacing: 0.005em;
@@ -425,7 +466,7 @@ export default async function Page() {
           margin: 0;
           font-family: var(--serif);
           font-variation-settings: "opsz" 32, "SOFT" 50, "wght" 400;
-          font-size: clamp(18px, 1.95vw, 22px);
+          font-size: clamp(18px, 2vw, 22px);
           line-height: 1.5;
           color: var(--ink);
           text-wrap: pretty;
@@ -440,8 +481,25 @@ export default async function Page() {
           color: var(--ink-muted);
           text-wrap: pretty;
         }
+        .source {
+          margin: 14px 0 0;
+          font-family: var(--serif);
+          font-style: italic;
+          font-size: 12px;
+          color: var(--ink-faint);
+          letter-spacing: 0.02em;
+        }
+        .source a {
+          text-decoration: none;
+          border-bottom: 1px solid var(--hairline);
+          padding-bottom: 1px;
+        }
+        .source a:hover {
+          color: var(--accent);
+          border-color: var(--accent-soft);
+        }
 
-        /* ── footer ───────────────────────────────────────────────────── */
+        /* ── footer ───────────────────────────────────────────────── */
         .foot {
           margin-top: auto;
           padding-top: 8px;
@@ -451,18 +509,14 @@ export default async function Page() {
           font-size: 12px;
           color: var(--ink-faint);
         }
-        .foot a {
-          text-decoration: none;
-        }
-        .foot a:hover {
-          color: var(--accent);
-        }
+        .foot a { text-decoration: none; }
+        .foot a:hover { color: var(--accent); }
 
-        /* ── mobile: sign becomes a smaller badge overlaid on the photo  */
+        /* ── mobile: stack, sign smaller beside Polaroid bottom ───── */
         @media (max-width: 720px) {
           main {
             gap: 18px;
-            padding: 16px 14px 24px;
+            padding: 18px 14px 28px;
           }
           .stage {
             display: block;
@@ -470,26 +524,25 @@ export default async function Page() {
           }
           .sign {
             position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 140px;
+            bottom: -8px;
+            right: -4px;
+            width: 150px;
             margin: 0;
-            transform: rotate(-2deg);
             z-index: 2;
           }
-          .panel {
-            padding: 12px 12px 10px;
-          }
-          .sign .place .city { font-size: 15px; letter-spacing: 0.1em; }
-          .sign .place .region,
-          .sign .place .country { font-size: 9px; letter-spacing: 0.14em; }
-          .sign .time .clock { font-size: 22px; }
-          .sign .time .day { font-size: 10px; }
-          .sign .prices .row { font-size: 11.5px; }
-          .sign .prices .usd { font-size: 9px; }
-          .sign .currency-stamp { font-size: 9.5px; padding: 3px 8px; letter-spacing: 0.3em; }
-          .sign .brand { font-size: 10px; }
-          .sign .dots { font-size: 9px; margin: 6px 0 4px; }
+          .panel { padding: 12px 12px 10px; }
+          .sign .head .city { font-size: 13px; }
+          .sign .head .clock { font-size: 12.5px; }
+          .sign .head .dot { font-size: 13px; }
+          .sign .prices .row { gap: 8px; }
+          .sign .prices .label { font-size: 16px; min-width: 36px; }
+          .sign .prices .value { font-size: 20px; min-width: 52px; }
+          .sign .footline .currency { font-size: 9.5px; letter-spacing: 0.2em; padding: 2px 6px; }
+          .sign .footline .usd { font-size: 9px; }
+          .sign .topline { font-size: 10px; }
+          .postmark-slot { top: 8px; right: 8px; }
+          .polaroid { padding-bottom: 36px; }
+          .moment { margin-top: 120px; }
         }
       `}</style>
     </>

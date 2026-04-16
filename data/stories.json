@@ -12,10 +12,12 @@
     "english_text": "The bakery on Rua da Bica ran out of sliced bread at two in the afternoon. The baker said the flour delivery was late because of roadwork on the avenue.",
     "currency_code": "EUR",
     "currency_symbol": "€",
-    "milk_price_local": 1.10,
-    "eggs_price_local": 3.00,
-    "milk_price_usd": 1.20,
-    "eggs_price_usd": 3.27
+    "milk_price_local": 1.1,
+    "eggs_price_local": 3,
+    "milk_price_usd": 1.2,
+    "eggs_price_usd": 3.27,
+    "lat": 38.72,
+    "lng": -9.14
   },
   {
     "id": "kyoto-001",
@@ -32,8 +34,10 @@
     "currency_symbol": "¥",
     "milk_price_local": 260,
     "eggs_price_local": 320,
-    "milk_price_usd": 1.70,
-    "eggs_price_usd": 2.10
+    "milk_price_usd": 1.7,
+    "eggs_price_usd": 2.1,
+    "lat": 35.01,
+    "lng": 135.77
   },
   {
     "id": "reykjavik-001",
@@ -51,7 +55,9 @@
     "milk_price_local": 280,
     "eggs_price_local": 950,
     "milk_price_usd": 2.05,
-    "eggs_price_usd": 6.95
+    "eggs_price_usd": 6.95,
+    "lat": 64.15,
+    "lng": -21.93
   },
   {
     "id": "oaxaca-001",
@@ -66,10 +72,12 @@
     "english_text": "The Benito Juárez market closed an hour early today because one of the quesillo sellers went to her granddaughter's baptism.",
     "currency_code": "MXN",
     "currency_symbol": "$",
-    "milk_price_local": 28.50,
-    "eggs_price_local": 78.00,
+    "milk_price_local": 28.5,
+    "eggs_price_local": 78,
     "milk_price_usd": 1.42,
-    "eggs_price_usd": 3.88
+    "eggs_price_usd": 3.88,
+    "lat": 17.06,
+    "lng": -96.72
   },
   {
     "id": "tallinn-001",
@@ -85,9 +93,11 @@
     "currency_code": "EUR",
     "currency_symbol": "€",
     "milk_price_local": 1.05,
-    "eggs_price_local": 2.40,
+    "eggs_price_local": 2.4,
     "milk_price_usd": 1.14,
-    "eggs_price_usd": 2.62
+    "eggs_price_usd": 2.62,
+    "lat": 59.44,
+    "lng": 24.75
   },
   {
     "id": "hanoi-001",
@@ -105,7 +115,9 @@
     "milk_price_local": 35000,
     "eggs_price_local": 42000,
     "milk_price_usd": 1.37,
-    "eggs_price_usd": 1.65
+    "eggs_price_usd": 1.65,
+    "lat": 21.03,
+    "lng": 105.85
   },
   {
     "id": "porto-001",
@@ -123,7 +135,9 @@
     "milk_price_local": 1.08,
     "eggs_price_local": 2.95,
     "milk_price_usd": 1.18,
-    "eggs_price_usd": 3.22
+    "eggs_price_usd": 3.22,
+    "lat": 41.15,
+    "lng": -8.61
   },
   {
     "id": "krakow-001",
@@ -138,10 +152,12 @@
     "english_text": "In Kazimierz, the florist on Miodowa street sold the last tulips at eleven in the morning. She said everyone was buying yellow ones today.",
     "currency_code": "PLN",
     "currency_symbol": "zł",
-    "milk_price_local": 3.80,
-    "eggs_price_local": 12.50,
+    "milk_price_local": 3.8,
+    "eggs_price_local": 12.5,
     "milk_price_usd": 0.95,
-    "eggs_price_usd": 3.12
+    "eggs_price_usd": 3.12,
+    "lat": 50.06,
+    "lng": 19.94
   },
   {
     "id": "seoul-001",
@@ -159,7 +175,9 @@
     "milk_price_local": 3200,
     "eggs_price_local": 5800,
     "milk_price_usd": 2.35,
-    "eggs_price_usd": 4.26
+    "eggs_price_usd": 4.26,
+    "lat": 37.57,
+    "lng": 126.98
   },
   {
     "id": "istanbul-001",
@@ -174,10 +192,12 @@
     "english_text": "The fishmongers in Kadıköy packed up their stalls before noon today. The wind at sea was too rough this morning, and the boats came back early.",
     "currency_code": "TRY",
     "currency_symbol": "₺",
-    "milk_price_local": 32.00,
-    "eggs_price_local": 85.00,
+    "milk_price_local": 32,
+    "eggs_price_local": 85,
     "milk_price_usd": 0.92,
-    "eggs_price_usd": 2.44
+    "eggs_price_usd": 2.44,
+    "lat": 41.01,
+    "lng": 28.97
   },
   {
     "id": "helsinki-001",
@@ -193,9 +213,11 @@
     "currency_code": "EUR",
     "currency_symbol": "€",
     "milk_price_local": 1.25,
-    "eggs_price_local": 3.60,
+    "eggs_price_local": 3.6,
     "milk_price_usd": 1.36,
-    "eggs_price_usd": 3.92
+    "eggs_price_usd": 3.92,
+    "lat": 60.17,
+    "lng": 24.94
   },
   {
     "id": "marseille-001",
@@ -211,9 +233,11 @@
     "currency_code": "EUR",
     "currency_symbol": "€",
     "milk_price_local": 1.15,
-    "eggs_price_local": 3.40,
+    "eggs_price_local": 3.4,
     "milk_price_usd": 1.25,
-    "eggs_price_usd": 3.70
+    "eggs_price_usd": 3.7,
+    "lat": 43.3,
+    "lng": 5.37
   },
   {
     "id": "thessaloniki-001",
@@ -229,9 +253,11 @@
     "currency_code": "EUR",
     "currency_symbol": "€",
     "milk_price_local": 1.45,
-    "eggs_price_local": 3.80,
+    "eggs_price_local": 3.8,
     "milk_price_usd": 1.58,
-    "eggs_price_usd": 4.14
+    "eggs_price_usd": 4.14,
+    "lat": 40.64,
+    "lng": 22.94
   },
   {
     "id": "hoian-001",
@@ -249,7 +275,9 @@
     "milk_price_local": 34000,
     "eggs_price_local": 40000,
     "milk_price_usd": 1.33,
-    "eggs_price_usd": 1.57
+    "eggs_price_usd": 1.57,
+    "lat": 15.88,
+    "lng": 108.33
   },
   {
     "id": "cusco-001",
@@ -264,10 +292,12 @@
     "english_text": "At the San Pedro market, a seller of chuta bread ran out before nine. She said there were a lot of orders for baptisms today.",
     "currency_code": "PEN",
     "currency_symbol": "S/",
-    "milk_price_local": 4.50,
-    "eggs_price_local": 10.00,
-    "milk_price_usd": 1.20,
-    "eggs_price_usd": 2.68
+    "milk_price_local": 4.5,
+    "eggs_price_local": 10,
+    "milk_price_usd": 1.2,
+    "eggs_price_usd": 2.68,
+    "lat": -13.53,
+    "lng": -71.97
   },
   {
     "id": "bruges-001",
@@ -282,10 +312,12 @@
     "english_text": "On the Markt a horse and carriage stood still for ten minutes. The driver waited until a child had picked up his balloon from the cobblestones.",
     "currency_code": "EUR",
     "currency_symbol": "€",
-    "milk_price_local": 1.20,
-    "eggs_price_local": 3.30,
+    "milk_price_local": 1.2,
+    "eggs_price_local": 3.3,
     "milk_price_usd": 1.31,
-    "eggs_price_usd": 3.60
+    "eggs_price_usd": 3.6,
+    "lat": 51.21,
+    "lng": 3.22
   },
   {
     "id": "galway-001",
@@ -301,9 +333,11 @@
     "currency_code": "EUR",
     "currency_symbol": "€",
     "milk_price_local": 1.35,
-    "eggs_price_local": 3.90,
+    "eggs_price_local": 3.9,
     "milk_price_usd": 1.47,
-    "eggs_price_usd": 4.25
+    "eggs_price_usd": 4.25,
+    "lat": 53.27,
+    "lng": -9.05
   },
   {
     "id": "tbilisi-001",
@@ -318,10 +352,12 @@
     "english_text": "A small bakery in the Vera district opened late this morning. The baker said the power had gone out last night and the dough didn't rise well.",
     "currency_code": "GEL",
     "currency_symbol": "₾",
-    "milk_price_local": 3.40,
-    "eggs_price_local": 8.50,
+    "milk_price_local": 3.4,
+    "eggs_price_local": 8.5,
     "milk_price_usd": 1.26,
-    "eggs_price_usd": 3.15
+    "eggs_price_usd": 3.15,
+    "lat": 41.72,
+    "lng": 44.78
   },
   {
     "id": "colombo-001",
@@ -339,7 +375,9 @@
     "milk_price_local": 420,
     "eggs_price_local": 540,
     "milk_price_usd": 1.42,
-    "eggs_price_usd": 1.82
+    "eggs_price_usd": 1.82,
+    "lat": 6.93,
+    "lng": 79.86
   },
   {
     "id": "valparaiso-001",
@@ -357,7 +395,9 @@
     "milk_price_local": 1150,
     "eggs_price_local": 3200,
     "milk_price_usd": 1.22,
-    "eggs_price_usd": 3.40
+    "eggs_price_usd": 3.4,
+    "lat": -33.04,
+    "lng": -71.62
   },
   {
     "id": "sarajevo-001",
@@ -372,10 +412,12 @@
     "english_text": "A ćevabdžinica in Baščaršija was closed until ten this morning. The owner said he had run out of firewood for the grill last night.",
     "currency_code": "BAM",
     "currency_symbol": "KM",
-    "milk_price_local": 2.10,
-    "eggs_price_local": 5.40,
+    "milk_price_local": 2.1,
+    "eggs_price_local": 5.4,
     "milk_price_usd": 1.16,
-    "eggs_price_usd": 2.98
+    "eggs_price_usd": 2.98,
+    "lat": 43.86,
+    "lng": 18.41
   },
   {
     "id": "ljubljana-001",
@@ -391,9 +433,11 @@
     "currency_code": "EUR",
     "currency_symbol": "€",
     "milk_price_local": 1.15,
-    "eggs_price_local": 3.20,
+    "eggs_price_local": 3.2,
     "milk_price_usd": 1.25,
-    "eggs_price_usd": 3.49
+    "eggs_price_usd": 3.49,
+    "lat": 46.06,
+    "lng": 14.51
   },
   {
     "id": "bergen-001",
@@ -408,10 +452,12 @@
     "english_text": "On Bryggen it rained so hard that a fishmonger packed up his cod before one o'clock. He said the tourists had hidden themselves in the bookshop.",
     "currency_code": "NOK",
     "currency_symbol": "kr",
-    "milk_price_local": 22.00,
-    "eggs_price_local": 55.00,
+    "milk_price_local": 22,
+    "eggs_price_local": 55,
     "milk_price_usd": 2.05,
-    "eggs_price_usd": 5.13
+    "eggs_price_usd": 5.13,
+    "lat": 60.39,
+    "lng": 5.32
   },
   {
     "id": "kanazawa-001",
@@ -429,7 +475,9 @@
     "milk_price_local": 255,
     "eggs_price_local": 310,
     "milk_price_usd": 1.67,
-    "eggs_price_usd": 2.03
+    "eggs_price_usd": 2.03,
+    "lat": 36.56,
+    "lng": 136.66
   },
   {
     "id": "penang-001",
@@ -444,10 +492,12 @@
     "english_text": "A coffee shop on Lebuh Armenian closed early this afternoon because the owner had run out of toast. He said his son had finished it all.",
     "currency_code": "MYR",
     "currency_symbol": "RM",
-    "milk_price_local": 7.20,
-    "eggs_price_local": 14.50,
+    "milk_price_local": 7.2,
+    "eggs_price_local": 14.5,
     "milk_price_usd": 1.62,
-    "eggs_price_usd": 3.26
+    "eggs_price_usd": 3.26,
+    "lat": 5.41,
+    "lng": 100.33
   },
   {
     "id": "montevideo-001",
@@ -462,10 +512,12 @@
     "english_text": "At the Tristán Narvaja fair, a used records stall closed early. The seller said he sold the only Zitarrosa on vinyl at eleven.",
     "currency_code": "UYU",
     "currency_symbol": "$",
-    "milk_price_local": 52.00,
-    "eggs_price_local": 180.00,
-    "milk_price_usd": 1.30,
-    "eggs_price_usd": 4.50
+    "milk_price_local": 52,
+    "eggs_price_local": 180,
+    "milk_price_usd": 1.3,
+    "eggs_price_usd": 4.5,
+    "lat": -34.9,
+    "lng": -56.19
   },
   {
     "id": "bologna-001",
@@ -480,10 +532,12 @@
     "english_text": "On via Pescherie Vecchie a small deli ran out of thirty-month-aged parmigiano before noon. The owner said a Japanese family bought a whole kilo.",
     "currency_code": "EUR",
     "currency_symbol": "€",
-    "milk_price_local": 1.40,
-    "eggs_price_local": 3.50,
+    "milk_price_local": 1.4,
+    "eggs_price_local": 3.5,
     "milk_price_usd": 1.52,
-    "eggs_price_usd": 3.81
+    "eggs_price_usd": 3.81,
+    "lat": 44.49,
+    "lng": 11.34
   },
   {
     "id": "antwerp-001",
@@ -501,7 +555,9 @@
     "milk_price_local": 1.18,
     "eggs_price_local": 3.35,
     "milk_price_usd": 1.28,
-    "eggs_price_usd": 3.65
+    "eggs_price_usd": 3.65,
+    "lat": 51.22,
+    "lng": 4.4
   },
   {
     "id": "chiangmai-001",
@@ -516,10 +572,12 @@
     "english_text": "A small khao soi shop near Tha Phae Gate closed earlier than usual today. The owner said the oyster sauce had run out and the market had sold out too.",
     "currency_code": "THB",
     "currency_symbol": "฿",
-    "milk_price_local": 52.00,
-    "eggs_price_local": 68.00,
+    "milk_price_local": 52,
+    "eggs_price_local": 68,
     "milk_price_usd": 1.48,
-    "eggs_price_usd": 1.93
+    "eggs_price_usd": 1.93,
+    "lat": 18.79,
+    "lng": 98.99
   },
   {
     "id": "lviv-001",
@@ -534,10 +592,12 @@
     "english_text": "At the Rynok square this morning an old woman was selling dried apples. By ten she had sold everything and gone home.",
     "currency_code": "UAH",
     "currency_symbol": "₴",
-    "milk_price_local": 38.00,
-    "eggs_price_local": 72.00,
+    "milk_price_local": 38,
+    "eggs_price_local": 72,
     "milk_price_usd": 0.93,
-    "eggs_price_usd": 1.77
+    "eggs_price_usd": 1.77,
+    "lat": 49.84,
+    "lng": 24.03
   },
   {
     "id": "timisoara-001",
@@ -552,10 +612,12 @@
     "english_text": "In Piața Unirii, a flower seller closed her stall early because she went to pick up her child from kindergarten. She gave the leftover chrysanthemums to her neighbours.",
     "currency_code": "RON",
     "currency_symbol": "lei",
-    "milk_price_local": 6.50,
-    "eggs_price_local": 18.00,
+    "milk_price_local": 6.5,
+    "eggs_price_local": 18,
     "milk_price_usd": 1.41,
-    "eggs_price_usd": 3.91
+    "eggs_price_usd": 3.91,
+    "lat": 45.75,
+    "lng": 21.23
   },
   {
     "id": "salvador-001",
@@ -570,10 +632,12 @@
     "english_text": "In Pelourinho, an acarajé vendor left earlier today because the wind knocked down her stall's awning. She said she'll be back tomorrow.",
     "currency_code": "BRL",
     "currency_symbol": "R$",
-    "milk_price_local": 6.80,
-    "eggs_price_local": 14.00,
+    "milk_price_local": 6.8,
+    "eggs_price_local": 14,
     "milk_price_usd": 1.38,
-    "eggs_price_usd": 2.84
+    "eggs_price_usd": 2.84,
+    "lat": -12.97,
+    "lng": -38.51
   },
   {
     "id": "vilnius-001",
@@ -591,7 +655,9 @@
     "milk_price_local": 1.12,
     "eggs_price_local": 2.85,
     "milk_price_usd": 1.22,
-    "eggs_price_usd": 3.10
+    "eggs_price_usd": 3.1,
+    "lat": 54.69,
+    "lng": 25.28
   },
   {
     "id": "nazareth-001",
@@ -606,10 +672,12 @@
     "english_text": "In the old market of Nazareth, a sesame-bread seller closed his shop before noon. He said the bread had run out and another seller in the market gave him a cup of cardamom coffee.",
     "currency_code": "ILS",
     "currency_symbol": "₪",
-    "milk_price_local": 6.20,
-    "eggs_price_local": 16.50,
+    "milk_price_local": 6.2,
+    "eggs_price_local": 16.5,
     "milk_price_usd": 1.68,
-    "eggs_price_usd": 4.47
+    "eggs_price_usd": 4.47,
+    "lat": 32.7,
+    "lng": 35.3
   },
   {
     "id": "fez-001",
@@ -624,10 +692,12 @@
     "english_text": "In Derb Talaa Seghira, the neighbourhood oven closed its door at two in the afternoon. He said there was only one loaf left, and he gave it to the cat by the entrance.",
     "currency_code": "MAD",
     "currency_symbol": "DH",
-    "milk_price_local": 8.50,
-    "eggs_price_local": 18.00,
+    "milk_price_local": 8.5,
+    "eggs_price_local": 18,
     "milk_price_usd": 0.85,
-    "eggs_price_usd": 1.80
+    "eggs_price_usd": 1.8,
+    "lat": 34.03,
+    "lng": -4.99
   },
   {
     "id": "kandy-001",
@@ -645,7 +715,9 @@
     "milk_price_local": 410,
     "eggs_price_local": 530,
     "milk_price_usd": 1.39,
-    "eggs_price_usd": 1.79
+    "eggs_price_usd": 1.79,
+    "lat": 7.29,
+    "lng": 80.64
   },
   {
     "id": "goa-001",
@@ -660,10 +732,12 @@
     "english_text": "",
     "currency_code": "INR",
     "currency_symbol": "₹",
-    "milk_price_local": 62.00,
-    "eggs_price_local": 84.00,
+    "milk_price_local": 62,
+    "eggs_price_local": 84,
     "milk_price_usd": 0.74,
-    "eggs_price_usd": 1.01
+    "eggs_price_usd": 1.01,
+    "lat": 15.49,
+    "lng": 73.83
   },
   {
     "id": "hobart-001",
@@ -678,10 +752,12 @@
     "english_text": "",
     "currency_code": "AUD",
     "currency_symbol": "A$",
-    "milk_price_local": 2.20,
-    "eggs_price_local": 6.50,
+    "milk_price_local": 2.2,
+    "eggs_price_local": 6.5,
     "milk_price_usd": 1.45,
-    "eggs_price_usd": 4.29
+    "eggs_price_usd": 4.29,
+    "lat": -42.88,
+    "lng": 147.33
   },
   {
     "id": "valletta-001",
@@ -697,9 +773,11 @@
     "currency_code": "EUR",
     "currency_symbol": "€",
     "milk_price_local": 1.05,
-    "eggs_price_local": 3.10,
+    "eggs_price_local": 3.1,
     "milk_price_usd": 1.14,
-    "eggs_price_usd": 3.38
+    "eggs_price_usd": 3.38,
+    "lat": 35.9,
+    "lng": 14.51
   },
   {
     "id": "podgorica-001",
@@ -714,10 +792,12 @@
     "english_text": "At the green market, a grandmother from Zeta sold all her grapes early. She said there's less this autumn, but it's sweeter.",
     "currency_code": "EUR",
     "currency_symbol": "€",
-    "milk_price_local": 1.10,
-    "eggs_price_local": 2.80,
-    "milk_price_usd": 1.20,
-    "eggs_price_usd": 3.05
+    "milk_price_local": 1.1,
+    "eggs_price_local": 2.8,
+    "milk_price_usd": 1.2,
+    "eggs_price_usd": 3.05,
+    "lat": 42.44,
+    "lng": 19.26
   },
   {
     "id": "yerevan-001",
@@ -735,7 +815,9 @@
     "milk_price_local": 520,
     "eggs_price_local": 1400,
     "milk_price_usd": 1.32,
-    "eggs_price_usd": 3.56
+    "eggs_price_usd": 3.56,
+    "lat": 40.18,
+    "lng": 44.51
   },
   {
     "id": "batumi-001",
@@ -750,10 +832,12 @@
     "english_text": "A late-night shop on the boulevard opened a little late this morning. The seller said the fog had come in from the sea last night and he had gone to bed late.",
     "currency_code": "GEL",
     "currency_symbol": "₾",
-    "milk_price_local": 3.20,
-    "eggs_price_local": 8.00,
+    "milk_price_local": 3.2,
+    "eggs_price_local": 8,
     "milk_price_usd": 1.19,
-    "eggs_price_usd": 2.96
+    "eggs_price_usd": 2.96,
+    "lat": 41.64,
+    "lng": 41.64
   },
   {
     "id": "odense-001",
@@ -768,10 +852,12 @@
     "english_text": "On Vestergade an old cheese shop closed an hour early. The owner took his dog to the vet for a yearly check-up.",
     "currency_code": "DKK",
     "currency_symbol": "kr",
-    "milk_price_local": 10.50,
-    "eggs_price_local": 28.00,
+    "milk_price_local": 10.5,
+    "eggs_price_local": 28,
     "milk_price_usd": 1.49,
-    "eggs_price_usd": 3.97
+    "eggs_price_usd": 3.97,
+    "lat": 55.4,
+    "lng": 10.39
   },
   {
     "id": "ghent-001",
@@ -789,7 +875,9 @@
     "milk_price_local": 1.16,
     "eggs_price_local": 3.25,
     "milk_price_usd": 1.26,
-    "eggs_price_usd": 3.54
+    "eggs_price_usd": 3.54,
+    "lat": 51.05,
+    "lng": 3.73
   },
   {
     "id": "ulaanbaatar-001",
@@ -807,7 +895,9 @@
     "milk_price_local": 3800,
     "eggs_price_local": 9500,
     "milk_price_usd": 1.12,
-    "eggs_price_usd": 2.80
+    "eggs_price_usd": 2.8,
+    "lat": 47.89,
+    "lng": 106.91
   },
   {
     "id": "nuuk-001",
@@ -822,10 +912,12 @@
     "english_text": "At the Brugseni shop in Greenland the fish was all gone by evening today. The shopkeeper said everyone had been especially eager to buy narwhal.",
     "currency_code": "DKK",
     "currency_symbol": "kr",
-    "milk_price_local": 18.00,
-    "eggs_price_local": 42.00,
+    "milk_price_local": 18,
+    "eggs_price_local": 42,
     "milk_price_usd": 2.55,
-    "eggs_price_usd": 5.95
+    "eggs_price_usd": 5.95,
+    "lat": 64.18,
+    "lng": -51.73
   },
   {
     "id": "suzhou-001",
@@ -840,10 +932,12 @@
     "english_text": "A small noodle shop on Pingjiang Road sold out of soup noodles by ten this morning. The owner said last night's rain had made a lot of people want something warm.",
     "currency_code": "CNY",
     "currency_symbol": "¥",
-    "milk_price_local": 13.00,
-    "eggs_price_local": 15.00,
+    "milk_price_local": 13,
+    "eggs_price_local": 15,
     "milk_price_usd": 1.82,
-    "eggs_price_usd": 2.10
+    "eggs_price_usd": 2.1,
+    "lat": 31.3,
+    "lng": 120.59
   },
   {
     "id": "gdansk-001",
@@ -858,10 +952,12 @@
     "english_text": "On the Long Market a small amber shop opened half an hour late today. The owner said the stormy sea had washed up a lot of amber and he had to collect it in the morning.",
     "currency_code": "PLN",
     "currency_symbol": "zł",
-    "milk_price_local": 3.60,
-    "eggs_price_local": 11.90,
-    "milk_price_usd": 0.90,
-    "eggs_price_usd": 2.97
+    "milk_price_local": 3.6,
+    "eggs_price_local": 11.9,
+    "milk_price_usd": 0.9,
+    "eggs_price_usd": 2.97,
+    "lat": 54.35,
+    "lng": 18.65
   },
   {
     "id": "graz-001",
@@ -877,9 +973,11 @@
     "currency_code": "EUR",
     "currency_symbol": "€",
     "milk_price_local": 1.28,
-    "eggs_price_local": 3.70,
+    "eggs_price_local": 3.7,
     "milk_price_usd": 1.39,
-    "eggs_price_usd": 4.03
+    "eggs_price_usd": 4.03,
+    "lat": 47.07,
+    "lng": 15.44
   },
   {
     "id": "bratislava-001",
@@ -894,10 +992,12 @@
     "english_text": "On Obchodná Street a small café closed early this afternoon. The owner went to help her neighbour take down the curtains before washing.",
     "currency_code": "EUR",
     "currency_symbol": "€",
-    "milk_price_local": 1.20,
-    "eggs_price_local": 3.10,
+    "milk_price_local": 1.2,
+    "eggs_price_local": 3.1,
     "milk_price_usd": 1.31,
-    "eggs_price_usd": 3.38
+    "eggs_price_usd": 3.38,
+    "lat": 48.15,
+    "lng": 17.11
   },
   {
     "id": "yaounde-001",
@@ -915,7 +1015,9 @@
     "milk_price_local": 750,
     "eggs_price_local": 2000,
     "milk_price_usd": 1.23,
-    "eggs_price_usd": 3.28
+    "eggs_price_usd": 3.28,
+    "lat": 3.85,
+    "lng": 11.5
   },
   {
     "id": "pondicherry-001",
@@ -930,10 +1032,12 @@
     "english_text": "A small flower shop on Mission Street closed early this afternoon. The jasmine had run out by ten in the morning.",
     "currency_code": "INR",
     "currency_symbol": "₹",
-    "milk_price_local": 60.00,
-    "eggs_price_local": 82.00,
+    "milk_price_local": 60,
+    "eggs_price_local": 82,
     "milk_price_usd": 0.72,
-    "eggs_price_usd": 0.98
+    "eggs_price_usd": 0.98,
+    "lat": 11.93,
+    "lng": 79.83
   },
   {
     "id": "asuncion-001",
@@ -951,7 +1055,9 @@
     "milk_price_local": 8500,
     "eggs_price_local": 21000,
     "milk_price_usd": 1.16,
-    "eggs_price_usd": 2.87
+    "eggs_price_usd": 2.87,
+    "lat": -25.28,
+    "lng": -57.63
   },
   {
     "id": "tirana-001",
@@ -969,7 +1075,9 @@
     "milk_price_local": 140,
     "eggs_price_local": 360,
     "milk_price_usd": 1.47,
-    "eggs_price_usd": 3.79
+    "eggs_price_usd": 3.79,
+    "lat": 41.33,
+    "lng": 19.82
   },
   {
     "id": "kazan-001",
@@ -984,10 +1092,12 @@
     "english_text": "On Bauman Street a small bakery sold out of echpochmak early today. The clerk said a big tour group had come in from Yelabuga in the morning.",
     "currency_code": "RUB",
     "currency_symbol": "₽",
-    "milk_price_local": 95.00,
-    "eggs_price_local": 130.00,
+    "milk_price_local": 95,
+    "eggs_price_local": 130,
     "milk_price_usd": 1.02,
-    "eggs_price_usd": 1.40
+    "eggs_price_usd": 1.4,
+    "lat": 55.83,
+    "lng": 49.12
   },
   {
     "id": "limerick-001",
@@ -1002,10 +1112,12 @@
     "english_text": "",
     "currency_code": "EUR",
     "currency_symbol": "€",
-    "milk_price_local": 1.40,
+    "milk_price_local": 1.4,
     "eggs_price_local": 3.85,
     "milk_price_usd": 1.53,
-    "eggs_price_usd": 4.20
+    "eggs_price_usd": 4.2,
+    "lat": 52.67,
+    "lng": -8.63
   },
   {
     "id": "astana-001",
@@ -1023,7 +1135,9 @@
     "milk_price_local": 520,
     "eggs_price_local": 780,
     "milk_price_usd": 1.08,
-    "eggs_price_usd": 1.62
+    "eggs_price_usd": 1.62,
+    "lat": 51.17,
+    "lng": 71.45
   },
   {
     "id": "sansebastian-001",
@@ -1039,9 +1153,11 @@
     "currency_code": "EUR",
     "currency_symbol": "€",
     "milk_price_local": 1.18,
-    "eggs_price_local": 3.50,
+    "eggs_price_local": 3.5,
     "milk_price_usd": 1.29,
-    "eggs_price_usd": 3.81
+    "eggs_price_usd": 3.81,
+    "lat": 43.32,
+    "lng": -1.99
   },
   {
     "id": "invercargill-001",
@@ -1056,10 +1172,12 @@
     "english_text": "",
     "currency_code": "NZD",
     "currency_symbol": "NZ$",
-    "milk_price_local": 3.90,
-    "eggs_price_local": 11.50,
+    "milk_price_local": 3.9,
+    "eggs_price_local": 11.5,
     "milk_price_usd": 2.32,
-    "eggs_price_usd": 6.85
+    "eggs_price_usd": 6.85,
+    "lat": -46.41,
+    "lng": 168.36
   },
   {
     "id": "skopje-001",
@@ -1074,9 +1192,11 @@
     "english_text": "At the Old Bazaar a börek shop ran out of cheese before noon. The owner said a large group of schoolchildren had come in on a trip that morning.",
     "currency_code": "MKD",
     "currency_symbol": "ден",
-    "milk_price_local": 72.00,
-    "eggs_price_local": 180.00,
+    "milk_price_local": 72,
+    "eggs_price_local": 180,
     "milk_price_usd": 1.25,
-    "eggs_price_usd": 3.12
+    "eggs_price_usd": 3.12,
+    "lat": 41.99,
+    "lng": 21.43
   }
 ]

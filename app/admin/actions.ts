@@ -60,6 +60,8 @@ export async function ingestAction(formData: FormData): Promise<void> {
         city              = ${result.city},
         timezone          = ${result.timezone},
         local_hour        = ${result.local_hour},
+        lat               = ${result.lat},
+        lng               = ${result.lng},
         original_language = ${result.original_language},
         original_text     = ${result.original_text},
         english_text      = ${result.english_text},
@@ -143,6 +145,8 @@ export async function approveAction(formData: FormData): Promise<void> {
   const sql = requireSql();
 
   // Read with optional edits from the approval form (all fields honoured).
+  const latRaw = formData.get("lat");
+  const lngRaw = formData.get("lng");
   const edited = {
     photo_url: String(formData.get("photo_url") ?? "").trim(),
     country: String(formData.get("country") ?? "").trim(),
@@ -150,6 +154,8 @@ export async function approveAction(formData: FormData): Promise<void> {
     city: String(formData.get("city") ?? "").trim(),
     timezone: String(formData.get("timezone") ?? "").trim(),
     local_hour: Number(formData.get("local_hour") ?? 12),
+    lat: latRaw !== null && latRaw !== "" ? Number(latRaw) : null,
+    lng: lngRaw !== null && lngRaw !== "" ? Number(lngRaw) : null,
     original_language: String(formData.get("original_language") ?? "").trim(),
     original_text: String(formData.get("original_text") ?? "").trim(),
     english_text: String(formData.get("english_text") ?? "").trim(),
@@ -175,7 +181,7 @@ export async function approveAction(formData: FormData): Promise<void> {
       currency_code, currency_symbol,
       milk_price_local, eggs_price_local,
       milk_price_usd, eggs_price_usd,
-      source_url
+      source_url, lat, lng
     ) values (
       ${id},
       ${edited.photo_url || null},
@@ -193,7 +199,9 @@ export async function approveAction(formData: FormData): Promise<void> {
       ${edited.eggs_price_local},
       ${edited.milk_price_usd},
       ${edited.eggs_price_usd},
-      ${edited.source_url || null}
+      ${edited.source_url || null},
+      ${edited.lat},
+      ${edited.lng}
     )
   `;
 
@@ -210,6 +218,8 @@ export async function approveAction(formData: FormData): Promise<void> {
         city=${edited.city},
         timezone=${edited.timezone},
         local_hour=${edited.local_hour},
+        lat=${edited.lat},
+        lng=${edited.lng},
         original_language=${edited.original_language},
         original_text=${edited.original_text},
         english_text=${edited.english_text},

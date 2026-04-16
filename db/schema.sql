@@ -28,8 +28,14 @@ create table if not exists stories (
   published_at       timestamptz not null default now(),
   selected_hour      bigint,                       -- optional pinned slot
   source_url         text,
-  source_name        text
+  source_name        text,
+  lat                numeric(9,5),
+  lng                numeric(9,5)
 );
+
+-- Migrations for existing databases: add lat/lng if missing.
+alter table stories add column if not exists lat numeric(9,5);
+alter table stories add column if not exists lng numeric(9,5);
 
 create index if not exists stories_published_at_idx on stories (published_at desc);
 create index if not exists stories_selected_hour_idx on stories (selected_hour) where selected_hour is not null;
@@ -73,8 +79,13 @@ create table if not exists moderation_queue (
   eggs_price_usd         numeric(10,4),
 
   rejected_reason        text,
-  published_as_id        text references stories(id) on delete set null
+  published_as_id        text references stories(id) on delete set null,
+  lat                    numeric(9,5),
+  lng                    numeric(9,5)
 );
+
+alter table moderation_queue add column if not exists lat numeric(9,5);
+alter table moderation_queue add column if not exists lng numeric(9,5);
 
 create index if not exists queue_status_created_idx
   on moderation_queue (status, created_at desc);

@@ -1,9 +1,9 @@
 :root {
   /* Paper, ink, and one warm accent (terracotta). Trader Joe's rule:
      mostly cream, one accent, used sparingly. */
-  --bg: #efe4cb;
-  --bg-warm: #f5ecd6;
-  --bg-shadow: #ddcfb0;
+  --bg: #ebdcbc;
+  --bg-warm: #f3e7c8;
+  --bg-shadow: #d6c29f;
   --ink: #221b12;
   --ink-soft: #3a2d1e;
   --ink-muted: #6b5d45;
@@ -36,6 +36,7 @@
     "Noto Serif Tamil", "Noto Serif Sinhala",
     serif;
   --cursive: var(--font-caveat), "Brush Script MT", cursive;
+  --chalk: var(--font-caveat-brush), "Marker Felt", "Chalkduster", "Comic Sans MS", cursive;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }

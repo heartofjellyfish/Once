@@ -37,6 +37,7 @@ WHAT TO OUTPUT:
   - city, region, country: the precise location.
   - timezone: the IANA timezone for that city (e.g. "Europe/Lisbon", "Asia/Tokyo", "America/Mexico_City").
   - local_hour (0-23): the hour of day the moment occurred. Infer from phrasing — "this morning" ≈ 9, "before noon" ≈ 11, "this afternoon" ≈ 14–15, "this evening" ≈ 18. If an explicit clock time is given, use it. If truly unclear, use 12.
+  - lat, lng: the approximate latitude and longitude of the city in degrees (-90..90 / -180..180). Two decimals is enough precision.
   - original_language: ISO 639-1 code of the location's local language (e.g. "pt" for Portugal, "ja" for Japan, "en" for Ireland).
   - original_text: 1–2 calm sentences, IN THE LOCAL LANGUAGE, in Once's voice. This is the most important field. Never leave it in English when the location speaks another language.
   - english_text: faithful English translation of original_text. If original_language is "en", set english_text to "" (empty string).
@@ -58,6 +59,8 @@ const OUTPUT_SCHEMA = {
     city: { type: "string" },
     timezone: { type: "string" },
     local_hour: { type: "integer", minimum: 0, maximum: 23 },
+    lat: { type: "number", minimum: -90, maximum: 90 },
+    lng: { type: "number", minimum: -180, maximum: 180 },
     original_language: { type: "string" },
     original_text: { type: "string" },
     english_text: { type: "string" },
@@ -76,6 +79,8 @@ const OUTPUT_SCHEMA = {
     "city",
     "timezone",
     "local_hour",
+    "lat",
+    "lng",
     "original_language",
     "original_text",
     "english_text",
@@ -102,6 +107,8 @@ export interface CurateResult {
   city: string;
   timezone: string;
   local_hour: number;
+  lat: number;
+  lng: number;
   original_language: string;
   original_text: string;
   english_text: string;
