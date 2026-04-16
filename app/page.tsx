@@ -56,6 +56,10 @@ export default function Page() {
         </div>
       </dl>
 
+      <footer className="foot">
+        <a href="/about">about</a>
+      </footer>
+
       <style>{`
         main {
           width: 100%;
@@ -64,6 +68,17 @@ export default function Page() {
           display: flex;
           flex-direction: column;
           gap: 28px;
+          opacity: 0;
+          animation: enter 800ms cubic-bezier(0.22, 0.61, 0.36, 1) 80ms forwards;
+        }
+
+        @keyframes enter {
+          from { opacity: 0; transform: translateY(4px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          main { opacity: 1; animation: none; transform: none; }
         }
 
         .photo {
@@ -138,6 +153,20 @@ export default function Page() {
           font-variant-numeric: tabular-nums;
           font-size: 13px;
         }
+
+        .foot {
+          margin-top: 32px;
+          font-family: var(--sans);
+          font-size: 11px;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+          text-align: center;
+        }
+        .foot a {
+          color: var(--ink-faint);
+          text-decoration: none;
+        }
+        .foot a:hover { color: var(--ink-muted); }
 
         @media (min-width: 720px) {
           main {

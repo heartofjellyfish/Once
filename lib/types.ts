@@ -10,6 +10,11 @@ export interface Story {
   original_text: string;
   english_text: string;
 
+  /** IANA timezone for the location, e.g. "Europe/Lisbon". */
+  timezone: string;
+  /** Local hour (0-23) at which the moment took place. */
+  local_hour: number;
+
   currency_code: string;   // ISO 4217
   currency_symbol: string; // €, ¥, kr, ...
 
