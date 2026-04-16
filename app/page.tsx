@@ -5,8 +5,8 @@ import { formatLocal, formatUsd } from "@/lib/format";
 // The page just quietly becomes something else.
 export const revalidate = 3600;
 
-export default function Page() {
-  const s = getCurrentStory();
+export default async function Page() {
+  const s = await getCurrentStory();
   const showTranslation =
     s.original_language !== "en" && s.english_text.trim().length > 0;
 

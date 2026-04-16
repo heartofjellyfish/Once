@@ -7,10 +7,14 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "check:coverage": "node scripts/check-coverage.mjs"
+    "check:coverage": "node scripts/check-coverage.mjs",
+    "db:migrate": "node scripts/db-migrate.mjs",
+    "db:seed": "node scripts/db-seed.mjs"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.0.2",
     "next": "^15.0.3",
+    "openai": "^6.34.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

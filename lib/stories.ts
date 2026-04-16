@@ -1,13 +1,40 @@
 import type { Story } from "./types";
 import data from "@/data/stories.json";
+import { sql } from "./db";
 
 /**
- * Data access seam. Today this reads a curated JSON file.
- * Real ingestion (scraper, CMS, DB) can replace this without
- * touching the view layer.
+ * Data access seam.
+ *
+ * Production: reads from Postgres when DATABASE_URL is set.
+ * Dev / failsafe: reads from data/stories.json otherwise.
+ *
+ * The view layer doesn't care which path is taken.
  */
-export function loadStories(): Story[] {
-  return data as Story[];
+export async function loadStories(): Promise<Story[]> {
+  const s = sql();
+  if (!s) return data as Story[];
+
+  try {
+    const rows = (await s`
+      select
+        id, photo_url, country, region, city, timezone, local_hour,
+        original_language, original_text, english_text,
+        currency_code, currency_symbol,
+        milk_price_local::float8  as milk_price_local,
+        eggs_price_local::float8  as eggs_price_local,
+        milk_price_usd::float8    as milk_price_usd,
+        eggs_price_usd::float8    as eggs_price_usd,
+        published_at, selected_hour
+      from stories
+    `) as unknown as Story[];
+    // If the table is empty (fresh DB, not yet seeded), fall back to JSON
+    // so the page never goes blank.
+    if (rows.length === 0) return data as Story[];
+    return rows;
+  } catch (err) {
+    console.error("[once] loadStories DB error, falling back to JSON:", err);
+    return data as Story[];
+  }
 }
 
 /** Hours since the Unix epoch, in UTC. */
@@ -15,10 +42,7 @@ export function currentHour(now: Date = new Date()): number {
   return Math.floor(now.getTime() / (1000 * 60 * 60));
 }
 
-/**
- * The local hour (0–23) at `now` in the given IANA timezone.
- * Uses Intl, so no library needed.
- */
+/** Local hour (0–23) at `now` in the given IANA timezone. */
 export function localHourIn(timezone: string, now: Date = new Date()): number {
   const fmt = new Intl.DateTimeFormat("en-US", {
     timeZone: timezone,
@@ -26,36 +50,22 @@ export function localHourIn(timezone: string, now: Date = new Date()): number {
     hour12: false
   });
   const part = fmt.formatToParts(now).find((p) => p.type === "hour");
-  // Some locales emit "24" at midnight; normalise.
   return ((Number(part?.value ?? "0") % 24) + 24) % 24;
 }
 
-/**
- * The window (in hours) after a moment took place during which
- * we still consider it "fresh". Wider window = more candidates per
- * UTC hour, but the moment feels less recent. 1 hour exactly would
- * match the spec literally; 1–4 keeps the dataset feasible at this size.
- */
+/** Widest "fresh" window — moment was this many hours ago, locally. */
 const FRESH_WINDOW_HOURS = 4;
 
-/**
- * Pure selection: given a list of stories and a moment in time,
- * return the story to show. Exported so tests/scripts can reason
- * about it without touching the data file.
- */
+/** Pure selection logic — exported so tests/scripts can use it. */
 export function selectStory(stories: Story[], now: Date = new Date()): Story {
   if (stories.length === 0) {
     throw new Error("No stories available");
   }
 
-  // Pinned slot wins, if a curator ever uses it.
   const hour = currentHour(now);
   const pinned = stories.find((s) => s.selected_hour === hour);
   if (pinned) return pinned;
 
-  // "Fresh" stories: the moment took place 1..FRESH_WINDOW_HOURS
-  // hours ago, locally. Sort deterministically by id so the same
-  // hour always picks the same story across replicas.
   const fresh = stories
     .filter((s) => {
       const local = localHourIn(s.timezone, now);
@@ -69,28 +79,23 @@ export function selectStory(stories: Story[], now: Date = new Date()): Story {
     return fresh[idx];
   }
 
-  // Fallback: nothing currently "fresh". Rotate through the full
-  // set so the page always has something to show.
   const idx = ((hour % stories.length) + stories.length) % stories.length;
   return stories[idx];
 }
 
-export function getCurrentStory(now: Date = new Date()): Story {
-  return selectStory(loadStories(), now);
+export async function getCurrentStory(now: Date = new Date()): Promise<Story> {
+  const stories = await loadStories();
+  return selectStory(stories, now);
 }
 
 /** Dev-only: return all stories (for /api/recent). */
-export function getAllStories(): Story[] {
+export async function getAllStories(): Promise<Story[]> {
   return loadStories();
 }
 
-/**
- * Diagnostic: how many stories are "fresh" at each UTC hour of a
- * representative day. Used by scripts/check-coverage.mjs to catch
- * dataset gaps before they ship.
- */
+/** Diagnostic for scripts/check-coverage.mjs and admin. */
 export function freshnessByUtcHour(
-  stories: Story[] = loadStories(),
+  stories: Story[],
   baseDate: Date = new Date(Date.UTC(2026, 0, 15, 0, 0, 0))
 ): Record<number, number> {
   const out: Record<number, number> = {};

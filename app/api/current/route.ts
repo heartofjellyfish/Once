@@ -4,6 +4,6 @@ import { getCurrentStory } from "@/lib/stories";
 export const revalidate = 3600;
 
 export async function GET() {
-  const story = getCurrentStory();
+  const story = await getCurrentStory();
   return NextResponse.json(story);
 }

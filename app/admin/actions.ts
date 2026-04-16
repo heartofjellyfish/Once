@@ -1,0 +1,248 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { requireSql } from "@/lib/db";
+import { curate } from "@/lib/curate";
+
+/** Slug helper for generated story IDs. ASCII-only, kebab. */
+function slug(input: string): string {
+  return input
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "") // strip combining marks
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 24) || "item";
+}
+
+function shortId(): string {
+  return Math.random().toString(36).slice(2, 8);
+}
+
+/**
+ * INGEST — paste raw source, AI produces a candidate, lands in queue.
+ */
+export async function ingestAction(formData: FormData): Promise<void> {
+  const sourceText = String(formData.get("source_text") ?? "").trim();
+  const cityHint = String(formData.get("city_hint") ?? "").trim();
+  const sourceUrl = String(formData.get("source_url") ?? "").trim();
+
+  if (sourceText.length < 10) {
+    throw new Error("Source text is too short.");
+  }
+
+  const sql = requireSql();
+
+  // Insert a placeholder first so we have a queue_id to attach spend to.
+  const inserted = (await sql`
+    insert into moderation_queue (status, source_url, source_input, source_hint_city)
+    values ('pending', ${sourceUrl || null}, ${sourceText}, ${cityHint || null})
+    returning id
+  `) as unknown as { id: string }[];
+  const queueId = inserted[0].id;
+
+  // Run the AI.
+  let failureMsg: string | null = null;
+  try {
+    const { result, model } = await curate(
+      { sourceText, cityHint, sourceUrl },
+      queueId
+    );
+
+    await sql`
+      update moderation_queue set
+        ai_model          = ${model},
+        ai_rationale      = ${result.rationale},
+        ai_passed_filter  = ${result.passed_filter},
+        country           = ${result.country},
+        region            = ${result.region},
+        city              = ${result.city},
+        timezone          = ${result.timezone},
+        local_hour        = ${result.local_hour},
+        original_language = ${result.original_language},
+        original_text     = ${result.original_text},
+        english_text      = ${result.english_text},
+        currency_code     = ${result.currency_code},
+        currency_symbol   = ${result.currency_symbol},
+        milk_price_local  = ${result.milk_price_local},
+        eggs_price_local  = ${result.eggs_price_local},
+        milk_price_usd    = ${result.milk_price_usd},
+        eggs_price_usd    = ${result.eggs_price_usd}
+      where id = ${queueId}
+    `;
+
+    // If the AI filtered it out, auto-reject it so it doesn't clutter the queue.
+    if (!result.passed_filter) {
+      await sql`
+        update moderation_queue
+        set status='rejected',
+            rejected_reason=${"AI filter: " + result.rationale},
+            reviewed_at=now(),
+            reviewer='ai'
+        where id=${queueId}
+      `;
+    }
+  } catch (err) {
+    failureMsg = err instanceof Error ? err.message : String(err);
+    await sql`
+      update moderation_queue
+      set status='rejected',
+          rejected_reason=${"AI error: " + (failureMsg ?? "unknown")},
+          reviewed_at=now(),
+          reviewer='system'
+      where id=${queueId}
+    `;
+  }
+
+  revalidatePath("/admin");
+  redirect(failureMsg ? `/admin?err=${encodeURIComponent(failureMsg)}` : "/admin");
+}
+
+/** COMPOSE — manual entry, no AI, goes straight to published. */
+export async function composeAction(formData: FormData): Promise<void> {
+  const f = (k: string) => String(formData.get(k) ?? "").trim();
+  const n = (k: string) => Number(formData.get(k) ?? 0);
+
+  const city = f("city");
+  const country = f("country");
+  if (!city || !country) throw new Error("city and country are required");
+
+  const id = `${slug(city)}-${shortId()}`;
+
+  const sql = requireSql();
+  await sql`
+    insert into stories (
+      id, photo_url, country, region, city, timezone, local_hour,
+      original_language, original_text, english_text,
+      currency_code, currency_symbol,
+      milk_price_local, eggs_price_local,
+      milk_price_usd, eggs_price_usd,
+      source_url, source_name
+    ) values (
+      ${id}, ${f("photo_url") || null}, ${country}, ${f("region") || null},
+      ${city}, ${f("timezone")}, ${Number(f("local_hour")) || 12},
+      ${f("original_language")}, ${f("original_text")}, ${f("english_text")},
+      ${f("currency_code")}, ${f("currency_symbol")},
+      ${n("milk_price_local")}, ${n("eggs_price_local")},
+      ${n("milk_price_usd")}, ${n("eggs_price_usd")},
+      ${f("source_url") || null}, ${f("source_name") || null}
+    )
+  `;
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  redirect("/admin");
+}
+
+/** APPROVE — promote a queue item to the published stories table. */
+export async function approveAction(formData: FormData): Promise<void> {
+  const queueId = String(formData.get("id") ?? "");
+  if (!queueId) throw new Error("id required");
+
+  const sql = requireSql();
+
+  // Read with optional edits from the approval form (all fields honoured).
+  const edited = {
+    photo_url: String(formData.get("photo_url") ?? "").trim(),
+    country: String(formData.get("country") ?? "").trim(),
+    region: String(formData.get("region") ?? "").trim(),
+    city: String(formData.get("city") ?? "").trim(),
+    timezone: String(formData.get("timezone") ?? "").trim(),
+    local_hour: Number(formData.get("local_hour") ?? 12),
+    original_language: String(formData.get("original_language") ?? "").trim(),
+    original_text: String(formData.get("original_text") ?? "").trim(),
+    english_text: String(formData.get("english_text") ?? "").trim(),
+    currency_code: String(formData.get("currency_code") ?? "").trim(),
+    currency_symbol: String(formData.get("currency_symbol") ?? "").trim(),
+    milk_price_local: Number(formData.get("milk_price_local") ?? 0),
+    eggs_price_local: Number(formData.get("eggs_price_local") ?? 0),
+    milk_price_usd: Number(formData.get("milk_price_usd") ?? 0),
+    eggs_price_usd: Number(formData.get("eggs_price_usd") ?? 0),
+    source_url: String(formData.get("source_url") ?? "").trim()
+  };
+
+  if (!edited.city || !edited.country || !edited.timezone) {
+    throw new Error("city, country, timezone are required to publish");
+  }
+
+  const id = `${slug(edited.city)}-${shortId()}`;
+
+  await sql`
+    insert into stories (
+      id, photo_url, country, region, city, timezone, local_hour,
+      original_language, original_text, english_text,
+      currency_code, currency_symbol,
+      milk_price_local, eggs_price_local,
+      milk_price_usd, eggs_price_usd,
+      source_url
+    ) values (
+      ${id},
+      ${edited.photo_url || null},
+      ${edited.country},
+      ${edited.region || null},
+      ${edited.city},
+      ${edited.timezone},
+      ${edited.local_hour},
+      ${edited.original_language},
+      ${edited.original_text},
+      ${edited.english_text},
+      ${edited.currency_code},
+      ${edited.currency_symbol},
+      ${edited.milk_price_local},
+      ${edited.eggs_price_local},
+      ${edited.milk_price_usd},
+      ${edited.eggs_price_usd},
+      ${edited.source_url || null}
+    )
+  `;
+
+  await sql`
+    update moderation_queue
+    set status='approved',
+        published_as_id=${id},
+        reviewed_at=now(),
+        reviewer='editor',
+        -- also save the edited fields back to the queue for audit
+        photo_url=${edited.photo_url || null},
+        country=${edited.country},
+        region=${edited.region || null},
+        city=${edited.city},
+        timezone=${edited.timezone},
+        local_hour=${edited.local_hour},
+        original_language=${edited.original_language},
+        original_text=${edited.original_text},
+        english_text=${edited.english_text},
+        currency_code=${edited.currency_code},
+        currency_symbol=${edited.currency_symbol},
+        milk_price_local=${edited.milk_price_local},
+        eggs_price_local=${edited.eggs_price_local},
+        milk_price_usd=${edited.milk_price_usd},
+        eggs_price_usd=${edited.eggs_price_usd}
+    where id=${queueId}
+  `;
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  redirect("/admin");
+}
+
+/** REJECT with a reason. */
+export async function rejectAction(formData: FormData): Promise<void> {
+  const queueId = String(formData.get("id") ?? "");
+  const reason = String(formData.get("reason") ?? "no reason given").trim();
+  if (!queueId) throw new Error("id required");
+
+  const sql = requireSql();
+  await sql`
+    update moderation_queue
+    set status='rejected',
+        rejected_reason=${reason},
+        reviewed_at=now(),
+        reviewer='editor'
+    where id=${queueId}
+  `;
+
+  revalidatePath("/admin");
+  redirect("/admin");
+}
