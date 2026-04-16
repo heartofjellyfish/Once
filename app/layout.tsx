@@ -1,5 +1,14 @@
 import type { Metadata, Viewport } from "next";
+import { Fraunces } from "next/font/google";
 import "./globals.css";
+
+const fraunces = Fraunces({
+  subsets: ["latin", "latin-ext"],
+  style: ["normal", "italic"],
+  axes: ["opsz", "SOFT"],
+  display: "swap",
+  variable: "--font-fraunces"
+});
 
 const description =
   "One small moment from somewhere in the world. Updated every hour.";
@@ -22,15 +31,15 @@ export const metadata: Metadata = {
     title: "Once",
     description
   },
-  icons: { icon: "data:," } // suppress the default favicon request quietly
+  icons: { icon: "data:," }
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fbfaf7" },
-    { media: "(prefers-color-scheme: dark)", color: "#141311" }
+    { media: "(prefers-color-scheme: light)", color: "#f5efe3" },
+    { media: "(prefers-color-scheme: dark)", color: "#141210" }
   ]
 };
 
@@ -40,7 +49,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={fraunces.variable}>
       <body>{children}</body>
     </html>
   );

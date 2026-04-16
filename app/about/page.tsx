@@ -7,13 +7,17 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <main>
-      <h1>Once</h1>
+      <p className="wordmark" aria-hidden="true">
+        <em>Once</em>
+      </p>
+
+      <h1>one small moment, somewhere else</h1>
 
       <p>
-        Once shows one small moment from somewhere in the world. A bakery that
-        ran out of bread. A bus that was a few minutes late. A market that
-        closed early because the owner had to pick up her granddaughter from
-        school.
+        Once shows one small thing happening somewhere in the world — a bakery
+        that ran out of bread, a bus that was a few minutes late, a market
+        that closed early because the owner had to pick up her granddaughter
+        from school.
       </p>
 
       <p>
@@ -34,52 +38,92 @@ export default function AboutPage() {
       <style>{`
         main {
           width: 100%;
-          max-width: 560px;
-          padding: 64px 24px 96px;
+          max-width: 580px;
+          padding: 88px 24px 120px;
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          align-items: flex-start;
+          gap: 22px;
           opacity: 0;
-          animation: enter 800ms cubic-bezier(0.22, 0.61, 0.36, 1) 80ms forwards;
+          animation: enter 900ms cubic-bezier(0.22, 0.61, 0.36, 1) 80ms forwards;
         }
 
         @keyframes enter {
-          from { opacity: 0; transform: translateY(4px); }
+          from { opacity: 0; transform: translateY(6px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-
         @media (prefers-reduced-motion: reduce) {
           main { opacity: 1; animation: none; transform: none; }
         }
 
+        .wordmark {
+          margin: 0;
+          align-self: center;
+          font-family: var(--serif);
+          font-style: italic;
+          font-variation-settings: "opsz" 144, "SOFT" 100;
+          font-size: 15px;
+          color: var(--ink-faint);
+          letter-spacing: 0.04em;
+        }
+        .wordmark em {
+          font-style: italic;
+          padding: 0 14px;
+          position: relative;
+        }
+        .wordmark em::before,
+        .wordmark em::after {
+          content: "";
+          position: absolute;
+          top: 52%;
+          width: 18px;
+          height: 1px;
+          background: var(--ink-faint);
+          opacity: 0.5;
+        }
+        .wordmark em::before { right: 100%; }
+        .wordmark em::after  { left: 100%; }
+
         h1 {
-          margin: 0 0 12px;
-          font-size: 28px;
+          margin: 8px 0 6px;
+          font-family: var(--serif);
           font-weight: 400;
-          letter-spacing: 0.01em;
+          font-style: italic;
+          font-variation-settings: "opsz" 72, "SOFT" 100, "wght" 400;
+          font-size: clamp(26px, 3.6vw, 32px);
+          line-height: 1.2;
+          letter-spacing: 0.005em;
+          color: var(--ink);
+          text-wrap: balance;
         }
 
         p {
           margin: 0;
+          font-family: var(--serif);
+          font-variation-settings: "opsz" 18, "SOFT" 50, "wght" 400;
           font-size: 17px;
-          line-height: 1.6;
+          line-height: 1.65;
           color: var(--ink);
+          text-wrap: pretty;
         }
 
-        em { font-style: italic; color: var(--ink-muted); }
+        em {
+          font-style: italic;
+          color: var(--ink-muted);
+        }
 
         .back {
           margin-top: 24px;
-          font-family: var(--sans);
-          font-size: 11px;
-          letter-spacing: 0.18em;
-          text-transform: uppercase;
+          font-style: italic;
+          font-size: 13px;
+          color: var(--ink-faint);
         }
         .back a {
-          color: var(--ink-faint);
           text-decoration: none;
         }
-        .back a:hover { color: var(--ink-muted); }
+        .back a:hover {
+          color: var(--ink-muted);
+        }
       `}</style>
     </main>
   );
