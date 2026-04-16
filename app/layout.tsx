@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces } from "next/font/google";
+import { Fraunces, Caveat } from "next/font/google";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -8,6 +8,15 @@ const fraunces = Fraunces({
   axes: ["opsz", "SOFT"],
   display: "swap",
   variable: "--font-fraunces"
+});
+
+// Caveat — a calm cursive used only for the "From <place> —" greeting
+// and a couple of tiny flourishes. Pulls the whole page toward
+// "handwritten postcard" without tipping into cartoonish.
+const caveat = Caveat({
+  subsets: ["latin", "latin-ext"],
+  display: "swap",
+  variable: "--font-caveat"
 });
 
 const description =
@@ -38,8 +47,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f5efe3" },
-    { media: "(prefers-color-scheme: dark)", color: "#141210" }
+    { media: "(prefers-color-scheme: light)", color: "#efe4cb" },
+    { media: "(prefers-color-scheme: dark)", color: "#191511" }
   ]
 };
 
@@ -49,7 +58,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={fraunces.variable}>
+    <html lang="en" className={`${fraunces.variable} ${caveat.variable}`}>
       <body>{children}</body>
     </html>
   );

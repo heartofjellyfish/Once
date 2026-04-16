@@ -1,15 +1,28 @@
 :root {
-  /* Warm paper & ink, not gray-white. */
-  --bg: #f5efe3;
-  --bg-soft: #efe8d8;
-  --ink: #201b15;
-  --ink-muted: #6f665a;
-  --ink-faint: #a39a8a;
-  --hairline: rgba(32, 27, 21, 0.10);
-  --hairline-soft: rgba(32, 27, 21, 0.05);
+  /* Paper, ink, and one warm accent (terracotta). Trader Joe's rule:
+     mostly cream, one accent, used sparingly. */
+  --bg: #efe4cb;
+  --bg-warm: #f5ecd6;
+  --bg-shadow: #ddcfb0;
+  --ink: #221b12;
+  --ink-soft: #3a2d1e;
+  --ink-muted: #6b5d45;
+  --ink-faint: #9c8d72;
+  --hairline: rgba(34, 27, 18, 0.12);
+  --hairline-soft: rgba(34, 27, 18, 0.06);
 
-  /* Fraunces (variable) for almost everything. Broad fallback stack so
-     non-Latin scripts render in appropriate system serifs. */
+  --accent: #a85a3c;          /* terracotta */
+  --accent-soft: #c87a5b;
+  --accent-dark: #6b3220;
+
+  /* Wood palette for the sign */
+  --wood-light: #d6a37a;
+  --wood-mid: #a87451;
+  --wood-dark: #7a4c2a;
+  --wood-frame: #4a2a12;
+  --wood-ink: #2a1708;
+  --wood-shadow: rgba(42, 23, 8, 0.2);
+
   --serif:
     var(--font-fraunces),
     "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua",
@@ -22,21 +35,25 @@
     "Noto Serif Georgian", "Noto Serif Armenian", "Noto Serif Devanagari",
     "Noto Serif Tamil", "Noto Serif Sinhala",
     serif;
-
-  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial,
-    sans-serif;
+  --cursive: var(--font-caveat), "Brush Script MT", cursive;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #141210;
-    --bg-soft: #1b1814;
-    --ink: #ecdfc9;
-    --ink-muted: #8c8270;
-    --ink-faint: #5a5246;
-    --hairline: rgba(236, 223, 201, 0.12);
-    --hairline-soft: rgba(236, 223, 201, 0.06);
+    --bg: #191511;
+    --bg-warm: #241d15;
+    --bg-shadow: #0e0b08;
+    --ink: #ecdfc0;
+    --ink-soft: #c9b994;
+    --ink-muted: #908470;
+    --ink-faint: #5e5546;
+    --hairline: rgba(236, 223, 192, 0.14);
+    --hairline-soft: rgba(236, 223, 192, 0.07);
+    --accent: #d48565;
+    --accent-soft: #b56844;
+    --accent-dark: #8a3f22;
   }
 }
 
@@ -63,17 +80,27 @@ body {
   font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
 }
 
+/* Paper texture: warm radial + subtle fractal noise via inline SVG.
+   Noise amplitude is low — you feel it, you don't see it. */
 body {
   min-height: 100svh;
   display: flex;
   justify-content: center;
-  background-image:
+  background:
     radial-gradient(
-      ellipse 120% 80% at 50% 0%,
-      var(--bg-soft) 0%,
-      var(--bg) 55%,
-      var(--bg) 100%
-    );
+      ellipse 100% 60% at 22% 0%,
+      var(--bg-warm) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 90% 60% at 90% 95%,
+      var(--bg-shadow) 0%,
+      transparent 60%
+    ),
+    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.12  0 0 0 0 0.09  0 0 0 0 0.05  0 0 0 0.45 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E"),
+    var(--bg);
+  background-repeat: no-repeat, no-repeat, repeat, no-repeat;
+  background-size: auto, auto, 240px 240px, auto;
 }
 
 a {
@@ -86,13 +113,13 @@ input:focus-visible,
 textarea:focus-visible,
 select:focus-visible,
 summary:focus-visible {
-  outline: 2px solid var(--ink-muted);
+  outline: 2px solid var(--accent);
   outline-offset: 3px;
   border-radius: 2px;
 }
 
 ::selection {
-  background: rgba(166, 122, 58, 0.25);
+  background: rgba(168, 90, 60, 0.25);
   color: var(--ink);
 }
 

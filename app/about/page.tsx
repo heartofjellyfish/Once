@@ -7,8 +7,8 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <main>
-      <p className="wordmark" aria-hidden="true">
-        <em>Once</em>
+      <p className="greeting" aria-hidden="true">
+        a note &mdash;
       </p>
 
       <h1>one small moment, somewhere else</h1>
@@ -39,15 +39,15 @@ export default function AboutPage() {
         main {
           width: 100%;
           max-width: 580px;
-          padding: 88px 24px 120px;
+          padding: clamp(48px, 8vh, 96px) clamp(20px, 5vw, 32px) 80px;
           display: flex;
           flex-direction: column;
           align-items: flex-start;
           gap: 22px;
+          min-height: 100svh;
           opacity: 0;
           animation: enter 900ms cubic-bezier(0.22, 0.61, 0.36, 1) 80ms forwards;
         }
-
         @keyframes enter {
           from { opacity: 0; transform: translateY(6px); }
           to   { opacity: 1; transform: translateY(0); }
@@ -56,36 +56,16 @@ export default function AboutPage() {
           main { opacity: 1; animation: none; transform: none; }
         }
 
-        .wordmark {
-          margin: 0;
-          align-self: center;
-          font-family: var(--serif);
-          font-style: italic;
-          font-variation-settings: "opsz" 144, "SOFT" 100;
-          font-size: 15px;
-          color: var(--ink-faint);
-          letter-spacing: 0.04em;
+        .greeting {
+          margin: 0 0 2px;
+          font-family: var(--cursive);
+          font-size: 26px;
+          color: var(--accent);
+          line-height: 1;
         }
-        .wordmark em {
-          font-style: italic;
-          padding: 0 14px;
-          position: relative;
-        }
-        .wordmark em::before,
-        .wordmark em::after {
-          content: "";
-          position: absolute;
-          top: 52%;
-          width: 18px;
-          height: 1px;
-          background: var(--ink-faint);
-          opacity: 0.5;
-        }
-        .wordmark em::before { right: 100%; }
-        .wordmark em::after  { left: 100%; }
 
         h1 {
-          margin: 8px 0 6px;
+          margin: 0 0 8px;
           font-family: var(--serif);
           font-weight: 400;
           font-style: italic;
@@ -122,7 +102,7 @@ export default function AboutPage() {
           text-decoration: none;
         }
         .back a:hover {
-          color: var(--ink-muted);
+          color: var(--accent);
         }
       `}</style>
     </main>
