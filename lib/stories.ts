@@ -24,7 +24,7 @@ export async function loadStories(): Promise<Story[]> {
         eggs_price_local::float8  as eggs_price_local,
         milk_price_usd::float8    as milk_price_usd,
         eggs_price_usd::float8    as eggs_price_usd,
-        published_at, selected_hour,
+        published_at, selected_hour::int4 as selected_hour,
         lat::float8 as lat,
         lng::float8 as lng,
         source_url, source_name,
