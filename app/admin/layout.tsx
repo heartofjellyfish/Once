@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { dbAvailable } from "@/lib/db";
 import AdminNav from "./_components/AdminNav";
 import {
