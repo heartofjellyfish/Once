@@ -16,7 +16,10 @@ interface MapOpts {
 }
 
 function base(lat: number, lng: number, { size = 200, zoom = 11 }: MapOpts = {}) {
-  return `https://tiles.stadiamaps.com/static/stamen_watercolor.jpg?center=${lng},${lat}&zoom=${zoom}&size=${size}x${size}@2x`;
+  // Stadia's static map API: /static/{style}.jpg?center=lng,lat&zoom=N&size=WxH
+  // The @2x suffix that other providers accept makes Stadia return 422, so
+  // we render at the requested CSS size directly.
+  return `https://tiles.stadiamaps.com/static/stamen_watercolor.jpg?center=${lng},${lat}&zoom=${zoom}&size=${size}x${size}`;
 }
 
 /** Watercolor map URL. api_key is added only in non-production envs. */
