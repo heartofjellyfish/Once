@@ -325,6 +325,34 @@ export async function pinStoryAction(formData: FormData): Promise<void> {
   redirect("/admin?tab=approved&pinned=1");
 }
 
+/** PATCH — update editable fields on a published story. */
+export async function patchStoryAction(formData: FormData): Promise<void> {
+  const storyId = String(formData.get("story_id") ?? "").trim();
+  if (!storyId) throw new Error("story_id required");
+
+  const sql = requireSql();
+  await sql`
+    update stories set
+      city              = coalesce(nullif(${String(formData.get("city") ?? "")}, ''), city),
+      country           = coalesce(nullif(${String(formData.get("country") ?? "")}, ''), country),
+      region            = nullif(${String(formData.get("region") ?? "")}, ''),
+      timezone          = coalesce(nullif(${String(formData.get("timezone") ?? "")}, ''), timezone),
+      local_hour        = ${Number(formData.get("local_hour") ?? 12)},
+      original_language = coalesce(nullif(${String(formData.get("original_language") ?? "")}, ''), original_language),
+      original_text     = coalesce(nullif(${String(formData.get("original_text") ?? "")}, ''), original_text),
+      english_text      = ${String(formData.get("english_text") ?? "")},
+      currency_code     = coalesce(nullif(${String(formData.get("currency_code") ?? "")}, ''), currency_code),
+      currency_symbol   = coalesce(nullif(${String(formData.get("currency_symbol") ?? "")}, ''), currency_symbol),
+      photo_url         = nullif(${String(formData.get("photo_url") ?? "")}, ''),
+      source_url        = nullif(${String(formData.get("source_url") ?? "")}, '')
+    where id = ${storyId}
+  `;
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  redirect("/admin?tab=approved&patched=1");
+}
+
 /** UNPIN — remove a previously-pinned hour, let freshness logic run. */
 export async function unpinStoryAction(formData: FormData): Promise<void> {
   const storyId = String(formData.get("story_id") ?? "").trim();

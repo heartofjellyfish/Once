@@ -8,19 +8,37 @@ import StagedCenter from "./_components/StagedCenter";
 export const revalidate = 3600;
 
 function localClockString(tz: string, now: Date): string {
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: tz,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false
-  }).format(now);
+  const safeZone = tz || "UTC";
+  try {
+    return new Intl.DateTimeFormat("en-GB", {
+      timeZone: safeZone,
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    }).format(now);
+  } catch {
+    return new Intl.DateTimeFormat("en-GB", {
+      timeZone: "UTC",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    }).format(now);
+  }
 }
 
 function localWeekday(tz: string, now: Date): string {
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone: tz,
-    weekday: "long"
-  }).format(now);
+  const safeZone = tz || "UTC";
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: safeZone,
+      weekday: "long"
+    }).format(now);
+  } catch {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: "UTC",
+      weekday: "long"
+    }).format(now);
+  }
 }
 
 /** Stable per-id hash used for Polaroid tilt so same story always lands the same way. */

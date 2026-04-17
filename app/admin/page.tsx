@@ -7,6 +7,7 @@ import {
   unpinStoryAction,
   restorePendingAction
 } from "./actions";
+
 import { formatLocal, formatUsd } from "@/lib/format";
 import { currentHour } from "@/lib/stories";
 
@@ -55,12 +56,13 @@ function parseTab(v: string | undefined): Tab {
 export default async function QueuePage({
   searchParams
 }: {
-  searchParams: Promise<{ err?: string; tab?: string; pinned?: string }>;
+  searchParams: Promise<{ err?: string; tab?: string; pinned?: string; patched?: string }>;
 }) {
   const sp = await searchParams;
   const errMsg = sp.err;
   const tab = parseTab(sp.tab);
   const pinnedFlash = sp.pinned === "1";
+  const patchedFlash = sp.patched === "1";
 
   if (!dbAvailable()) {
     return <p className="empty">Database not available — see header notice.</p>;
@@ -115,6 +117,9 @@ export default async function QueuePage({
       {errMsg ? <div className="err">⚠ {errMsg}</div> : null}
       {pinnedFlash ? (
         <div className="ok">✓ Pinned to homepage for this hour.</div>
+      ) : null}
+      {patchedFlash ? (
+        <div className="ok">✓ Story updated.</div>
       ) : null}
 
       <nav className="tabs">
@@ -321,6 +326,12 @@ export default async function QueuePage({
                       </button>
                     </form>
                   )}
+                  <a
+                    className="secondary"
+                    href={`/admin/story/${r.published_as_id}`}
+                  >
+                    edit story…
+                  </a>
                   <a
                     className="secondary"
                     href="/"

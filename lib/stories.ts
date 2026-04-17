@@ -48,13 +48,18 @@ export function currentHour(now: Date = new Date()): number {
 
 /** Local hour (0–23) at `now` in the given IANA timezone. */
 export function localHourIn(timezone: string, now: Date = new Date()): number {
-  const fmt = new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    hour: "numeric",
-    hour12: false
-  });
-  const part = fmt.formatToParts(now).find((p) => p.type === "hour");
-  return ((Number(part?.value ?? "0") % 24) + 24) % 24;
+  if (!timezone) return now.getUTCHours();
+  try {
+    const fmt = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      hour: "numeric",
+      hour12: false
+    });
+    const part = fmt.formatToParts(now).find((p) => p.type === "hour");
+    return ((Number(part?.value ?? "0") % 24) + 24) % 24;
+  } catch {
+    return now.getUTCHours();
+  }
 }
 
 /** Widest "fresh" window — moment was this many hours ago, locally. */
