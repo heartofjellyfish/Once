@@ -263,21 +263,11 @@ export default async function Page() {
           background: #f1e7cb;
           background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.22  0 0 0 0 0.14  0 0 0 0 0.06  0 0 0 0.2 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
           background-blend-mode: multiply;
+          border-radius: 1.5px;
           box-shadow:
             0 1px 0 rgba(32, 23, 8, 0.06),
-            0 14px 26px -16px rgba(42, 23, 8, 0.3);
-          /* Deckle / torn top & bottom edges via mask */
-          --deckle-v: 6px;
-          -webkit-mask:
-            radial-gradient(circle at 10% 0, transparent 3px, #000 3.5px) 0 0 / 22px var(--deckle-v) repeat-x,
-            radial-gradient(circle at 10% 100%, transparent 3px, #000 3.5px) 0 100% / 22px var(--deckle-v) repeat-x,
-            linear-gradient(#000 0 0);
-          -webkit-mask-composite: source-in;
-          mask:
-            radial-gradient(circle at 10% 0, transparent 3px, #000 3.5px) 0 0 / 22px var(--deckle-v) repeat-x,
-            radial-gradient(circle at 10% 100%, transparent 3px, #000 3.5px) 0 100% / 22px var(--deckle-v) repeat-x,
-            linear-gradient(#000 0 0);
-          mask-composite: intersect;
+            0 14px 26px -16px rgba(42, 23, 8, 0.3),
+            inset 0 0 0 0.5px rgba(34, 27, 18, 0.1);
         }
 
         .note .topline {
