@@ -8,6 +8,7 @@ import {
   type UsageBreakdown
 } from "./budget";
 import { fetchWeatherLabel } from "./weather";
+import { resolveHeroImage } from "./ogImage";
 import type { City } from "./types";
 
 /**
@@ -122,18 +123,49 @@ const FULL_SYSTEM = `${RUBRIC}
 
 You are now doing the full evaluation for one candidate entry.
 
-Score three dimensions (1-10):
-- specificity: Is there a concrete person/animal/place/object? A scene? A named street, shop, time?
-- resonance: 24h later would someone remember this? Can you describe it in one sentence at lunch and get "huh"?
-- register: Warmth / quiet sadness / strangeness / uncanny / dignity. Any is fine. "Breaking-news tone" is a one-vote rejection (score register = 1).
+Score three dimensions (1-10). BE GENEROUS — aim for the middle of
+the scale, not the lower end. A title with 2+ concrete nouns
+deserves a 6+ on specificity; don't require paragraph-level prose.
 
-If AT LEAST ONE score is < 5, don't bother rewriting; return scores + short rationale, leave moment fields blank.
+- specificity (1-10):
+    1 = pure abstraction ("spring has come")
+    4 = some detail but generic ("a local shop closed early")
+    7 = multiple concrete nouns (named person / place / object / time /
+        event). Example passing at 7: "Pikachu cuddling with kimono-
+        clad woman on Tokyo street at flower art event" — Pikachu
+        (subject), kimono (attire), Tokyo street (place), flower event
+        (context) = four concrete elements, that's 7.
+    10 = rich scene with sensory detail
+
+- resonance (1-10):
+    1 = forgotten in 5 minutes
+    4 = mildly interesting
+    7 = you would describe this at lunch to get "huh" or "oh". A
+        61-year-old fisherman surviving a capsize belongs here — it's
+        a whole Beatles-song moment in one sentence.
+    10 = the piece stops you mid-task
+
+- register (1-10):
+    1 = sensational / breaking-news / exclamation-mark tone
+    5 = one of: warmth / quiet sadness / strangeness / uncanny /
+        dignity / small wonder. Any of these is a pass.
+    10 = perfectly calibrated Once voice
+
+If AT LEAST ONE score is < 5, don't bother rewriting; return scores
++ short rationale, leave moment fields blank.
 
 If all three >= 5, also produce the Once rewrite:
-- original_text: 1-2 calm sentences IN THE LOCAL LANGUAGE of the location. Not a translation of the source — a retelling in Once's voice. Keep ~20-40 words. No exclamation marks. Preserve specific names/street/time. Substantial paraphrase (NOT copied wording).
-- english_text: a faithful English rendering of original_text. Empty if original is English.
-- local_hour (0-23): when during the day did the moment occur. Infer from phrasing; 12 if unknown.
-- milk_price_local / eggs_price_local / milk_price_usd / eggs_price_usd: approximate current prices. Use realistic estimates. Use 0 if truly unknown.
+- original_text: 1-2 calm sentences IN THE LOCAL LANGUAGE of the
+  location. Not a translation of the source — a retelling in Once's
+  voice. Keep ~20-40 words. No exclamation marks. Preserve specific
+  names/street/time. Substantial paraphrase (NOT copied wording).
+- english_text: a faithful English rendering of original_text.
+  Empty if original is English.
+- local_hour (0-23): when during the day did the moment occur.
+  Infer from phrasing; 12 if unknown.
+- milk_price_local / eggs_price_local / milk_price_usd /
+  eggs_price_usd: approximate current prices. Use realistic
+  estimates. Use 0 if truly unknown.
 - rationale: one sentence for the editor.
 
 Always return valid JSON matching the schema, even when rejecting.`;
@@ -507,10 +539,18 @@ async function writeQueue(args: {
   const { city, entry, full, passedFilter, weather } = args;
   const sql = requireSql();
 
+  // Hero image — try OG scrape of the source article, fall back to a
+  // deterministic picsum placeholder so every story always has one.
+  const photoUrl = await resolveHeroImage(
+    entry.link,
+    `${city.id}-${entry.title}`
+  );
+
   const rows = (await sql`
     insert into moderation_queue (
       status, source_url, source_input, source_hint_city,
       ai_model, ai_rationale, ai_passed_filter,
+      photo_url,
       country, region, city, timezone, local_hour,
       lat, lng,
       original_language, original_text, english_text,
@@ -527,6 +567,7 @@ async function writeQueue(args: {
       ${FULL_MODEL},
       ${full.rationale},
       ${passedFilter},
+      ${photoUrl},
       ${city.country},
       ${city.region ?? null},
       ${city.name},

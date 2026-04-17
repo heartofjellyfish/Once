@@ -168,3 +168,25 @@ create index if not exists ai_decisions_city_idx on ai_decisions (city_id, at de
 -- English translation of source_title for the runs dashboard (scannable
 -- at a glance regardless of feed language). Populated during prefilter.
 alter table ai_decisions add column if not exists source_title_en text;
+
+-- One row per ingest run (manual or cron). Pipeline writes 'running' on
+-- start, then updates to 'completed' or 'failed' when done. The runs
+-- dashboard shows 'running' rows live and groups 'completed' ones below.
+create table if not exists pipeline_runs (
+  id             uuid primary key default gen_random_uuid(),
+  city_id        text references cities(id) on delete set null,
+  started_at     timestamptz not null default now(),
+  finished_at    timestamptz,
+  status         text not null default 'running'
+                   check (status in ('running','completed','failed')),
+  stage          text,                     -- "prefilter" | "score" | "rewrite" (latest activity)
+  considered     integer not null default 0,
+  prefilter_pass integer not null default 0,
+  result_summary text,
+  queue_id       uuid references moderation_queue(id) on delete set null,
+  error          text
+);
+
+create index if not exists pipeline_runs_started_idx on pipeline_runs(started_at desc);
+create index if not exists pipeline_runs_running_idx on pipeline_runs(status)
+  where status = 'running';

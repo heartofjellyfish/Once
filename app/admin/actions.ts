@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireSql } from "@/lib/db";
 import { curate } from "@/lib/curate";
 import { runIngest } from "@/lib/pipeline";
+import { currentHour } from "@/lib/stories";
 
 /** Slug helper for generated story IDs. ASCII-only, kebab. */
 function slug(input: string): string {
@@ -191,6 +192,12 @@ export async function approveAction(formData: FormData): Promise<void> {
     fetched_at: null
   };
 
+  // Approve & publish now — always pin to the current hour so the
+  // homepage shows this story immediately. Freshness rotation picks up
+  // again on the next hour (selected_hour is per-hour, not persistent).
+  const pinNow = true;
+  const pinnedHour = currentHour();
+
   await sql`
     insert into stories (
       id, photo_url, country, region, city, timezone, local_hour,
@@ -199,7 +206,8 @@ export async function approveAction(formData: FormData): Promise<void> {
       milk_price_local, eggs_price_local,
       milk_price_usd, eggs_price_usd,
       source_url, lat, lng,
-      weather_current, location_summary, fetched_at
+      weather_current, location_summary, fetched_at,
+      selected_hour
     ) values (
       ${id},
       ${edited.photo_url || null},
@@ -222,7 +230,8 @@ export async function approveAction(formData: FormData): Promise<void> {
       ${edited.lng},
       ${qmeta.weather_current},
       ${qmeta.location_summary},
-      ${qmeta.fetched_at}
+      ${qmeta.fetched_at},
+      ${pinnedHour}
     )
   `;
 
@@ -253,9 +262,16 @@ export async function approveAction(formData: FormData): Promise<void> {
     where id=${queueId}
   `;
 
+  // Clear any prior pin on another story for this hour so there's no
+  // collision (selectStory picks whichever row has selected_hour = hour).
+  await sql`
+    update stories set selected_hour = null
+    where selected_hour = ${pinnedHour} and id <> ${id}
+  `;
+
   revalidatePath("/");
   revalidatePath("/admin");
-  redirect("/admin");
+  redirect("/admin?tab=approved&pinned=1");
 }
 
 /** Manually trigger the ingest pipeline. Optional city override. */
@@ -283,6 +299,59 @@ export async function runIngestAction(formData: FormData): Promise<void> {
     redirect(`/admin?ingest_err=${encodeURIComponent(errorMsg)}`);
   }
   redirect(`/admin?ingest_ok=${encodeURIComponent(summary)}`);
+}
+
+/**
+ * PIN an already-published story to the current hour so it shows on the
+ * homepage immediately, overriding the freshness selector.
+ */
+export async function pinStoryAction(formData: FormData): Promise<void> {
+  const storyId = String(formData.get("story_id") ?? "").trim();
+  if (!storyId) throw new Error("story_id required");
+
+  const sql = requireSql();
+  const hour = currentHour();
+  await sql`
+    update stories set selected_hour = ${hour} where id = ${storyId}
+  `;
+  // Clear any stale pin on other stories for the same hour.
+  await sql`
+    update stories set selected_hour = null
+    where selected_hour = ${hour} and id <> ${storyId}
+  `;
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  redirect("/admin?tab=approved&pinned=1");
+}
+
+/** UNPIN — remove a previously-pinned hour, let freshness logic run. */
+export async function unpinStoryAction(formData: FormData): Promise<void> {
+  const storyId = String(formData.get("story_id") ?? "").trim();
+  if (!storyId) throw new Error("story_id required");
+
+  const sql = requireSql();
+  await sql`update stories set selected_hour = null where id = ${storyId}`;
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  redirect("/admin?tab=approved");
+}
+
+/** RESTORE a rejected item back to pending so it can be reviewed again. */
+export async function restorePendingAction(formData: FormData): Promise<void> {
+  const queueId = String(formData.get("id") ?? "").trim();
+  if (!queueId) throw new Error("id required");
+
+  const sql = requireSql();
+  await sql`
+    update moderation_queue
+    set status='pending', rejected_reason=null, reviewed_at=null, reviewer=null
+    where id=${queueId}
+  `;
+
+  revalidatePath("/admin");
+  redirect("/admin?tab=rejected");
 }
 
 /** REJECT with a reason. */

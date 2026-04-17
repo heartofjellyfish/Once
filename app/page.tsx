@@ -29,6 +29,26 @@ function idHash(id: string): number {
   return Math.abs(h);
 }
 
+/**
+ * Mirror PencilText's delay formula so we know when the handwriting
+ * finishes — the staged reveal of image/stamp/place/prices keys off it.
+ * Constants must stay in sync with [app/_components/PencilText.tsx].
+ */
+function computeTitleDurationMs(text: string): number {
+  const leadIn = 140;
+  const speedMs = 38;
+  const periodPauseMs = 260;
+  const commaPauseMs = 140;
+  const perCharAnimDuration = 520;
+  let t = leadIn;
+  for (const c of text) {
+    t += speedMs;
+    if (/[.!?。！？]/.test(c)) t += periodPauseMs;
+    else if (/[,、;；:：]/.test(c)) t += commaPauseMs;
+  }
+  return t + perCharAnimDuration;
+}
+
 export default async function Page() {
   const s = await getCurrentStory();
   const now = new Date();
@@ -50,6 +70,13 @@ export default async function Page() {
   const tilt = ((hash % 50) - 25) / 10; // -2.5°..+2.5°
   const noteTilt = ((hash % 40) / 10 - 2).toFixed(2); // -2°..+2° different seed feel
 
+  // Sequential reveal timings — polaroid → stamp → place → prices.
+  const titleEnd = computeTitleDurationMs(s.original_text);
+  const dPolaroid = titleEnd + 120;
+  const dStamp = titleEnd + 560;
+  const dPlace = titleEnd + 1000;
+  const dPrices = titleEnd + 1440;
+
   return (
     <>
       <a href="#moment" className="skip-link">
@@ -67,8 +94,13 @@ export default async function Page() {
       <main>
         <div className="stage">
           <figure
-            className="polaroid"
-            style={{ "--tilt": `${tilt}deg` } as React.CSSProperties}
+            className="polaroid reveal"
+            style={
+              {
+                "--tilt": `${tilt}deg`,
+                "--reveal-delay": `${dPolaroid}ms`
+              } as React.CSSProperties
+            }
           >
             <div className="photo-well">
               {s.photo_url ? (
@@ -92,7 +124,10 @@ export default async function Page() {
 
           <div className="right-column">
             {s.lat != null && s.lng != null ? (
-              <div className="stamp-wrap">
+              <div
+                className="stamp-wrap reveal"
+                style={{ "--reveal-delay": `${dStamp}ms` } as React.CSSProperties}
+              >
                 <MapPostmark
                   lat={s.lat}
                   lng={s.lng}
@@ -109,53 +144,75 @@ export default async function Page() {
               style={{ "--note-tilt": `${noteTilt}deg` } as React.CSSProperties}
             >
               <div className="paper">
-              <div className="topline">
+              <div
+                className="topline reveal"
+                style={{ "--reveal-delay": `${dPlace}ms` } as React.CSSProperties}
+              >
                 <span className="city">{s.city}</span>
                 <span className="sep" aria-hidden="true">·</span>
                 <span className="clock">{clock}</span>
               </div>
-              <div className="rule" aria-hidden="true">
+
+              {s.location_summary || s.weather_current ? (
+                <div
+                  className="place-info reveal"
+                  style={
+                    { "--reveal-delay": `${dPlace + 160}ms` } as React.CSSProperties
+                  }
+                >
+                  {s.location_summary ? (
+                    <div className="line">{s.location_summary}</div>
+                  ) : null}
+                  {s.weather_current ? (
+                    <div className="line weather">
+                      {s.weather_current.toLowerCase()}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
+              <div
+                className="rule reveal"
+                aria-hidden="true"
+                style={{ "--reveal-delay": `${dPrices}ms` } as React.CSSProperties}
+              >
                 &mdash; · &mdash;
               </div>
-              <div className="prices">
+              <div
+                className="prices reveal"
+                style={{ "--reveal-delay": `${dPrices}ms` } as React.CSSProperties}
+              >
                 <div className="row">
-                  <span className="label">milk</span>
+                  <span className="label">
+                    milk <span className="unit">· 1L</span>
+                  </span>
                   <span className="dots" aria-hidden="true" />
                   <span className="value">
                     {formatLocal(s.milk_price_local, s.currency_symbol)}
                   </span>
                 </div>
                 <div className="row">
-                  <span className="label">eggs</span>
+                  <span className="label">
+                    eggs <span className="unit">· dozen</span>
+                  </span>
                   <span className="dots" aria-hidden="true" />
                   <span className="value">
                     {formatLocal(s.eggs_price_local, s.currency_symbol)}
                   </span>
                 </div>
               </div>
-              <div className="footline">
+              <div
+                className="footline reveal"
+                style={
+                  { "--reveal-delay": `${dPrices + 120}ms` } as React.CSSProperties
+                }
+              >
                 <span className="currency">{s.currency_code}</span>
                 <span className="usd">
                   {formatUsd(s.milk_price_usd)}&nbsp;·&nbsp;
                   {formatUsd(s.eggs_price_usd)}
                 </span>
               </div>
-
-              {s.location_summary || s.weather_current ? (
-                <details className="place-info">
-                  <summary>about</summary>
-                  <div className="place-lines">
-                    {s.location_summary ? (
-                      <div className="line">{s.location_summary}</div>
-                    ) : null}
-                    {s.weather_current ? (
-                      <div className="line weather">
-                        {s.weather_current.toLowerCase()}
-                      </div>
-                    ) : null}
-                  </div>
-                </details>
-              ) : null}
             </div>
           </aside>
           </div>
@@ -171,22 +228,29 @@ export default async function Page() {
             lang={s.original_language}
           />
           {showTranslation ? (
-            <p className="translation" lang="en">
+            <p
+              className="translation reveal"
+              lang="en"
+              style={
+                { "--reveal-delay": `${titleEnd + 60}ms` } as React.CSSProperties
+              }
+            >
               {s.english_text}
             </p>
           ) : null}
           {s.source_url ? (
-            <p className="source">
+            <p
+              className="source reveal"
+              style={
+                { "--reveal-delay": `${dPrices + 240}ms` } as React.CSSProperties
+              }
+            >
               <a href={s.source_url} target="_blank" rel="noreferrer">
                 source{s.source_name ? ` · ${s.source_name}` : ""}
               </a>
             </p>
           ) : null}
         </article>
-
-        <footer className="foot">
-          <a href="/about">about</a>
-        </footer>
       </main>
 
       <style>{`
@@ -205,8 +269,33 @@ export default async function Page() {
           from { opacity: 0; transform: translateY(6px); }
           to   { opacity: 1; transform: translateY(0); }
         }
+
+        /* Staged reveal — each element waits for --reveal-delay (ms) set
+           inline, then fades + deblurs in. Delays are computed server-side
+           from the title's per-character typing schedule so the sequence
+           is: title → polaroid → stamp → place/weather → prices.
+           Uses only opacity + filter (no transform) so it doesn't fight
+           the polaroid/note rotation. */
+        .reveal {
+          opacity: 0;
+          filter: blur(2px);
+          animation: reveal-in 620ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+          animation-delay: var(--reveal-delay, 0ms);
+          will-change: opacity, filter;
+        }
+        @keyframes reveal-in {
+          0%   { opacity: 0; filter: blur(2px); }
+          60%  { opacity: 1; filter: blur(0); }
+          100% { opacity: 1; filter: blur(0); }
+        }
+
         @media (prefers-reduced-motion: reduce) {
           main { opacity: 1; animation: none; transform: none; }
+          .reveal {
+            opacity: 1 !important;
+            animation: none !important;
+            filter: none !important;
+          }
         }
 
         .stage {
@@ -348,6 +437,15 @@ export default async function Page() {
           font-style: italic;
           color: var(--ink-soft);
         }
+        .note .prices .unit {
+          font-family: var(--sans);
+          font-style: normal;
+          font-size: 0.62em;
+          letter-spacing: 0.08em;
+          color: var(--ink-faint);
+          text-transform: lowercase;
+          margin-left: 2px;
+        }
         .note .prices .dots {
           background-image: radial-gradient(circle, rgba(34, 27, 18, 0.35) 0.8px, transparent 1.2px);
           background-size: 6px 6px;
@@ -386,37 +484,19 @@ export default async function Page() {
           letter-spacing: 0.02em;
         }
 
-        /* ── place-info: click-to-reveal location + weather ───────── */
+        /* ── place-info: location + weather (always visible) ─────── */
         .place-info {
           margin-top: 8px;
           padding-top: 6px;
           border-top: 1px dashed rgba(34, 27, 18, 0.14);
-        }
-        .place-info > summary {
-          list-style: none;
-          cursor: pointer;
-          font-family: var(--cursive);
-          font-size: 12.5px;
-          color: var(--ink-faint);
-          letter-spacing: 0.02em;
-          padding: 2px 0;
-          text-align: center;
-        }
-        .place-info > summary::-webkit-details-marker { display: none; }
-        .place-info[open] > summary { color: var(--ink-muted); }
-        .place-info > summary:hover { color: var(--accent); }
-        .place-info .place-lines {
-          margin-top: 6px;
           display: flex;
           flex-direction: column;
           gap: 3px;
           font-family: var(--serif);
           font-style: italic;
-          font-size: 11.5px;
-          line-height: 1.45;
-          color: var(--ink-muted);
+          font-size: 12px;
+          color: var(--ink-soft);
           text-align: center;
-          text-wrap: pretty;
         }
         .place-info .line.weather {
           color: var(--ink-faint);
@@ -473,18 +553,6 @@ export default async function Page() {
           color: var(--accent);
           border-color: var(--accent-soft);
         }
-
-        .foot {
-          margin-top: auto;
-          padding-top: 8px;
-          text-align: center;
-          font-family: var(--serif);
-          font-style: italic;
-          font-size: 12px;
-          color: var(--ink-faint);
-        }
-        .foot a { text-decoration: none; }
-        .foot a:hover { color: var(--accent); }
 
         @media (max-width: 720px) {
           main {
