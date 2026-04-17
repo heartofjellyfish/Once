@@ -30,7 +30,9 @@ export default function MapPostmark({
   // Stamen/OpenMapTiles attribution that Stadia bakes into the JPG.
   // Attribution is shown on /about instead.
   const mapW = (width - 18) * 2;
-  const mapH = Math.round(mapW * 1.18);
+  // Ask for a much taller image than we display so the Stadia-baked
+  // "©Stamen" band at the bottom lands safely in the cropped area.
+  const mapH = Math.round(mapW * 1.55);
   const src = watercolorMapUrl(lat, lng, { size: mapW, height: mapH, zoom: 12 });
   const link = googleMapsLink(lat, lng, `${city}, ${country}`);
 
@@ -128,15 +130,24 @@ export default function MapPostmark({
           line-height: 1.08;
         }
         .stamp .labels .city {
-          font-size: 7.5px;
-          letter-spacing: 0.18em;
+          font-size: 6.5px;
+          letter-spacing: 0.08em;
           font-weight: 700;
+          line-height: 1.12;
+          /* Allow up to 2 lines; hide any runover */
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+          word-break: normal;
+          hyphens: none;
         }
         .stamp .labels .country {
-          font-size: 6.5px;
-          letter-spacing: 0.18em;
+          font-size: 6px;
+          letter-spacing: 0.12em;
           opacity: 0.75;
-          margin-top: 1px;
+          margin-top: 2px;
+          line-height: 1.1;
         }
 
         .stamp .denom {
