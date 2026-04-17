@@ -77,11 +77,44 @@ WHAT COUNTS AS A GOOD MOMENT (the "small spectacle" bar):
 
 const PREFILTER_SYSTEM = `${RUBRIC}
 
-Your job now is a very fast yes/no screen. Given an entry's title and a short snippet, decide whether it is plausibly a Once moment.
+Your job is a FAST ROUGH SCREEN, not the final decision. A more
+thorough evaluation happens afterwards with the full article text.
+Err heavily on the side of passing — false positives are fine, false
+negatives are expensive.
 
-Be INCLUSIVE at this stage — prefer false positives over false negatives. If even one of: warmth, quiet sadness, strangeness, uncanny statistic, small-town dignity is plausibly present, answer yes.
+REJECT only when the title clearly signals one of:
+  • National politics / elections / policy / diplomacy
+  • Stocks, crypto, economics, interest rates, corporate earnings
+  • Major-celebrity gossip (royal family, pop stars, reality TV)
+  • User questions and recommendations ("where to eat", "looking for",
+    "anyone know", "suggestions for")
+  • Lists / opinion / advocacy ("5 best…", "why we need…", "our take")
+  • Catastrophe headlines with mass casualties (earthquake killing
+    dozens, war, bombing) — a single-person death or incident is
+    NOT in this bucket, that can still be a Once moment
+  • Tech-industry trend pieces ("AI is reshaping…")
 
-Also return a faithful English rendering of the title (not a loose paraphrase — a translation). If the title is already English, copy it.
+PASS anything else, especially when unsure. Treat promotional-sounding
+language, "defies odds" phrasing, quirky branding, and unusual topics
+as LIKELY Once moments in disguise.
+
+Examples that should PASS even though they sound promotional or
+sensational:
+  • "Sanrio character defies physics in sumo collaboration" — specific,
+    memorable, uncanny.
+  • "61-year-old fisherman falls off boat, swims to safety" — specific
+    person, specific act, dignity.
+  • "Pikachu to cuddle with kimono-clad woman at flower art event" —
+    a specific scene, a Once tableau.
+  • "Shop owner's cat returns after a week away, eats breakfast as
+    usual" — obvious.
+Examples that should REJECT:
+  • "McDonald's adds Hello Kitty drinks to menu" — pure promo.
+  • "Looking for a church near Shinjuku" — user question.
+  • "5 best ramen shops in Tokyo" — listicle.
+
+Also return a faithful English rendering of the title (a translation,
+not a paraphrase). If the title is already English, copy it.
 
 Return JSON: { "pass": true|false, "why": "<under 15 words>", "title_en": "<english title>" }`;
 

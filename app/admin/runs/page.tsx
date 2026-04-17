@@ -49,6 +49,59 @@ function timeAgo(iso: string): string {
   return `${d}d ago`;
 }
 
+interface RunGroup {
+  city_id: string | null;
+  earliestAt: number;
+  latestAt: number;
+  decisions: DecisionRow[];
+  stats: { considered: number; passed: number; selected: number };
+}
+
+/**
+ * Cluster consecutive decisions into "runs": same city + within 120 s
+ * of the previous decision = same run. Cron triggers are atomic so a
+ * run's decisions all land inside that window. Decisions are passed
+ * in newest-first order; we preserve that so each group's first item
+ * is the most recent within it.
+ */
+function groupByRun(decisions: DecisionRow[]): RunGroup[] {
+  const WINDOW_MS = 120 * 1000;
+  const groups: RunGroup[] = [];
+  let cur: RunGroup | null = null;
+
+  for (const d of decisions) {
+    const t = new Date(d.at).getTime();
+    if (
+      !cur ||
+      cur.city_id !== d.city_id ||
+      Math.abs(cur.earliestAt - t) > WINDOW_MS
+    ) {
+      cur = {
+        city_id: d.city_id,
+        earliestAt: t,
+        latestAt: t,
+        decisions: [d],
+        stats: { considered: 0, passed: 0, selected: 0 }
+      };
+      groups.push(cur);
+    } else {
+      cur.decisions.push(d);
+      cur.earliestAt = Math.min(cur.earliestAt, t);
+      cur.latestAt = Math.max(cur.latestAt, t);
+    }
+  }
+
+  for (const g of groups) {
+    for (const d of g.decisions) {
+      if (d.stage === "prefilter") g.stats.considered++;
+      if (d.stage === "prefilter" && d.verdict === "pass") g.stats.passed++;
+      if (d.verdict === "selected") g.stats.selected++;
+    }
+  }
+
+  return groups;
+}
+
 export default async function RunsPage({
   searchParams
 }: {
@@ -163,54 +216,87 @@ export default async function RunsPage({
       </section>
 
       <section className="log">
-        <h3>Recent decisions</h3>
+        <h3>Recent runs</h3>
         {decisions.length === 0 ? (
           <p className="empty">No pipeline runs yet. Hit "Run now" above.</p>
         ) : (
-          <ul className="decisions">
-            {decisions.map((d) => (
-              <li key={d.id} className={`d d-${d.stage} v-${d.verdict}`}>
-                <div className="d-head">
-                  <span className="d-time">{timeAgo(d.at)}</span>
-                  <span className="d-city">{d.city_id ?? "—"}</span>
-                  <span className={`d-stage stage-${d.stage}`}>{d.stage}</span>
-                  <span className={`d-verdict verdict-${d.verdict}`}>
-                    {d.verdict}
+          <div className="run-groups">
+            {groupByRun(decisions).map((g, gi) => (
+              <details
+                key={`${g.city_id}-${g.latestAt}`}
+                className="run-group"
+                open={gi === 0}
+              >
+                <summary>
+                  <span className="rg-time">{timeAgo(new Date(g.earliestAt).toISOString())}</span>
+                  <span className="rg-city">{g.city_id?.toUpperCase() ?? "—"}</span>
+                  <span className="rg-stats">
+                    <b>{g.stats.considered}</b> considered ·{" "}
+                    <b>{g.stats.passed}</b> passed ·{" "}
+                    <b className={g.stats.selected > 0 ? "sel" : ""}>
+                      {g.stats.selected}
+                    </b>{" "}
+                    selected
                   </span>
-                  {d.score_specificity != null ? (
-                    <span className="d-scores">
-                      s{d.score_specificity}/r{d.score_resonance}/g
-                      {d.score_register}
-                    </span>
-                  ) : null}
-                  {d.queue_id ? (
-                    <a className="d-qid" href={`/admin/edit/${d.queue_id}`}>
-                      → queue
-                    </a>
-                  ) : null}
-                </div>
-                {d.source_title_en || d.source_title ? (
-                  <div className="d-title">
-                    {d.source_url ? (
-                      <a href={d.source_url} target="_blank" rel="noreferrer">
-                        {d.source_title_en || d.source_title}
-                      </a>
-                    ) : (
-                      d.source_title_en || d.source_title
-                    )}
-                    {d.source_title_en &&
-                    d.source_title &&
-                    d.source_title_en !== d.source_title ? (
-                      <span className="d-title-orig"> · {d.source_title}</span>
-                    ) : null}
-                  </div>
-                ) : null}
-                {d.rationale ? (
-                  <div className="d-rationale">{d.rationale}</div>
-                ) : null}
-              </li>
+                  <span className="rg-caret" aria-hidden="true">›</span>
+                </summary>
+                <ul className="decisions">
+                  {g.decisions.map((d) => (
+                    <li key={d.id} className={`d d-${d.stage} v-${d.verdict}`}>
+                      <div className="d-head">
+                        <span className={`d-stage stage-${d.stage}`}>
+                          {d.stage}
+                        </span>
+                        <span className={`d-verdict verdict-${d.verdict}`}>
+                          {d.verdict}
+                        </span>
+                        {d.score_specificity != null ? (
+                          <span className="d-scores">
+                            s{d.score_specificity}/r{d.score_resonance}/g
+                            {d.score_register}
+                          </span>
+                        ) : null}
+                        {d.queue_id ? (
+                          <a
+                            className="d-qid"
+                            href={`/admin/edit/${d.queue_id}`}
+                          >
+                            → queue
+                          </a>
+                        ) : null}
+                      </div>
+                      {d.source_title_en || d.source_title ? (
+                        <div className="d-title">
+                          {d.source_url ? (
+                            <a
+                              href={d.source_url}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              {d.source_title_en || d.source_title}
+                            </a>
+                          ) : (
+                            d.source_title_en || d.source_title
+                          )}
+                          {d.source_title_en &&
+                          d.source_title &&
+                          d.source_title_en !== d.source_title ? (
+                            <span className="d-title-orig">
+                              {" "}
+                              · {d.source_title}
+                            </span>
+                          ) : null}
+                        </div>
+                      ) : null}
+                      {d.rationale ? (
+                        <div className="d-rationale">{d.rationale}</div>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </details>
             ))}
-          </ul>
+          </div>
         )}
       </section>
 
@@ -336,9 +422,71 @@ export default async function RunsPage({
           font-size: 11px;
         }
 
+        .run-groups {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .run-group {
+          border: 1px solid var(--hairline);
+          border-radius: 4px;
+          overflow: hidden;
+        }
+        .run-group > summary {
+          list-style: none;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding: 10px 14px;
+          font-family: var(--sans);
+          font-size: 12px;
+          background: var(--hairline-soft);
+          user-select: none;
+        }
+        .run-group > summary::-webkit-details-marker { display: none; }
+        .run-group[open] > summary {
+          border-bottom: 1px solid var(--hairline);
+        }
+        .run-group > summary:hover {
+          background: var(--hairline);
+        }
+        .rg-time {
+          color: var(--ink-faint);
+          min-width: 70px;
+          font-variant-numeric: tabular-nums;
+        }
+        .rg-city {
+          color: var(--ink);
+          font-weight: 600;
+          letter-spacing: 0.06em;
+          min-width: 80px;
+        }
+        .rg-stats {
+          color: var(--ink-muted);
+          flex: 1;
+        }
+        .rg-stats b {
+          color: var(--ink);
+          font-variant-numeric: tabular-nums;
+          font-weight: 500;
+        }
+        .rg-stats b.sel {
+          color: var(--accent);
+          font-weight: 600;
+        }
+        .rg-caret {
+          font-size: 18px;
+          color: var(--ink-faint);
+          transition: transform 180ms ease;
+        }
+        .run-group[open] > summary .rg-caret {
+          transform: rotate(90deg);
+        }
+
         .decisions {
           list-style: none;
-          padding: 0;
+          padding: 8px 10px;
           margin: 0;
           display: flex;
           flex-direction: column;
