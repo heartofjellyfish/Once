@@ -1,6 +1,6 @@
 import { requireSql } from "@/lib/db";
 import { runIngestAction } from "../actions";
-import { updateCityFeeds, toggleCityActive } from "./actions";
+import { updateCityFeeds, toggleCityActive, seedCitiesAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +45,7 @@ function hostOf(u: string): string {
 export default async function SourcesPage({
   searchParams
 }: {
-  searchParams: Promise<{ updated?: string; err?: string; ingest_ok?: string; ingest_err?: string }>;
+  searchParams: Promise<{ updated?: string; err?: string; ingest_ok?: string; ingest_err?: string; seed_ok?: string }>;
 }) {
   const sp = await searchParams;
   const sql = requireSql();
@@ -75,7 +75,14 @@ export default async function SourcesPage({
   return (
     <>
       <section className="head">
-        <h2>Sources</h2>
+        <div className="head-row">
+          <h2>Sources</h2>
+          <form action={seedCitiesAction}>
+            <button type="submit" className="seed-btn" title="Re-run the curated city seed — upserts all 11 cities and deactivates any removed ones">
+              Re-seed cities
+            </button>
+          </form>
+        </div>
         <p className="lede">
           The RSS feeds each city polls on a cron run. Edit the list inline
           (one URL per line; lines starting with <code>#</code> are
@@ -88,6 +95,7 @@ export default async function SourcesPage({
         <div className="banner ok">✓ Saved {sp.updated}</div>
       ) : null}
       {sp.err ? <div className="banner err">⚠ {sp.err}</div> : null}
+      {sp.seed_ok ? <div className="banner ok">✓ Cities re-seeded — 11 cities upserted, removed cities deactivated.</div> : null}
       {sp.ingest_ok ? <div className="banner ok">✓ {sp.ingest_ok}</div> : null}
       {sp.ingest_err ? (
         <div className="banner err">⚠ {sp.ingest_err}</div>
@@ -167,11 +175,33 @@ export default async function SourcesPage({
       </section>
 
       <style>{`
+        .head-row {
+          display: flex;
+          align-items: baseline;
+          gap: 16px;
+          flex-wrap: wrap;
+        }
         .head h2 {
           font-family: var(--serif);
           font-weight: 400;
           font-size: 22px;
           margin: 0;
+        }
+        .seed-btn {
+          font-family: var(--sans);
+          font-size: 11px;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          padding: 5px 12px;
+          border-radius: 3px;
+          border: 1px solid var(--accent-soft, #c89);
+          background: transparent;
+          color: var(--accent-dark, #8a3a2a);
+          cursor: pointer;
+          white-space: nowrap;
+        }
+        .seed-btn:hover {
+          background: rgba(168, 90, 60, 0.06);
         }
         .lede {
           color: var(--ink-muted);
