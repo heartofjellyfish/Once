@@ -268,6 +268,7 @@ export default async function Page() {
             fadeIn={TITLE_FADEIN}
             stare={TITLE_STARE}
             blurCompleteAt={TITLE_BLUR_COMPLETE_AT}
+            backdrop={false}
           >
             <PencilText
               className="greeting"

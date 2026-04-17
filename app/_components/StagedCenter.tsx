@@ -21,6 +21,10 @@ interface Props {
    *  value equal to fadeIn + stare so the blur peaks when the last
    *  character lands. */
   blurCompleteAt?: number;
+  /** When false, skip rendering the dimming/blur backdrop for this
+   *  stage. Default true. The title uses this to let the news type
+   *  out in plain view before the rest of the page starts dimming. */
+  backdrop?: boolean;
   children: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
@@ -49,6 +53,7 @@ export default function StagedCenter({
   stare = 0.26,
   fadeIn = 0.32,
   blurCompleteAt,
+  backdrop: backdropEnabled = true,
   children,
   className,
   style
@@ -127,7 +132,7 @@ export default function StagedCenter({
   // per-instance animation-name, duration, and delay, so the CSS
   // cascade can never let one stage's keyframe name overwrite another.
   const backdrop =
-    shouldAnimate && typeof document !== "undefined"
+    backdropEnabled && shouldAnimate && typeof document !== "undefined"
       ? createPortal(
           <div
             className="stage-backdrop"
