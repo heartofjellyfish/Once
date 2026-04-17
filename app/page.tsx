@@ -3,6 +3,7 @@ import { formatLocal, formatUsd } from "@/lib/format";
 import PencilText from "./_components/PencilText";
 import MapPostmark from "./_components/MapPostmark";
 import EnvelopeIntro from "./_components/EnvelopeIntro";
+import StagedCenter from "./_components/StagedCenter";
 
 export const revalidate = 3600;
 
@@ -70,12 +71,22 @@ export default async function Page() {
   const tilt = ((hash % 50) - 25) / 10; // -2.5°..+2.5°
   const noteTilt = ((hash % 40) / 10 - 2).toFixed(2); // -2°..+2° different seed feel
 
-  // Sequential reveal timings — polaroid → stamp → place → prices.
+  // Sequential reveal timings. Big-four blocks stage in at screen center
+  // (fly → stare → settle into place); small trimmings use simple fades.
+  // Stages overlap slightly so the next piece starts flying in while the
+  // previous one is leaving center.
   const titleEnd = computeTitleDurationMs(s.original_text);
+  const POLAROID_DUR = 2000;
+  const STAMP_DUR = 1700;
+  const PLACE_DUR = 1700;
+  const PRICES_DUR = 1700;
+  const OVERLAP = 700; // ms the next stage pulls back against the prior
+
   const dPolaroid = titleEnd + 120;
-  const dStamp = titleEnd + 560;
-  const dPlace = titleEnd + 1000;
-  const dPrices = titleEnd + 1440;
+  const dStamp = dPolaroid + POLAROID_DUR - OVERLAP;
+  const dPlace = dStamp + STAMP_DUR - OVERLAP;
+  const dPrices = dPlace + PLACE_DUR - OVERLAP;
+  const dPricesEnd = dPrices + PRICES_DUR;
 
   return (
     <>
@@ -93,49 +104,55 @@ export default async function Page() {
 
       <main>
         <div className="stage">
-          <figure
-            className="polaroid reveal"
-            style={
-              {
-                "--tilt": `${tilt}deg`,
-                "--reveal-delay": `${dPolaroid}ms`
-              } as React.CSSProperties
-            }
+          <StagedCenter
+            delay={dPolaroid}
+            duration={POLAROID_DUR}
+            scale={1.1}
+            stare={0.34}
           >
-            <div className="photo-well">
-              {s.photo_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  className="photo"
-                  src={s.photo_url}
-                  alt={altText}
-                  width={1500}
-                  height={1000}
-                />
-              ) : (
-                <div className="photo photo-empty" aria-hidden="true" />
-              )}
-              <div className="grain" aria-hidden="true" />
-            </div>
-            <figcaption className="caption">
-              {s.city} &middot; {weekday}
-            </figcaption>
-          </figure>
+            <figure
+              className="polaroid"
+              style={{ "--tilt": `${tilt}deg` } as React.CSSProperties}
+            >
+              <div className="photo-well">
+                {s.photo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    className="photo"
+                    src={s.photo_url}
+                    alt={altText}
+                    width={1500}
+                    height={1000}
+                  />
+                ) : (
+                  <div className="photo photo-empty" aria-hidden="true" />
+                )}
+                <div className="grain" aria-hidden="true" />
+              </div>
+              <figcaption className="caption">
+                {s.city} &middot; {weekday}
+              </figcaption>
+            </figure>
+          </StagedCenter>
 
           <div className="right-column">
             {s.lat != null && s.lng != null ? (
-              <div
-                className="stamp-wrap reveal"
-                style={{ "--reveal-delay": `${dStamp}ms` } as React.CSSProperties}
+              <StagedCenter
+                delay={dStamp}
+                duration={STAMP_DUR}
+                scale={1.8}
+                stare={0.36}
               >
-                <MapPostmark
-                  lat={s.lat}
-                  lng={s.lng}
-                  city={s.city}
-                  country={s.country}
-                  width={108}
-                />
-              </div>
+                <div className="stamp-wrap">
+                  <MapPostmark
+                    lat={s.lat}
+                    lng={s.lng}
+                    city={s.city}
+                    country={s.country}
+                    width={108}
+                  />
+                </div>
+              </StagedCenter>
             ) : null}
 
             <aside
@@ -144,77 +161,71 @@ export default async function Page() {
               style={{ "--note-tilt": `${noteTilt}deg` } as React.CSSProperties}
             >
               <div className="paper">
-              <div
-                className="topline reveal"
-                style={{ "--reveal-delay": `${dPlace}ms` } as React.CSSProperties}
-              >
-                <span className="city">{s.city}</span>
-                <span className="sep" aria-hidden="true">·</span>
-                <span className="clock">{clock}</span>
-              </div>
-
-              {s.location_summary || s.weather_current ? (
-                <div
-                  className="place-info reveal"
-                  style={
-                    { "--reveal-delay": `${dPlace + 160}ms` } as React.CSSProperties
-                  }
+                <StagedCenter
+                  delay={dPlace}
+                  duration={PLACE_DUR}
+                  scale={1.2}
+                  stare={0.36}
                 >
-                  {s.location_summary ? (
-                    <div className="line">{s.location_summary}</div>
-                  ) : null}
-                  {s.weather_current ? (
-                    <div className="line weather">
-                      {s.weather_current.toLowerCase()}
+                  <div className="topline">
+                    <span className="city">{s.city}</span>
+                    <span className="sep" aria-hidden="true">·</span>
+                    <span className="clock">{clock}</span>
+                  </div>
+
+                  {s.location_summary || s.weather_current ? (
+                    <div className="place-info">
+                      {s.location_summary ? (
+                        <div className="line">{s.location_summary}</div>
+                      ) : null}
+                      {s.weather_current ? (
+                        <div className="line weather">
+                          {s.weather_current.toLowerCase()}
+                        </div>
+                      ) : null}
                     </div>
                   ) : null}
-                </div>
-              ) : null}
+                </StagedCenter>
 
-              <div
-                className="rule reveal"
-                aria-hidden="true"
-                style={{ "--reveal-delay": `${dPrices}ms` } as React.CSSProperties}
-              >
-                &mdash; · &mdash;
+                <StagedCenter
+                  delay={dPrices}
+                  duration={PRICES_DUR}
+                  scale={1.25}
+                  stare={0.36}
+                >
+                  <div className="rule" aria-hidden="true">
+                    &mdash; · &mdash;
+                  </div>
+                  <div className="prices">
+                    <div className="row">
+                      <span className="label">
+                        milk <span className="unit">· 1L</span>
+                      </span>
+                      <span className="dots" aria-hidden="true" />
+                      <span className="value">
+                        {formatLocal(s.milk_price_local, s.currency_symbol)}
+                      </span>
+                    </div>
+                    <div className="row">
+                      <span className="label">
+                        eggs <span className="unit">· dozen</span>
+                      </span>
+                      <span className="dots" aria-hidden="true" />
+                      <span className="value">
+                        {formatLocal(s.eggs_price_local, s.currency_symbol)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="footline">
+                    <span className="currency">{s.currency_code}</span>
+                    <span className="usd">
+                      {formatUsd(s.milk_price_usd)}&nbsp;·&nbsp;
+                      {formatUsd(s.eggs_price_usd)}
+                    </span>
+                  </div>
+                </StagedCenter>
               </div>
-              <div
-                className="prices reveal"
-                style={{ "--reveal-delay": `${dPrices}ms` } as React.CSSProperties}
-              >
-                <div className="row">
-                  <span className="label">
-                    milk <span className="unit">· 1L</span>
-                  </span>
-                  <span className="dots" aria-hidden="true" />
-                  <span className="value">
-                    {formatLocal(s.milk_price_local, s.currency_symbol)}
-                  </span>
-                </div>
-                <div className="row">
-                  <span className="label">
-                    eggs <span className="unit">· dozen</span>
-                  </span>
-                  <span className="dots" aria-hidden="true" />
-                  <span className="value">
-                    {formatLocal(s.eggs_price_local, s.currency_symbol)}
-                  </span>
-                </div>
-              </div>
-              <div
-                className="footline reveal"
-                style={
-                  { "--reveal-delay": `${dPrices + 120}ms` } as React.CSSProperties
-                }
-              >
-                <span className="currency">{s.currency_code}</span>
-                <span className="usd">
-                  {formatUsd(s.milk_price_usd)}&nbsp;·&nbsp;
-                  {formatUsd(s.eggs_price_usd)}
-                </span>
-              </div>
-            </div>
-          </aside>
+            </aside>
           </div>
         </div>
 
@@ -242,7 +253,7 @@ export default async function Page() {
             <p
               className="source reveal"
               style={
-                { "--reveal-delay": `${dPrices + 240}ms` } as React.CSSProperties
+                { "--reveal-delay": `${dPricesEnd + 200}ms` } as React.CSSProperties
               }
             >
               <a href={s.source_url} target="_blank" rel="noreferrer">
