@@ -108,12 +108,14 @@ export default async function Page() {
   const POLAROID_DUR = 2800;
   const STAMP_DUR = 2500;
   const NOTE_DUR = 3000;
-  const OVERLAP = 350;
+  // Pause between stages: the next piece waits until the previous has
+  // fully landed + this many ms of quiet before it starts flying in.
+  const GAP_BETWEEN_STAGES = 650;
 
   const dTitle = 0;
-  const dPolaroid = dTitle + TITLE_DUR - OVERLAP;
-  const dStamp = dPolaroid + POLAROID_DUR - OVERLAP;
-  const dNote = dStamp + STAMP_DUR - OVERLAP;
+  const dPolaroid = dTitle + TITLE_DUR + GAP_BETWEEN_STAGES;
+  const dStamp = dPolaroid + POLAROID_DUR + GAP_BETWEEN_STAGES;
+  const dNote = dStamp + STAMP_DUR + GAP_BETWEEN_STAGES;
   const dNoteEnd = dNote + NOTE_DUR;
 
   return (
