@@ -8,9 +8,9 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "check:coverage": "node scripts/check-coverage.mjs",
-    "db:migrate": "node scripts/db-migrate.mjs",
-    "db:seed": "node scripts/db-seed.mjs",
-    "db:cities": "node scripts/seed-cities.mjs"
+    "db:migrate": "node --env-file-if-exists=.env.local scripts/db-migrate.mjs",
+    "db:seed": "node --env-file-if-exists=.env.local scripts/db-seed.mjs",
+    "db:cities": "node --env-file-if-exists=.env.local scripts/seed-cities.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
