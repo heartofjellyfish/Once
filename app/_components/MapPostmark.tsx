@@ -1,4 +1,4 @@
-import { watercolorMapUrl, googleMapsLink } from "@/lib/map";
+import { watercolorMapUrl, wikipediaLink } from "@/lib/map";
 
 interface Props {
   lat: number;
@@ -28,7 +28,7 @@ export default function MapPostmark({
   // Request 2x pixels for retina, display at CSS width.
   const mapPx = (width - 18) * 2;
   const src = watercolorMapUrl(lat, lng, { size: mapPx, zoom: 10 });
-  const link = googleMapsLink(lat, lng, `${city}, ${country}`);
+  const link = wikipediaLink(city);
 
   return (
     <a
@@ -36,7 +36,7 @@ export default function MapPostmark({
       href={link}
       target="_blank"
       rel="noreferrer"
-      aria-label={`Open ${city}, ${country} in Google Maps`}
+      aria-label={`Read about ${city} on Wikipedia`}
       style={
         {
           "--w": `${width}px`,

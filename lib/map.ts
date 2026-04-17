@@ -42,12 +42,14 @@ export function watercolorMapUrl(
   return url;
 }
 
-/** A regular Google Maps search link to open when the postmark is clicked. */
-export function googleMapsLink(
-  lat: number,
-  lng: number,
-  place: string
-): string {
-  const q = encodeURIComponent(`${place}`);
-  return `https://www.google.com/maps/search/?api=1&query=${q}&query_place_id=&ll=${lat},${lng}`;
+/**
+ * English Wikipedia article link for the given city. We use the canonical
+ * `/wiki/<slug>` form (spaces → underscores, diacritics URL-encoded).
+ * Wikipedia's redirects handle the common variations ("Oaxaca de Juárez"
+ * → "Oaxaca City", "Hà Nội" → "Hanoi", etc.). Rare mismatches land on
+ * the search-suggestion page, which is still useful.
+ */
+export function wikipediaLink(city: string): string {
+  const slug = city.replace(/\s+/g, "_");
+  return `https://en.wikipedia.org/wiki/${encodeURI(slug)}`;
 }
