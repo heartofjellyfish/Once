@@ -97,7 +97,11 @@ REJECT only when the title clearly signals one of:
   • Lists / opinion / advocacy ("5 best…", "why we need…", "our take")
   • Catastrophe headlines with mass casualties (earthquake killing
     dozens, war, bombing) — a single-person death or incident is
-    NOT in this bucket, that can still be a Once moment
+    NOT in this bucket, that can still be a Once moment. A weather
+    event (flood, snow, heat) is only rejected when the focus is
+    casualties/damage scale; if the hook is a specific human detail
+    (someone rowing a boat through flooded streets, a vendor still
+    selling in the rain) it PASSES.
   • Tech-industry trend pieces ("AI is reshaping…")
 
 PASS anything else, especially when unsure. Treat promotional-sounding
@@ -114,6 +118,10 @@ sensational:
     a specific scene, a Once tableau.
   • "Shop owner's cat returns after a week away, eats breakfast as
     usual" — obvious.
+  • "Heavy rain floods Tianjin streets to knee-height; one resident
+    rows an inflatable boat through traffic" — the specific human
+    detail (boat in the road) makes this a Once tableau, not a
+    disaster report. PASS even though the trigger word is "flood".
 Examples that should REJECT:
   • "McDonald's adds Hello Kitty drinks to menu" — pure promo.
   • "Looking for a church near Shinjuku" — user question.
