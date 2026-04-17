@@ -3,105 +3,150 @@ import { watercolorMapUrl, googleMapsLink } from "@/lib/map";
 interface Props {
   lat: number;
   lng: number;
-  place: string;
-  size?: number;
+  city: string;
+  country: string;
+  width?: number;
 }
 
 /**
- * A round watercolor postmark. Shows the area around the city as a
- * Stamen Watercolor tile, cropped to a circle, with a tiny pin at
- * the centre. Links to Google Maps.
+ * Classic rectangular postage stamp with Stamen Watercolor as the image
+ * and city / country in small caps at the bottom. Clicks to Google Maps.
+ *
+ * The perforated edge is drawn via an SVG mask — a small semicircle
+ * repeated along each border. Works in Chrome, Safari, Firefox.
  */
-export default function MapPostmark({ lat, lng, place, size = 112 }: Props) {
-  const src = watercolorMapUrl(lat, lng, { size, zoom: 10 });
-  const link = googleMapsLink(lat, lng, place);
+export default function MapPostmark({
+  lat,
+  lng,
+  city,
+  country,
+  width = 92
+}: Props) {
+  const height = Math.round(width * 1.25); // classic 4:5 stamp proportion
+  const mapSize = width - 18;
+  const src = watercolorMapUrl(lat, lng, { size: mapSize, zoom: 10 });
+  const link = googleMapsLink(lat, lng, `${city}, ${country}`);
 
   return (
     <a
-      className="postmark"
+      className="stamp"
       href={link}
       target="_blank"
       rel="noreferrer"
-      aria-label={`Open ${place} in Google Maps`}
+      aria-label={`Open ${city}, ${country} in Google Maps`}
       style={
         {
-          "--size": `${size}px`
+          "--w": `${width}px`,
+          "--h": `${height}px`
         } as React.CSSProperties
       }
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="map" src={src} alt="" width={size} height={size} />
-      <span className="pin" aria-hidden="true" />
-      <span className="ring" aria-hidden="true" />
-      <span className="stamp-text" aria-hidden="true">
-        · {place.toUpperCase()} ·
-      </span>
+      <div className="paper">
+        <div className="inner">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="map" src={src} alt="" width={mapSize} height={mapSize} />
+          <div className="labels">
+            <div className="city">{city.toUpperCase()}</div>
+            <div className="country">{country.toUpperCase()}</div>
+          </div>
+          <div className="denom" aria-hidden="true">
+            <em>Once</em>
+          </div>
+        </div>
+      </div>
       <style>{`
-        .postmark {
+        .stamp {
           position: relative;
           display: inline-block;
-          width: var(--size);
-          height: var(--size);
-          border-radius: 50%;
-          overflow: hidden;
-          background: #ebe0c7;
-          box-shadow:
-            0 1px 0 rgba(32, 23, 8, 0.05),
-            0 8px 18px -10px rgba(42, 23, 8, 0.3),
-            inset 0 0 0 1px rgba(107, 68, 32, 0.15);
-          transform: rotate(-6deg);
+          width: var(--w);
+          height: var(--h);
+          transform: rotate(-3.5deg);
           transition: transform 420ms cubic-bezier(0.2, 0.8, 0.25, 1);
+          filter: drop-shadow(0 6px 10px rgba(42, 23, 8, 0.22));
         }
-        .postmark:hover,
-        .postmark:focus-visible {
-          transform: rotate(-2deg) scale(1.04);
+        .stamp:hover,
+        .stamp:focus-visible {
+          transform: rotate(-1.5deg) translateY(-1px);
         }
-        .postmark .map {
+
+        /* Perforated edge: a white paper rect whose mask cuts small half-
+           circles out of all four sides. */
+        .stamp .paper {
+          position: absolute;
+          inset: 0;
+          background: #fbf4e2;
+          /* Teeny warm grain on the stamp paper */
+          background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.8' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.25  0 0 0 0 0.17  0 0 0 0 0.09  0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E"),
+            linear-gradient(170deg, #fdf7e6 0%, #f2e8cf 100%);
+          background-blend-mode: multiply, normal;
+
+          /* perforated edge: semicircles punched out of each side */
+          -webkit-mask:
+            radial-gradient(circle at 4px 6px, transparent 2.6px, #000 3px) 0 0 / 8px 12px repeat-x,
+            radial-gradient(circle at 4px calc(100% - 6px), transparent 2.6px, #000 3px) 0 100% / 8px 12px repeat-x,
+            radial-gradient(circle at 6px 4px, transparent 2.6px, #000 3px) 0 0 / 12px 8px repeat-y,
+            radial-gradient(circle at calc(100% - 6px) 4px, transparent 2.6px, #000 3px) 100% 0 / 12px 8px repeat-y,
+            linear-gradient(#000 0 0);
+          -webkit-mask-composite: source-in;
+          mask:
+            radial-gradient(circle at 4px 6px, transparent 2.6px, #000 3px) 0 0 / 8px 12px repeat-x,
+            radial-gradient(circle at 4px calc(100% - 6px), transparent 2.6px, #000 3px) 0 100% / 8px 12px repeat-x,
+            radial-gradient(circle at 6px 4px, transparent 2.6px, #000 3px) 0 0 / 12px 8px repeat-y,
+            radial-gradient(circle at calc(100% - 6px) 4px, transparent 2.6px, #000 3px) 100% 0 / 12px 8px repeat-y,
+            linear-gradient(#000 0 0);
+          mask-composite: intersect;
+        }
+
+        .stamp .inner {
+          position: absolute;
+          inset: 6px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 2px;
+          border: 0.5px solid rgba(107, 50, 32, 0.35);
+        }
+
+        .stamp .map {
           display: block;
           width: 100%;
-          height: 100%;
+          height: auto;
+          aspect-ratio: 1 / 1;
           object-fit: cover;
-          /* gently warm the watercolor to match Once's palette */
-          filter: sepia(0.08) saturate(0.92) contrast(1.02) brightness(0.98);
+          filter: sepia(0.1) saturate(0.9) contrast(1.02) brightness(0.97);
         }
-        .postmark .ring {
-          position: absolute;
-          inset: 4px;
-          border-radius: 50%;
-          border: 1px dashed rgba(107, 50, 32, 0.3);
-          pointer-events: none;
-        }
-        .postmark .pin {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          background: var(--accent);
-          transform: translate(-50%, -50%);
-          box-shadow:
-            0 0 0 2px rgba(248, 238, 218, 0.85),
-            0 1px 2px rgba(0, 0, 0, 0.35);
-        }
-        .postmark .stamp-text {
-          position: absolute;
-          bottom: 6px;
-          left: 0;
-          right: 0;
+
+        .stamp .labels {
+          margin-top: 3px;
           text-align: center;
           font-family: var(--serif);
-          font-weight: 700;
-          font-variation-settings: "opsz" 72, "wght" 700;
-          font-size: 8.5px;
-          letter-spacing: 0.18em;
+          font-variation-settings: "opsz" 144, "wght" 700;
           color: var(--accent-dark);
-          text-shadow: 0 0 4px rgba(248, 238, 218, 0.9);
-          overflow: hidden;
-          white-space: nowrap;
-          text-overflow: ellipsis;
-          padding: 0 12px;
+          line-height: 1.08;
         }
+        .stamp .labels .city {
+          font-size: 7.5px;
+          letter-spacing: 0.18em;
+          font-weight: 700;
+        }
+        .stamp .labels .country {
+          font-size: 6.5px;
+          letter-spacing: 0.18em;
+          opacity: 0.75;
+          margin-top: 1px;
+        }
+
+        .stamp .denom {
+          position: absolute;
+          top: 3px;
+          right: 4px;
+          font-family: var(--cursive);
+          font-size: 11px;
+          color: var(--accent-dark);
+          line-height: 1;
+          opacity: 0.85;
+        }
+        .stamp .denom em { font-style: italic; }
       `}</style>
     </a>
   );

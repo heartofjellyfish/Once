@@ -21,9 +21,7 @@ function localWeekday(tz: string, now: Date): string {
   }).format(now);
 }
 
-/** Stable hash from an id string to a deterministic small int — used to
- *  pick a fixed tilt for each story so the Polaroid lands the same way
- *  every time.  */
+/** Stable per-id hash used for Polaroid tilt so same story always lands the same way. */
 function idHash(id: string): number {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
@@ -47,8 +45,9 @@ export default async function Page() {
     .filter((p, i, arr) => arr.indexOf(p) === i);
   const altText = `A photograph from ${placeParts.join(", ")}.`;
 
-  // Fixed-per-story polaroid tilt in [-2.5°, +2.5°].
-  const tilt = ((idHash(s.id) % 50) - 25) / 10;
+  const hash = idHash(s.id);
+  const tilt = ((hash % 50) - 25) / 10; // -2.5°..+2.5°
+  const noteTilt = ((hash % 40) / 10 - 2).toFixed(2); // -2°..+2° different seed feel
 
   return (
     <>
@@ -81,7 +80,8 @@ export default async function Page() {
                   <MapPostmark
                     lat={s.lat}
                     lng={s.lng}
-                    place={`${s.city}, ${s.country}`}
+                    city={s.city}
+                    country={s.country}
                   />
                 </div>
               ) : null}
@@ -91,37 +91,41 @@ export default async function Page() {
             </figcaption>
           </figure>
 
-          <aside className="sign" aria-label="Today's prices and place">
-            <div className="nail" aria-hidden="true" />
-            <div className="panel">
-              <div className="topline" aria-hidden="true">
-                <em>Once</em>
-              </div>
-              <div className="head">
+          <aside
+            className="note"
+            aria-label="Today's prices and place"
+            style={{ "--note-tilt": `${noteTilt}deg` } as React.CSSProperties}
+          >
+            <div className="paper">
+              <div className="topline">
                 <span className="city">{s.city}</span>
-                <span className="dot" aria-hidden="true">·</span>
+                <span className="sep" aria-hidden="true">·</span>
                 <span className="clock">{clock}</span>
               </div>
-              <div className="rule" aria-hidden="true" />
+              <div className="rule" aria-hidden="true">
+                &mdash; · &mdash;
+              </div>
               <div className="prices">
                 <div className="row">
-                  <span className="label">Milk</span>
+                  <span className="label">milk</span>
+                  <span className="dots" aria-hidden="true" />
                   <span className="value">
                     {formatLocal(s.milk_price_local, s.currency_symbol)}
                   </span>
                 </div>
                 <div className="row">
-                  <span className="label">Eggs</span>
+                  <span className="label">eggs</span>
+                  <span className="dots" aria-hidden="true" />
                   <span className="value">
                     {formatLocal(s.eggs_price_local, s.currency_symbol)}
                   </span>
                 </div>
               </div>
-              <div className="rule" aria-hidden="true" />
               <div className="footline">
                 <span className="currency">{s.currency_code}</span>
                 <span className="usd">
-                  {formatUsd(s.milk_price_usd)} · {formatUsd(s.eggs_price_usd)}
+                  {formatUsd(s.milk_price_usd)}&nbsp;·&nbsp;
+                  {formatUsd(s.eggs_price_usd)}
                 </span>
               </div>
             </div>
@@ -136,7 +140,6 @@ export default async function Page() {
             className="original"
             text={s.original_text}
             lang={s.original_language}
-            memoryKey={s.id}
           />
           {showTranslation ? (
             <p className="translation" lang="en">
@@ -177,10 +180,9 @@ export default async function Page() {
           main { opacity: 1; animation: none; transform: none; }
         }
 
-        /* ── stage ─────────────────────────────────────────────────── */
         .stage {
           display: grid;
-          grid-template-columns: 1fr minmax(180px, 220px);
+          grid-template-columns: 1fr minmax(170px, 210px);
           gap: clamp(24px, 4vw, 56px);
           align-items: start;
         }
@@ -211,8 +213,8 @@ export default async function Page() {
           aspect-ratio: 3 / 2;
           object-fit: cover;
           background: var(--hairline);
-          /* Slight warmth + a touch less saturation — that analog softness. */
-          filter: sepia(0.08) saturate(0.92) contrast(0.99) brightness(0.98);
+          /* Earthtone unification: pull all photos into a warm sepia. */
+          filter: sepia(0.35) saturate(0.78) contrast(0.97) brightness(0.97);
         }
         .photo-empty {
           background:
@@ -222,15 +224,14 @@ export default async function Page() {
               transparent 12px 24px
             );
         }
-        /* Film grain layer over the photo */
         .grain {
           position: absolute;
           inset: 0;
           pointer-events: none;
-          background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.1  0 0 0 0 0.07  0 0 0 0 0.03  0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.38'/%3E%3C/svg%3E");
+          background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.1  0 0 0 0 0.07  0 0 0 0 0.03  0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.38'/%3E%3C/svg%3E");
           background-size: 200px 200px;
           mix-blend-mode: multiply;
-          opacity: 0.55;
+          opacity: 0.5;
         }
         .caption {
           margin-top: 14px;
@@ -242,7 +243,6 @@ export default async function Page() {
           color: var(--accent-dark);
           opacity: 0.78;
         }
-        /* Watercolor postmark tucked in the photo's top-right */
         .postmark-slot {
           position: absolute;
           top: 10px;
@@ -250,202 +250,116 @@ export default async function Page() {
           z-index: 2;
         }
 
-        /* ── wooden sign ───────────────────────────────────────────── */
-        .sign {
-          position: relative;
-          margin-top: clamp(20px, 3vh, 40px);
+        /* ── handwritten note (replaces wooden sign) ──────────────── */
+        .note {
+          --note-tilt: 1deg;
+          margin-top: clamp(18px, 3vh, 36px);
+          transform: rotate(var(--note-tilt));
           transform-origin: top center;
-          animation: sway 8s ease-in-out infinite;
-          padding-top: 6px;
         }
-        @keyframes sway {
-          0%, 100% { transform: rotate(-0.5deg); }
-          50%      { transform: rotate(0.3deg); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .sign { animation: none; transform: rotate(-0.3deg); }
-        }
-        .nail {
-          position: absolute;
-          top: 0;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          background:
-            radial-gradient(circle at 32% 30%, #6c4220 0%, #2a1708 100%);
-          box-shadow:
-            0 1px 2px rgba(0, 0, 0, 0.35),
-            inset -1px -1px 0 rgba(255, 255, 255, 0.08);
-          z-index: 3;
-        }
-
-        .panel {
+        .note .paper {
           position: relative;
-          padding: 16px 16px 14px;
-          border-radius: 3px;
-          text-align: center;
-          /* Honey birch — lighter, more real-wood */
-          background:
-            linear-gradient(
-              175deg,
-              #efcf9e 0%,
-              #dcb583 55%,
-              #c89865 100%
-            );
-          /* Subtler frame + softer depth */
+          padding: 18px 18px 14px;
+          background: #f1e7cb;
+          background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.22  0 0 0 0 0.14  0 0 0 0 0.06  0 0 0 0.2 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+          background-blend-mode: multiply;
           box-shadow:
-            0 0 0 1px rgba(120, 80, 40, 0.5),
-            inset 0 0 24px rgba(80, 45, 15, 0.08),
-            inset 0 -2px 0 rgba(80, 45, 15, 0.16),
-            inset 0 2px 0 rgba(255, 240, 215, 0.35),
-            0 10px 22px -10px rgba(80, 45, 15, 0.35);
-        }
-        /* grain: very subtle lines, lots of transparent space */
-        .panel::before {
-          content: "";
-          position: absolute;
-          inset: 2px;
-          border-radius: inherit;
-          background:
-            repeating-linear-gradient(
-              90deg,
-              transparent 0 4px,
-              rgba(100, 60, 20, 0.03) 4px 5px
-            ),
-            repeating-linear-gradient(
-              90deg,
-              transparent 0 48px,
-              rgba(100, 60, 20, 0.05) 48px 50px
-            );
-          pointer-events: none;
-          mix-blend-mode: multiply;
-        }
-        /* faint knot asymmetry */
-        .panel::after {
-          content: "";
-          position: absolute;
-          top: 22%;
-          left: -8%;
-          width: 22px;
-          height: 22px;
-          border-radius: 50%;
-          background: radial-gradient(
-            circle at 40% 40%,
-            rgba(80, 45, 15, 0.18) 0%,
-            rgba(80, 45, 15, 0) 55%
-          );
-          pointer-events: none;
+            0 1px 0 rgba(32, 23, 8, 0.06),
+            0 14px 26px -16px rgba(42, 23, 8, 0.3);
+          /* Deckle / torn top & bottom edges via mask */
+          --deckle-v: 6px;
+          -webkit-mask:
+            radial-gradient(circle at 10% 0, transparent 3px, #000 3.5px) 0 0 / 22px var(--deckle-v) repeat-x,
+            radial-gradient(circle at 10% 100%, transparent 3px, #000 3.5px) 0 100% / 22px var(--deckle-v) repeat-x,
+            linear-gradient(#000 0 0);
+          -webkit-mask-composite: source-in;
+          mask:
+            radial-gradient(circle at 10% 0, transparent 3px, #000 3.5px) 0 0 / 22px var(--deckle-v) repeat-x,
+            radial-gradient(circle at 10% 100%, transparent 3px, #000 3.5px) 0 100% / 22px var(--deckle-v) repeat-x,
+            linear-gradient(#000 0 0);
+          mask-composite: intersect;
         }
 
-        /* Chalk-like white ink */
-        .sign .topline {
-          font-family: var(--cursive);
-          font-style: italic;
-          font-size: 12px;
-          color: #5a3818;
-          opacity: 0.7;
-          margin-bottom: 2px;
-        }
-        .sign .head {
+        .note .topline {
           display: flex;
           align-items: baseline;
           justify-content: center;
-          gap: 8px;
-          font-family: var(--chalk);
-          color: #fbf3e3;
-          text-shadow:
-            0 0 1px rgba(0, 0, 0, 0.08),
-            0 1px 0 rgba(80, 45, 15, 0.25);
-          margin: 2px 0 6px;
+          gap: 10px;
+          font-family: var(--cursive);
+          font-size: clamp(14px, 1.5vw, 16px);
+          color: var(--ink-soft);
+          letter-spacing: 0.01em;
         }
-        .sign .head .city {
-          font-size: clamp(16px, 1.7vw, 19px);
-          letter-spacing: 0.02em;
-        }
-        .sign .head .dot {
-          font-size: 16px;
-          opacity: 0.7;
-        }
-        .sign .head .clock {
-          font-size: clamp(15px, 1.7vw, 18px);
-          letter-spacing: 0.03em;
+        .note .topline .sep { color: var(--ink-faint); }
+        .note .topline .clock {
           font-variant-numeric: tabular-nums;
         }
 
-        .sign .rule {
-          height: 1px;
-          margin: 4px auto;
-          width: 72%;
-          background:
-            linear-gradient(
-              90deg,
-              transparent 0%,
-              rgba(80, 45, 15, 0.35) 20%,
-              rgba(80, 45, 15, 0.35) 80%,
-              transparent 100%
-            );
+        .note .rule {
+          text-align: center;
+          color: var(--ink-faint);
+          font-family: var(--serif);
+          font-size: 10px;
+          letter-spacing: 0.3em;
+          margin: 6px 0 2px;
+          opacity: 0.7;
         }
 
-        .sign .prices {
-          margin: 12px 6px;
+        .note .prices {
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 8px;
+          padding: 10px 4px 8px;
         }
-        .sign .prices .row {
-          display: flex;
-          justify-content: center;
+        .note .prices .row {
+          display: grid;
+          grid-template-columns: auto 1fr auto;
+          gap: 8px;
           align-items: baseline;
-          gap: 10px;
-          font-family: var(--chalk);
-          color: #fbf3e3;
-          text-shadow:
-            0 0 1px rgba(0, 0, 0, 0.1),
-            0 1px 0 rgba(80, 45, 15, 0.28);
+          font-family: var(--cursive);
+          color: var(--ink);
         }
-        .sign .prices .label {
-          font-size: clamp(20px, 2.2vw, 24px);
-          letter-spacing: 0.02em;
-          min-width: 56px;
-          text-align: right;
-          opacity: 0.92;
+        .note .prices .label {
+          font-size: clamp(17px, 2vw, 20px);
+          font-style: italic;
+          color: var(--ink-soft);
         }
-        .sign .prices .value {
-          font-size: clamp(26px, 2.9vw, 32px);
-          letter-spacing: 0.02em;
+        .note .prices .dots {
+          background-image: radial-gradient(circle, rgba(34, 27, 18, 0.35) 0.8px, transparent 1.2px);
+          background-size: 6px 6px;
+          background-position: 0 60%;
+          background-repeat: repeat-x;
+          height: 10px;
+          align-self: center;
+        }
+        .note .prices .value {
+          font-size: clamp(20px, 2.4vw, 26px);
           font-variant-numeric: tabular-nums;
-          min-width: 76px;
-          text-align: left;
+          color: var(--ink);
+          letter-spacing: 0.01em;
         }
 
-        .sign .footline {
+        .note .footline {
           display: flex;
           justify-content: space-between;
           align-items: baseline;
-          padding: 0 4px;
+          padding: 6px 2px 0;
           font-family: var(--serif);
+          border-top: 1px dashed rgba(34, 27, 18, 0.2);
           margin-top: 6px;
         }
-        .sign .footline .currency {
-          font-weight: 700;
-          font-variation-settings: "opsz" 72, "wght" 700;
-          font-size: 11px;
-          color: #3a220c;
-          letter-spacing: 0.22em;
-          padding: 2px 8px;
-          background: rgba(80, 45, 15, 0.08);
-          border: 1px solid rgba(80, 45, 15, 0.3);
-          border-radius: 2px;
-        }
-        .sign .footline .usd {
-          font-style: italic;
+        .note .footline .currency {
           font-size: 10px;
-          color: #5a3818;
-          opacity: 0.8;
-          letter-spacing: 0.02em;
+          letter-spacing: 0.2em;
+          color: var(--ink-muted);
+          font-variation-settings: "opsz" 72, "wght" 600;
+        }
+        .note .footline .usd {
+          font-style: italic;
+          font-size: 10.5px;
+          color: var(--ink-faint);
           font-variant-numeric: tabular-nums;
+          letter-spacing: 0.02em;
         }
 
         /* ── moment ───────────────────────────────────────────────── */
@@ -499,7 +413,6 @@ export default async function Page() {
           border-color: var(--accent-soft);
         }
 
-        /* ── footer ───────────────────────────────────────────────── */
         .foot {
           margin-top: auto;
           padding-top: 8px;
@@ -512,7 +425,6 @@ export default async function Page() {
         .foot a { text-decoration: none; }
         .foot a:hover { color: var(--accent); }
 
-        /* ── mobile: stack, sign smaller beside Polaroid bottom ───── */
         @media (max-width: 720px) {
           main {
             gap: 18px;
@@ -522,27 +434,20 @@ export default async function Page() {
             display: block;
             position: relative;
           }
-          .sign {
+          .note {
             position: absolute;
-            bottom: -8px;
+            bottom: -12px;
             right: -4px;
-            width: 150px;
+            width: 170px;
             margin: 0;
             z-index: 2;
           }
-          .panel { padding: 12px 12px 10px; }
-          .sign .head .city { font-size: 13px; }
-          .sign .head .clock { font-size: 12.5px; }
-          .sign .head .dot { font-size: 13px; }
-          .sign .prices .row { gap: 8px; }
-          .sign .prices .label { font-size: 16px; min-width: 36px; }
-          .sign .prices .value { font-size: 20px; min-width: 52px; }
-          .sign .footline .currency { font-size: 9.5px; letter-spacing: 0.2em; padding: 2px 6px; }
-          .sign .footline .usd { font-size: 9px; }
-          .sign .topline { font-size: 10px; }
+          .note .paper { padding: 12px 14px 10px; }
+          .note .prices .label { font-size: 15px; }
+          .note .prices .value { font-size: 18px; }
           .postmark-slot { top: 8px; right: 8px; }
           .polaroid { padding-bottom: 36px; }
-          .moment { margin-top: 120px; }
+          .moment { margin-top: 110px; }
         }
       `}</style>
     </>

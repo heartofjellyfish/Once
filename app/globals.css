@@ -81,27 +81,42 @@ body {
   font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
 }
 
-/* Paper texture: warm radial + subtle fractal noise via inline SVG.
-   Noise amplitude is low — you feel it, you don't see it. */
+/* Paper texture — rice paper / washi feel.
+   Four layers, stacked back-to-front:
+     1. base warm color
+     2. large warm blotches (organic tonal variation)
+     3. long horizontal fibers (low-freq Y-biased turbulence)
+     4. fine grain (high-freq turbulence)
+     5. soft radial highlights top-left + bottom-right
+   All inlined SVG, no external requests. Filter results are cached by the
+   browser so paint cost is negligible after first render. */
 body {
   min-height: 100svh;
   display: flex;
   justify-content: center;
-  background:
+  background-color: var(--bg);
+  background-image:
+    /* soft light top-left */
     radial-gradient(
-      ellipse 100% 60% at 22% 0%,
+      ellipse 110% 70% at 18% 0%,
       var(--bg-warm) 0%,
-      transparent 55%
+      transparent 48%
     ),
+    /* shadowy bottom-right corner */
     radial-gradient(
-      ellipse 90% 60% at 90% 95%,
+      ellipse 80% 55% at 92% 96%,
       var(--bg-shadow) 0%,
-      transparent 60%
+      transparent 58%
     ),
-    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.12  0 0 0 0 0.09  0 0 0 0 0.05  0 0 0 0.45 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E"),
-    var(--bg);
-  background-repeat: no-repeat, no-repeat, repeat, no-repeat;
-  background-size: auto, auto, 240px 240px, auto;
+    /* 4 — fine grain, tightly tiled */
+    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='2.4' numOctaves='1' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.18  0 0 0 0 0.13  0 0 0 0 0.07  0 0 0 0.28 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23f)'/%3E%3C/svg%3E"),
+    /* 3 — long horizontal fibers */
+    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='640'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.008 0.18' numOctaves='3' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.32  0 0 0 0 0.22  0 0 0 0 0.11  0 0 0 0.35 0'/%3E%3C/filter%3E%3Crect width='640' height='640' filter='url(%23f)'/%3E%3C/svg%3E"),
+    /* 2 — large warm blotches */
+    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='900'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0028' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.38  0 0 0 0 0.27  0 0 0 0 0.13  0 0 0 0.22 0'/%3E%3C/filter%3E%3Crect width='900' height='900' filter='url(%23f)'/%3E%3C/svg%3E");
+  background-repeat: no-repeat, no-repeat, repeat, repeat, repeat;
+  background-size: auto, auto, 220px 220px, 640px 640px, 900px 900px;
+  background-blend-mode: normal, normal, multiply, multiply, multiply;
 }
 
 a {
