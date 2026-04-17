@@ -25,14 +25,17 @@ export default function MapPostmark({
   width = 92
 }: Props) {
   const height = Math.round(width * 1.22);
-  // Request 2x pixels for retina, display at CSS width. Ask for a taller
-  // image than we display — we'll crop the bottom 14% in CSS to hide the
-  // Stamen/OpenMapTiles attribution that Stadia bakes into the JPG.
-  // Attribution is shown on /about instead.
-  const mapW = (width - 18) * 2;
-  // Ask for a much taller image than we display so the Stadia-baked
-  // "©Stamen" band at the bottom lands safely in the cropped area.
-  const mapH = Math.round(mapW * 1.55);
+  // Stadia enforces a ~308 px minimum width on static maps. If you ask
+  // for less (e.g. 180), you silently get 308 wide with your height
+  // honoured — which means the returned image is WIDER than tall and
+  // CSS scales it down to a short vertical, where the baked-in
+  // "©Stamen / ©OpenMapTiles" strip sits neatly inside the crop window.
+  // Fix: always request generous dimensions, well above that minimum,
+  // with a 2:3 portrait aspect. The square overflow:hidden crop then
+  // discards the bottom third, reliably hiding the attribution. The
+  // extra resolution also looks crisper on retina displays.
+  const mapW = 480;
+  const mapH = 720;
   const src = watercolorMapUrl(lat, lng, { size: mapW, height: mapH, zoom: 12 });
   const link = googleMapsLink(lat, lng, `${city}, ${country}`);
 
