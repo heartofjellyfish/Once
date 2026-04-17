@@ -61,6 +61,7 @@ export default async function Page() {
         country={s.country}
         lat={s.lat ?? null}
         lng={s.lng ?? null}
+        language={s.original_language}
       />
 
       <main>

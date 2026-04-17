@@ -8,29 +8,63 @@ interface Props {
   country: string;
   lat: number | null;
   lng: number | null;
+  /** ISO 639-1 code of the story's local language, for the bilingual slogan */
+  language?: string;
 }
 
-const SLOGAN = "A slice of ordinary life, from elsewhere — hourly.";
+const SLOGAN_EN = "A slice of ordinary life, from elsewhere — hourly.";
 
-/**
- * Envelope shown on every visit. No caching — the intro is part of the
- * experience, not a one-time onboarding step.
- *
- * Flow:
- *   1. Mount → after a short beat (so the page paints first), fade in
- *      a dimmed backdrop and a tilted envelope with today's stamp,
- *      return address, wordmark, and slogan.
- *   2. Click / tap / Enter / Space / Escape → envelope lifts and fades;
- *      backdrop fades; content shows through.
- *   3. prefers-reduced-motion skips animations.
- */
-export default function EnvelopeIntro({ city, country, lat, lng }: Props) {
+/** Local-language translations. Missing languages just show the English line. */
+const SLOGAN_BY_LANG: Record<string, string> = {
+  ar: "قطعة من الحياة اليومية، من مكان آخر — كل ساعة.",
+  bs: "Komadić svakodnevnog života, odnekud drugdje — svaki sat.",
+  da: "Et stykke hverdagsliv, et andet sted fra — hver time.",
+  de: "Ein Stück Alltag, von anderswo — zur vollen Stunde.",
+  el: "Μια στιγμή καθημερινότητας, από αλλού — κάθε ώρα.",
+  es: "Un trozo de vida cotidiana, desde otro lugar — cada hora.",
+  et: "Tükike tavaelu, mujalt — iga tunni tagant.",
+  fi: "Pala arkielämää, muualta — joka tunti.",
+  fr: "Une tranche de vie ordinaire, d'ailleurs — chaque heure.",
+  hy: "Սովորական կյանքի մի կտոր, այլ տեղից — ամեն ժամ։",
+  is: "Brot úr daglegu lífi, annars staðar frá — á klukkustundar fresti.",
+  it: "Un frammento di vita ordinaria, da altrove — ogni ora.",
+  ja: "ありふれた暮らしのひとかけら、よそから — 一時間ごとに。",
+  ka: "ჩვეულებრივი ცხოვრების ნაჭერი, სხვა ადგილიდან — ყოველ საათში.",
+  ko: "어딘가의 평범한 한 조각, 매 시간마다.",
+  lt: "Kasdienybės gabalėlis, iš kitur — kas valandą.",
+  mk: "Парче од секојдневниот живот, од некаде — секој час.",
+  ms: "Sekeping kehidupan harian, dari tempat lain — setiap jam.",
+  nl: "Een stukje gewoon leven, ergens anders vandaan — ieder uur.",
+  no: "En bit av hverdagen, fra et annet sted — hver time.",
+  pl: "Kawałek zwykłego życia, skądinąd — co godzinę.",
+  pt: "Uma fatia da vida comum, de outro lugar — a cada hora.",
+  ro: "O felie de viață obișnuită, de altundeva — în fiecare oră.",
+  ru: "Кусочек обычной жизни, откуда-то ещё — каждый час.",
+  sk: "Kúsok obyčajného života, odinakiaľ — každú hodinu.",
+  sl: "Košček običajnega življenja, od drugod — vsako uro.",
+  sq: "Një copë e jetës së përditshme, nga diku tjetër — çdo orë.",
+  sr: "Парче свакодневног живота, са другог места — сваког сата.",
+  th: "เสี้ยวหนึ่งของชีวิตประจำวัน จากที่อื่น — ทุกชั่วโมง",
+  tr: "Başka bir yerden, sıradan bir an — her saat başı.",
+  uk: "Шматочок буденного життя, звідкись ще — щогодини.",
+  vi: "Một lát đời thường, từ nơi khác — mỗi giờ.",
+  zh: "某处的平凡片刻，每小时一次。"
+};
+
+const RTL = new Set(["ar", "he", "fa", "ur"]);
+
+export default function EnvelopeIntro({
+  city,
+  country,
+  lat,
+  lng,
+  language
+}: Props) {
   const [phase, setPhase] = useState<"hidden" | "visible" | "closing">(
     "hidden"
   );
 
   useEffect(() => {
-    // Let the page paint first so the envelope appears *onto* content.
     const t = window.setTimeout(() => setPhase("visible"), 140);
     return () => window.clearTimeout(t);
   }, []);
@@ -49,86 +83,108 @@ export default function EnvelopeIntro({ city, country, lat, lng }: Props) {
   }, [phase]);
 
   function dismiss() {
-    if (phase === "closing" || phase === "hidden") return;
+    if (phase !== "visible") return;
     setPhase("closing");
     window.setTimeout(() => setPhase("hidden"), 650);
   }
 
   if (phase === "hidden") return null;
 
+  const localSlogan = language ? SLOGAN_BY_LANG[language] : undefined;
+  const localIsRtl = language ? RTL.has(language) : false;
+
   return (
     <div
       className={`env-overlay ${phase === "closing" ? "closing" : ""}`}
       role="dialog"
       aria-modal="true"
-      aria-labelledby="env-title"
-      aria-describedby="env-slogan"
+      aria-label="Once — a slice of ordinary life, from elsewhere — hourly"
       onClick={dismiss}
     >
-      <button
-        type="button"
-        className="envelope"
-        onClick={(e) => {
-          e.stopPropagation();
-          dismiss();
-        }}
-        aria-label="Open Once"
-      >
-        <svg
-          className="flap-seam"
-          viewBox="0 0 100 60"
-          preserveAspectRatio="none"
-          aria-hidden="true"
+      <div className="env-arrival">
+        <button
+          type="button"
+          className="envelope"
+          onClick={(e) => {
+            e.stopPropagation();
+            dismiss();
+          }}
+          aria-label="Open Once"
         >
-          <path
-            d="M 0 0 L 50 56 L 100 0"
-            fill="none"
-            stroke="rgba(80, 45, 15, 0.14)"
-            strokeWidth="0.4"
-          />
-        </svg>
-
-        <div className="return-address">
-          From {city}, {country}
-        </div>
-
-        {lat != null && lng != null ? (
-          <div className="stamp-area">
-            <MapPostmark
-              lat={lat}
-              lng={lng}
-              city={city}
-              country={country}
-              width={88}
-            />
-            <svg
-              className="cancellation"
-              viewBox="0 0 160 60"
-              preserveAspectRatio="none"
-              aria-hidden="true"
-            >
-              <path d="M -5 14 Q 20 6, 40 14 T 80 14 T 120 14 T 170 14" />
-              <path d="M -5 28 Q 20 20, 40 28 T 80 28 T 120 28 T 170 28" />
-              <path d="M -5 42 Q 20 34, 40 42 T 80 42 T 120 42 T 170 42" />
+          {/* Flap seam — V-shape coming down from top corners to centre, with
+              a gradient shadow underneath so the fold has some heft. */}
+          <div className="flap" aria-hidden="true">
+            <svg viewBox="0 0 100 60" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="flapShade" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="rgba(80, 45, 15, 0.18)" />
+                  <stop offset="100%" stopColor="rgba(80, 45, 15, 0)" />
+                </linearGradient>
+              </defs>
+              <path d="M 0 0 L 50 58 L 100 0 L 100 60 L 0 60 Z" fill="url(#flapShade)" />
+              <path d="M 0 0 L 50 58 L 100 0" fill="none" stroke="rgba(80, 45, 15, 0.28)" strokeWidth="0.5" />
             </svg>
           </div>
-        ) : null}
 
-        <div className="middle">
-          <div className="wordmark" id="env-title">
-            <em>Once</em>
+          {/* Corner fold — bottom-right, subtle triangular highlight + shadow
+              as if the paper was dog-eared once. */}
+          <div className="corner-fold" aria-hidden="true" />
+
+          <div className="return-address">From {city}, {country}</div>
+
+          {lat != null && lng != null ? (
+            <div className="stamp-area">
+              <MapPostmark
+                lat={lat}
+                lng={lng}
+                city={city}
+                country={country}
+                width={84}
+              />
+              <svg
+                className="cancellation"
+                viewBox="0 0 140 48"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <path d="M 4 10 Q 22 4, 40 10 T 76 10 T 112 10 T 140 10" />
+                <path d="M 4 24 Q 22 18, 40 24 T 76 24 T 112 24 T 140 24" />
+                <path d="M 4 38 Q 22 32, 40 38 T 76 38 T 112 38 T 140 38" />
+              </svg>
+            </div>
+          ) : null}
+
+          <div className="middle">
+            <p className="slogan en">
+              A slice of{" "}
+              <span className="crossed">
+                mundane
+                <span className="cross-line" aria-hidden="true" />
+              </span>
+              {" "}ordinary life,
+              <br />
+              from elsewhere &mdash; hourly.
+            </p>
+
+            {localSlogan ? (
+              <p
+                className="slogan local"
+                lang={language}
+                dir={localIsRtl ? "rtl" : undefined}
+              >
+                {localSlogan}
+              </p>
+            ) : null}
           </div>
-          <p className="slogan" id="env-slogan">
-            {SLOGAN}
-          </p>
-        </div>
 
-        <div className="hint" aria-hidden="true">
-          click to open
-        </div>
-      </button>
+          <div className="hint" aria-hidden="true">
+            <span>click to open</span>
+          </div>
+        </button>
+      </div>
 
       <style>{`
+        /* ── opaque backdrop so content behind isn't spoiled ───────── */
         .env-overlay {
           position: fixed;
           inset: 0;
@@ -137,99 +193,148 @@ export default function EnvelopeIntro({ city, country, lat, lng }: Props) {
           align-items: center;
           justify-content: center;
           padding: 24px;
-          background: rgba(32, 23, 8, 0.38);
-          backdrop-filter: blur(3px) saturate(0.9);
-          -webkit-backdrop-filter: blur(3px) saturate(0.9);
-          animation: env-overlay-in 500ms ease-out both;
+          background-color: var(--bg);
+          background-image:
+            radial-gradient(ellipse 110% 75% at 20% 0%, var(--bg-warm) 0%, transparent 55%),
+            url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='640'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.01 0.22' numOctaves='2' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.32  0 0 0 0 0.22  0 0 0 0 0.11  0 0 0 0.14 0'/%3E%3C/filter%3E%3Crect width='640' height='640' filter='url(%23f)'/%3E%3C/svg%3E"),
+            url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='2.2' numOctaves='1' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.2  0 0 0 0 0.14  0 0 0 0 0.07  0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23f)'/%3E%3C/svg%3E");
+          background-repeat: no-repeat, repeat, repeat;
+          background-size: auto, 640px 640px, 220px 220px;
+          background-blend-mode: normal, multiply, multiply;
+          animation: env-overlay-in 600ms ease-out both;
         }
         .env-overlay.closing {
-          animation: env-overlay-out 450ms ease-in forwards;
+          animation: env-overlay-out 500ms ease-in forwards;
         }
         @keyframes env-overlay-in {
-          from { opacity: 0; backdrop-filter: blur(0) saturate(1); }
+          from { opacity: 0; }
           to   { opacity: 1; }
         }
         @keyframes env-overlay-out {
-          to   { opacity: 0; }
+          to { opacity: 0; }
         }
 
-        .envelope {
-          position: relative;
-          width: min(560px, 92vw);
-          aspect-ratio: 1.55 / 1;
-          padding: 0;
-          font-family: var(--serif);
-          color: var(--ink);
-          text-align: center;
-          cursor: pointer;
-          border: 1px solid rgba(80, 45, 15, 0.14);
-          border-radius: 2px;
-          background-color: #f6eed9;
-          background-image:
-            url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.25  0 0 0 0 0.17  0 0 0 0 0.08  0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E"),
-            linear-gradient(172deg, #faf2dd 0%, #ebdcba 100%);
-          background-blend-mode: multiply, normal;
-          box-shadow:
-            0 1px 0 rgba(32, 23, 8, 0.06),
-            0 44px 88px -36px rgba(42, 23, 8, 0.5),
-            0 22px 44px -22px rgba(42, 23, 8, 0.25),
-            inset 0 0 0 1px rgba(42, 23, 8, 0.04);
+        /* ── arrival / exit wrapper (handles enter + leave) ─────────── */
+        .env-arrival {
           transform: rotate(-2deg);
-          transform-origin: center;
           animation: env-arrive 900ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
         }
-        .env-overlay.closing .envelope {
+        .env-overlay.closing .env-arrival {
           animation: env-leave 600ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
         @keyframes env-arrive {
-          0%   { opacity: 0; transform: rotate(-5deg) translateY(30px) scale(0.96); }
+          0%   { opacity: 0; transform: rotate(-5deg) translateY(34px) scale(0.96); }
           60%  { opacity: 1; }
           100% { opacity: 1; transform: rotate(-2deg) translateY(0) scale(1); }
         }
         @keyframes env-leave {
           0%   { opacity: 1; transform: rotate(-2deg) translateY(0) scale(1); }
-          100% { opacity: 0; transform: rotate(-3deg) translateY(-36px) scale(1.04); }
+          100% { opacity: 0; transform: rotate(-3deg) translateY(-40px) scale(1.04); }
         }
-        .envelope:hover {
-          transform: rotate(-1.4deg) translateY(-2px);
+
+        /* ── envelope body + wind sway (occasional gusts) ───────────── */
+        .envelope {
+          position: relative;
+          display: block;
+          width: min(580px, 92vw);
+          aspect-ratio: 1.55 / 1;
+          padding: 0;
+          font-family: var(--serif);
+          color: var(--ink-soft);
+          text-align: center;
+          cursor: pointer;
+          border: 1px solid rgba(80, 45, 15, 0.14);
+          border-radius: 2px;
+          overflow: hidden;    /* clips cancellation marks inside */
+          background-color: #faf3df;
+          background-image:
+            url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='360'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.018 0.28' numOctaves='2' seed='5' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.32  0 0 0 0 0.22  0 0 0 0 0.11  0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='360' height='360' filter='url(%23n)'/%3E%3C/svg%3E"),
+            url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.8' numOctaves='1' seed='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.22  0 0 0 0 0.15  0 0 0 0 0.08  0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E"),
+            linear-gradient(172deg, #fdf6e2 0%, #efe3c2 100%);
+          background-blend-mode: multiply, multiply, normal;
+          box-shadow:
+            0 1px 0 rgba(32, 23, 8, 0.06),
+            0 44px 92px -36px rgba(42, 23, 8, 0.5),
+            0 22px 46px -22px rgba(42, 23, 8, 0.28),
+            inset 0 0 0 1px rgba(42, 23, 8, 0.04);
+          animation: env-wind 18s 2.2s ease-in-out infinite;
+          will-change: transform;
+        }
+        /* Occasional wind gusts — most of the cycle is still, two small
+           gusts give the envelope a sense of being out in the breeze. */
+        @keyframes env-wind {
+          0%, 14%, 42%, 48%, 78%, 100% { transform: rotate(0deg) translate(0, 0); }
+          16%  { transform: rotate(-0.7deg) translate(1px, 0); }
+          18%  { transform: rotate(0.4deg) translate(-1px, -1px); }
+          20%  { transform: rotate(-0.3deg) translate(1px, 0); }
+          22%  { transform: rotate(0.2deg) translate(0, -1px); }
+          24%  { transform: rotate(0deg) translate(0, 0); }
+          70%  { transform: rotate(0.9deg) translate(-2px, -2px); }
+          72%  { transform: rotate(-0.5deg) translate(1px, -1px); }
+          74%  { transform: rotate(0.3deg) translate(-1px, 0); }
+          76%  { transform: rotate(0deg) translate(0, 0); }
         }
         .envelope:focus-visible {
           outline: 2px solid var(--accent);
           outline-offset: 4px;
         }
 
-        .flap-seam {
+        /* Flap ── V-fold with gradient shadow ──────────────────────── */
+        .flap {
           position: absolute;
           inset: 0 0 auto 0;
           width: 100%;
-          height: 56%;
+          height: 62%;
           pointer-events: none;
         }
-
-        .return-address {
-          position: absolute;
-          top: 18px;
-          left: 28px;
-          font-family: var(--cursive);
-          font-size: clamp(14px, 1.6vw, 16px);
-          color: var(--accent-dark);
-          opacity: 0.85;
-          max-width: 55%;
-          text-align: left;
-          line-height: 1.2;
+        .flap svg {
+          width: 100%;
+          height: 100%;
+          display: block;
         }
 
-        .stamp-area {
+        /* Bottom-right corner fold (dog-ear) ──────────────────────── */
+        .corner-fold {
+          position: absolute;
+          bottom: 0;
+          right: 0;
+          width: 36px;
+          height: 36px;
+          background:
+            linear-gradient(135deg, transparent 50%, rgba(80, 45, 15, 0.14) 50%, rgba(80, 45, 15, 0.22) 56%, rgba(234, 214, 170, 1) 56%, #e4d39f 100%);
+          clip-path: polygon(100% 0, 100% 100%, 0 100%);
+          pointer-events: none;
+          opacity: 0.6;
+        }
+
+        /* Return address — handwritten in Caveat, warm brown ────── */
+        .return-address {
           position: absolute;
           top: 16px;
-          right: 22px;
+          left: 24px;
+          font-family: var(--cursive);
+          font-size: clamp(13px, 1.5vw, 16px);
+          color: var(--accent-dark);
+          opacity: 0.82;
+          max-width: 50%;
+          text-align: left;
+          line-height: 1.2;
+          z-index: 2;
+        }
+
+        /* Stamp + cancellation ───────────────────────────────────── */
+        .stamp-area {
+          position: absolute;
+          top: 14px;
+          right: 18px;
+          z-index: 2;
         }
         .cancellation {
           position: absolute;
-          top: 18px;
-          left: -18px;
-          width: 150px;
-          height: 54px;
+          top: 10px;
+          left: -28px;
+          width: 130px;
+          height: 46px;
           opacity: 0.38;
           transform: rotate(-14deg);
           pointer-events: none;
@@ -241,6 +346,7 @@ export default function EnvelopeIntro({ city, country, lat, lng }: Props) {
           fill: none;
         }
 
+        /* ── slogan block ──────────────────────────────────────────── */
         .middle {
           position: absolute;
           inset: 0;
@@ -248,94 +354,107 @@ export default function EnvelopeIntro({ city, country, lat, lng }: Props) {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          padding: 0 48px;
-          gap: 18px;
+          padding: 0 clamp(36px, 6vw, 64px);
+          gap: clamp(10px, 1.4vh, 18px);
+          z-index: 1;
         }
-
-        .wordmark {
-          font-family: var(--serif);
-          font-style: italic;
-          font-variation-settings: "opsz" 144, "SOFT" 100, "wght" 400;
-          font-size: clamp(28px, 3.4vw, 36px);
-          color: var(--ink);
-          line-height: 1;
-          position: relative;
-          display: inline-block;
-          padding: 0 22px;
-        }
-        .wordmark em { font-style: italic; font-weight: 400; }
-        .wordmark::before,
-        .wordmark::after {
-          content: "";
-          position: absolute;
-          top: 52%;
-          width: 30px;
-          height: 1px;
-          background: var(--ink-faint);
-          opacity: 0.5;
-        }
-        .wordmark::before { right: 100%; }
-        .wordmark::after  { left: 100%; }
 
         .slogan {
           margin: 0;
-          font-family: var(--serif);
-          font-style: italic;
-          font-variation-settings: "opsz" 18, "SOFT" 80, "wght" 400;
-          font-size: clamp(15px, 1.6vw, 18px);
-          line-height: 1.55;
           color: var(--ink-soft);
-          letter-spacing: 0.003em;
-          text-wrap: balance;
-          max-width: 28em;
+          line-height: 1.45;
+          text-wrap: pretty;
+        }
+        .slogan.en {
+          font-family: var(--cursive);
+          font-size: clamp(20px, 2.4vw, 26px);
+          letter-spacing: 0.005em;
+          max-width: 22em;
+        }
+        .slogan.local {
+          font-family: var(--cursive);
+          font-size: clamp(15px, 1.7vw, 18px);
+          color: var(--ink-muted);
+          opacity: 0.92;
+          max-width: 22em;
+          /* Scripts without a handwritten cursive form should still read
+             naturally in the user's system fallback. */
+        }
+
+        /* Strikethrough "mundane" — pen-scribble line, slightly rotated
+           to feel like a real correction. */
+        .crossed {
+          position: relative;
+          display: inline-block;
+          color: var(--ink-faint);
+        }
+        .cross-line {
+          position: absolute;
+          top: 52%;
+          left: -3%;
+          width: 106%;
+          height: 1.4px;
+          background: var(--ink-muted);
+          transform: rotate(-3.5deg);
+          transform-origin: center;
+          border-radius: 1px;
+          opacity: 0.85;
         }
 
         .hint {
           position: absolute;
-          bottom: 18px;
+          bottom: 16px;
           left: 0;
           right: 0;
           font-family: var(--cursive);
-          font-size: clamp(13px, 1.4vw, 15px);
+          font-size: clamp(12px, 1.3vw, 14px);
           color: var(--ink-faint);
-          opacity: 0.5;
+          opacity: 0.45;
           letter-spacing: 0.02em;
           animation: hint-breathe 2.6s ease-in-out infinite;
+          z-index: 2;
         }
         @keyframes hint-breathe {
-          0%, 100% { opacity: 0.35; }
-          50%      { opacity: 0.75; }
+          0%, 100% { opacity: 0.3; }
+          50%      { opacity: 0.7; }
         }
 
         @media (prefers-reduced-motion: reduce) {
           .env-overlay,
           .env-overlay.closing,
+          .env-arrival,
+          .env-overlay.closing .env-arrival,
           .envelope,
-          .env-overlay.closing .envelope,
           .hint {
             animation: none !important;
           }
-          .envelope { transform: rotate(-2deg); }
+          .env-arrival { transform: rotate(-2deg); }
           .env-overlay.closing { opacity: 0; transition: opacity 250ms linear; }
-          .env-overlay.closing .envelope { opacity: 0; transition: opacity 250ms linear; }
+          .env-overlay.closing .env-arrival { opacity: 0; transition: opacity 250ms linear; }
         }
 
         @media (max-width: 560px) {
           .envelope {
             aspect-ratio: 1.25 / 1;
-            padding: 0;
           }
           .return-address {
-            top: 14px;
-            left: 16px;
+            top: 12px;
+            left: 14px;
             font-size: 13px;
-            max-width: 50%;
+            max-width: 48%;
           }
-          .stamp-area { top: 12px; right: 12px; }
-          .middle { padding: 0 24px; gap: 12px; }
-          .wordmark { font-size: 28px; }
-          .slogan { font-size: 14.5px; }
-          .hint { bottom: 12px; font-size: 12.5px; }
+          .stamp-area { top: 10px; right: 10px; }
+          .cancellation {
+            left: -18px;
+            width: 100px;
+            height: 40px;
+            top: 8px;
+          }
+          .middle { padding: 0 22px; gap: 10px; }
+          .slogan.en { font-size: 17px; }
+          .slogan.local { font-size: 14px; }
+          .hint { bottom: 10px; font-size: 12px; }
+          .corner-fold { width: 26px; height: 26px; }
         }
       `}</style>
     </div>

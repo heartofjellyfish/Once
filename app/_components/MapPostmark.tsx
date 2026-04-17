@@ -62,9 +62,6 @@ export default function MapPostmark({
           <div className="city">{city.toUpperCase()}</div>
           <div className="country">{country.toUpperCase()}</div>
         </div>
-        <div className="denom" aria-hidden="true">
-          <em>Once</em>
-        </div>
       </div>
 
       <style>{`
@@ -157,17 +154,6 @@ export default function MapPostmark({
           line-height: 1.1;
         }
 
-        .stamp .denom {
-          position: absolute;
-          top: 2px;
-          right: 3px;
-          font-family: var(--cursive);
-          font-size: 11px;
-          color: var(--accent-dark);
-          line-height: 1;
-          opacity: 0.85;
-        }
-        .stamp .denom em { font-style: italic; }
       `}</style>
     </a>
   );
