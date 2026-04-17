@@ -26,12 +26,16 @@ if (!url) {
 
 const sql = neon(url);
 
-// Split on semicolons that end a line; keep comments as-is. Neon's HTTP
-// driver runs one statement per call, so we iterate.
-const statements = schema
-  .split(/;\s*$/m)
+// Strip SQL line comments FIRST, then split. Previously the naive
+// "filter out statements that start with --" logic threw away whole
+// statements whose heading lines were comments, which was basically
+// every CREATE TABLE in schema.sql.
+const schemaNoComments = schema.replace(/--[^\n]*/g, "");
+
+const statements = schemaNoComments
+  .split(/;\s*(?:\n|$)/)
   .map((s) => s.trim())
-  .filter((s) => s.length > 0 && !/^--/.test(s));
+  .filter((s) => s.length > 0);
 
 let applied = 0;
 for (const stmt of statements) {
