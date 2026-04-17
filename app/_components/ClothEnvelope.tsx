@@ -26,7 +26,10 @@ interface Props {
 }
 
 // ── shaders ───────────────────────────────────────────────────────
-// Simple hash + value-noise for wind. 2-layer + gust component.
+// Per-vertex cloth bending (Z) + rigid-body rotation + drift, all
+// driven by value noise. Under a perspective camera the Z bending is
+// visible as foreshortening; the rigid-body components give obvious
+// wind-caught motion.
 const VERTEX_SHADER = /* glsl */ `
   uniform float uTime;
   uniform float uGust;
@@ -52,26 +55,29 @@ const VERTEX_SHADER = /* glsl */ `
     vUv = uv;
     vec3 pos = position;
 
-    float t = uTime * 0.28;
+    float t = uTime * 0.3;
 
-    // Two octaves of value noise drifting with time.
+    // ── Z bending (cloth) — corners flap more than centre ──
     float w = vnoise(vec2(pos.x * 1.0 + t, pos.y * 1.2)) * 0.55
             + vnoise(vec2(pos.x * 2.3 - t * 1.1, pos.y * 2.6 + t)) * 0.25;
-
-    // A sharper oscillation that fades in during gusts.
-    float gust = sin(t * 2.6 + pos.x * 3.0 + pos.y * 1.7) * 0.55 * uGust;
-
-    // Edge-weighting: corners/edges flap more than the centre.
+    float gustWave = sin(t * 2.6 + pos.x * 3.0 + pos.y * 1.7) * 0.55 * uGust;
     float edgeW =
       (1.0 - cos(uv.x * 3.14159)) * 0.55 +
       (1.0 - cos(uv.y * 3.14159)) * 0.45;
-    edgeW = edgeW * 0.55 + 0.22;
-
-    float z = (w + gust) * edgeW * 0.055;
-
+    edgeW = edgeW * 0.6 + 0.25;
+    float z = (w + gustWave) * edgeW * 0.12;
     pos.z += z;
-
     vShade = z;
+
+    // ── rigid-body rotation — noise-driven, visible sway ──
+    float rotAngle = vnoise(vec2(t * 0.5, 7.0)) * 0.028 + uGust * 0.04;
+    float cr = cos(rotAngle), sr = sin(rotAngle);
+    mat2 rot = mat2(cr, -sr, sr, cr);
+    pos.xy = rot * pos.xy;
+
+    // ── rigid-body drift — gentle float in the breeze ──
+    pos.x += vnoise(vec2(t * 0.4, 13.0)) * 0.07;
+    pos.y += vnoise(vec2(t * 0.45, 23.0)) * 0.05 + uGust * 0.05;
 
     gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
   }
@@ -84,10 +90,8 @@ const FRAGMENT_SHADER = /* glsl */ `
 
   void main() {
     vec4 c = texture2D(uTex, vUv);
-    // Subtle Lambert-ish shading: areas that bent toward the "sun"
-    // brighten, areas that bent away darken. vShade is small (~±0.04),
-    // so the effect is gentle.
-    float shade = clamp(1.0 + vShade * 4.2, 0.82, 1.15);
+    // Stronger shading so the bending is visible as light & shadow.
+    float shade = clamp(1.0 + vShade * 5.5, 0.78, 1.22);
     gl_FragColor = vec4(c.rgb * shade, c.a);
   }
 `;
@@ -148,21 +152,29 @@ async function renderEnvelopeTexture({
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
 
-  // 1 — base paper gradient
+  // Clip the whole envelope to rounded corners so the paper doesn't
+  // read as a hard-edged rectangle.
+  const cornerR = 22;
+  ctx.save();
+  ctx.beginPath();
+  roundRectPath(ctx, 0, 0, W, H, cornerR);
+  ctx.clip();
+
+  // 1 — base paper: near-white with a whisper of warm. No more
+  // "brushed gold" gradient.
   const baseGrad = ctx.createLinearGradient(0, 0, 0, H);
-  baseGrad.addColorStop(0, "#fdf6db");
-  baseGrad.addColorStop(1, "#f0e2b4");
+  baseGrad.addColorStop(0, "#fcfaf5");
+  baseGrad.addColorStop(1, "#f6efde");
   ctx.fillStyle = baseGrad;
   ctx.fillRect(0, 0, W, H);
 
-  // 2 — paper grain (multiply blend)
-  const grainSvg = `<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' seed='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.2  0 0 0 0 0.14  0 0 0 0 0.07  0 0 0 0.22 0'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>`;
-  const fibreSvg = `<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}'><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='0.006 0.22' numOctaves='2' seed='7' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.32  0 0 0 0 0.22  0 0 0 0 0.11  0 0 0 0.24 0'/></filter><rect width='100%' height='100%' filter='url(#f)'/></svg>`;
-  const broadSvg = `<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}'><filter id='b'><feTurbulence type='fractalNoise' baseFrequency='0.0025' numOctaves='2' seed='11' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.36  0 0 0 0 0.25  0 0 0 0 0.11  0 0 0 0.2 0'/></filter><rect width='100%' height='100%' filter='url(#b)'/></svg>`;
+  // 2 — very faint fibers + broad tonal patches. NO dark high-freq
+  // specks (they looked like mould, not paper).
+  const fibreSvg = `<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}'><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='0.006 0.22' numOctaves='2' seed='7' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.4  0 0 0 0 0.3  0 0 0 0 0.16  0 0 0 0.08 0'/></filter><rect width='100%' height='100%' filter='url(#f)'/></svg>`;
+  const broadSvg = `<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}'><filter id='b'><feTurbulence type='fractalNoise' baseFrequency='0.0028' numOctaves='2' seed='11' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.4  0 0 0 0 0.3  0 0 0 0 0.16  0 0 0 0.07 0'/></filter><rect width='100%' height='100%' filter='url(#b)'/></svg>`;
 
   try {
-    const [grainImg, fibreImg, broadImg] = await Promise.all([
-      svgToImage(grainSvg),
+    const [fibreImg, broadImg] = await Promise.all([
       svgToImage(fibreSvg),
       svgToImage(broadSvg)
     ]);
@@ -170,17 +182,42 @@ async function renderEnvelopeTexture({
     ctx.globalCompositeOperation = "multiply";
     ctx.drawImage(broadImg, 0, 0, W, H);
     ctx.drawImage(fibreImg, 0, 0, W, H);
-    ctx.drawImage(grainImg, 0, 0, W, H);
     ctx.restore();
   } catch {
     /* proceed without paper grain */
   }
 
-  // 3 — soft light highlight (top-left)
-  const hl = ctx.createRadialGradient(W * 0.22, H * 0.18, 0, W * 0.22, H * 0.18, W * 0.7);
-  hl.addColorStop(0, "rgba(255, 248, 214, 0.55)");
-  hl.addColorStop(1, "rgba(255, 248, 214, 0)");
+  // 3 — soft highlight, top-left
+  const hl = ctx.createRadialGradient(
+    W * 0.22, H * 0.18, 0,
+    W * 0.22, H * 0.18, W * 0.7
+  );
+  hl.addColorStop(0, "rgba(255, 251, 230, 0.4)");
+  hl.addColorStop(1, "rgba(255, 251, 230, 0)");
   ctx.fillStyle = hl;
+  ctx.fillRect(0, 0, W, H);
+
+  // 3b — single faint tea-stain in the lower-right, so the paper
+  // feels handled.
+  const stain = ctx.createRadialGradient(
+    W * 0.82, H * 0.84, 0,
+    W * 0.82, H * 0.84, W * 0.2
+  );
+  stain.addColorStop(0, "rgba(160, 116, 62, 0.10)");
+  stain.addColorStop(0.6, "rgba(160, 116, 62, 0.04)");
+  stain.addColorStop(1, "rgba(160, 116, 62, 0)");
+  ctx.fillStyle = stain;
+  ctx.fillRect(0, 0, W, H);
+
+  // 3c — gentle inner vignette so edges aren't harder than the
+  // middle. A real sheet rolls off at the edges.
+  const vig = ctx.createRadialGradient(
+    W / 2, H / 2, W * 0.35,
+    W / 2, H / 2, W * 0.75
+  );
+  vig.addColorStop(0, "rgba(80, 60, 30, 0)");
+  vig.addColorStop(1, "rgba(80, 60, 30, 0.10)");
+  ctx.fillStyle = vig;
   ctx.fillRect(0, 0, W, H);
 
   // 4 — flap V-seam + soft shadow below it
@@ -245,7 +282,31 @@ async function renderEnvelopeTexture({
   ctx.textBaseline = "bottom";
   ctx.fillText("click to open", W / 2, H - 44);
 
+  // close the rounded-corner clip
+  ctx.restore();
+
   return canvas;
+}
+
+/** Standalone helper — Path2D's roundRect isn't everywhere yet. */
+function roundRectPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number
+) {
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
 }
 
 function drawSloganEN(ctx: CanvasRenderingContext2D, W: number, H: number) {
@@ -445,8 +506,9 @@ function ClothMesh({
   const segs: [number, number] = isMobile ? [16, 10] : [34, 22];
   const { viewport } = useThree();
 
-  // Size the plane to occupy ~84% of viewport width, maintaining aspect.
-  const planeW = Math.min(viewport.width * 0.84, 6);
+  // Plane occupies ~72% of viewport width so gusts can drift it without
+  // clipping the viewport edges.
+  const planeW = viewport.width * 0.72;
   const planeH = planeW / aspect;
 
   useFrame((s, delta) => {
@@ -570,8 +632,7 @@ export default function ClothEnvelope({
       onClick={handleBackdropClick}
     >
       <Canvas
-        orthographic
-        camera={{ zoom: 140, position: [0, 0, 10], near: 0.1, far: 100 }}
+        camera={{ fov: 30, position: [0, 0, 8], near: 0.1, far: 100 }}
         dpr={[1, 2]}
         style={{ width: "100%", height: "100%", cursor: "pointer" }}
         gl={{ antialias: true, alpha: true, preserveDrawingBuffer: false }}
