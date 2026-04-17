@@ -45,6 +45,7 @@ export default async function AdminLayout({
           <nav>
             <Link href="/admin">queue</Link>
             <Link href="/admin/runs">runs</Link>
+            <Link href="/admin/sources">sources</Link>
             <Link href="/admin/ingest">ingest</Link>
             <Link href="/admin/compose">compose</Link>
             <Link href="/" target="_blank" rel="noreferrer">
