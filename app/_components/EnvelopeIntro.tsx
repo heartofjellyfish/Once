@@ -216,16 +216,14 @@ export default function EnvelopeIntro({
           border: 1px solid rgba(80, 45, 15, 0.14);
           border-radius: 2px;
           overflow: hidden;
-          background-color: #fbf3d8;
-          background-image:
-            radial-gradient(ellipse 85% 65% at 22% 16%, rgba(255, 248, 214, 0.55) 0%, transparent 58%),
-            url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='2.4' numOctaves='1' seed='5' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.18  0 0 0 0 0.12  0 0 0 0 0.05  0 0 0 0.28 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E"),
-            url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.008 0.28' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.32  0 0 0 0 0.22  0 0 0 0 0.11  0 0 0 0.22 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),
-            url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='800'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0035' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.36  0 0 0 0 0.25  0 0 0 0 0.11  0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3C/svg%3E"),
-            linear-gradient(172deg, #fdf6db 0%, #f0e2b4 100%);
-          background-repeat: no-repeat, repeat, repeat, repeat, no-repeat;
-          background-size: auto, 240px 240px, 600px 600px, 800px 800px, auto;
-          background-blend-mode: normal, multiply, multiply, multiply, normal;
+          /* Flat warm cream + a single layer of fine even grain —
+             matches the reference texture the user supplied. No
+             fibers, no broad tonal patches, no light gradient. */
+          background-color: #f5ead0;
+          background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='2.1' numOctaves='2' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.26  0 0 0 0 0.18  0 0 0 0 0.08  0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+          background-repeat: repeat;
+          background-size: 220px 220px;
+          background-blend-mode: multiply;
           box-shadow:
             0 1px 0 rgba(32, 23, 8, 0.06),
             0 44px 92px -36px rgba(42, 23, 8, 0.5),
