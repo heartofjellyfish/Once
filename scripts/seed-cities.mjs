@@ -35,9 +35,12 @@ const cities = [
     currency_symbol: "¥",
     original_language: "ja",
     location_summary: "the capital of Japan, ~14 million people",
+    // SoraNews24 covers the uncanny-little-thing-from-Japan beat that
+    // Once actually wants. Japan Times was all politics/economics —
+    // zero Once matches. Reddit r/Tokyo is mostly tourist questions.
     rss_feeds: [
-      "https://www.reddit.com/r/Tokyo/new/.rss",
-      "https://www.japantimes.co.jp/feed/"
+      "https://soranews24.com/feed/",
+      "https://www.reddit.com/r/Tokyo/new/.rss"
     ]
   },
   {

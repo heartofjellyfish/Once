@@ -81,7 +81,9 @@ Your job now is a very fast yes/no screen. Given an entry's title and a short sn
 
 Be INCLUSIVE at this stage — prefer false positives over false negatives. If even one of: warmth, quiet sadness, strangeness, uncanny statistic, small-town dignity is plausibly present, answer yes.
 
-Return JSON: { "pass": true | false, "why": "<under 15 words>" }`;
+Also return a faithful English rendering of the title (not a loose paraphrase — a translation). If the title is already English, copy it.
+
+Return JSON: { "pass": true|false, "why": "<under 15 words>", "title_en": "<english title>" }`;
 
 const FULL_SYSTEM = `${RUBRIC}
 
@@ -143,9 +145,10 @@ const PREFILTER_SCHEMA = {
   additionalProperties: false,
   properties: {
     pass: { type: "boolean" },
-    why: { type: "string" }
+    why: { type: "string" },
+    title_en: { type: "string" }
   },
-  required: ["pass", "why"]
+  required: ["pass", "why", "title_en"]
 } as const;
 
 // --- result types ---------------------------------------------------
@@ -337,9 +340,14 @@ async function runPrefilter(
       });
 
       const raw = resp.choices[0]?.message?.content ?? "{}";
-      const j = JSON.parse(raw) as { pass: boolean; why: string };
+      const j = JSON.parse(raw) as {
+        pass: boolean;
+        why: string;
+        title_en?: string;
+      };
       pass = !!j.pass;
       why = (j.why || "").slice(0, 200);
+      const titleEn = (j.title_en || "").slice(0, 300).trim() || null;
 
       await recordSpend(
         {
@@ -356,6 +364,7 @@ async function runPrefilter(
         city_id: city.id,
         source_url: e.link,
         source_title: e.title,
+        source_title_en: titleEn,
         source_snippet: e.snippet,
         stage: "prefilter",
         verdict: pass ? "pass" : "fail",
@@ -534,6 +543,7 @@ async function logDecision(args: {
   city_id: string | null;
   source_url: string;
   source_title: string;
+  source_title_en?: string | null;
   source_snippet: string;
   stage: "prefilter" | "score" | "rewrite";
   verdict: "pass" | "fail" | "selected";
@@ -546,7 +556,7 @@ async function logDecision(args: {
   const sql = requireSql();
   await sql`
     insert into ai_decisions (
-      city_id, source_url, source_title, source_snippet,
+      city_id, source_url, source_title, source_title_en, source_snippet,
       stage, verdict,
       score_specificity, score_resonance, score_register,
       rationale, queue_id
@@ -554,6 +564,7 @@ async function logDecision(args: {
       ${args.city_id},
       ${args.source_url},
       ${args.source_title.slice(0, 500)},
+      ${args.source_title_en ?? null},
       ${args.source_snippet.slice(0, 1000)},
       ${args.stage},
       ${args.verdict},

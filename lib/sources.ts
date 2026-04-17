@@ -98,7 +98,7 @@ async function fetchFeed(feedUrl: string): Promise<FeedEntry[]> {
     const pub = item.isoDate ? new Date(item.isoDate) : null;
     if (pub && pub.getTime() < cutoff) continue;
 
-    const title = (item.title || "").trim();
+    const title = stripHtml(item.title || "").trim();
     const snippet = truncate(
       stripHtml(item.contentSnippet || item.content || "").trim(),
       400

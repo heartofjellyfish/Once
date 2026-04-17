@@ -12,6 +12,7 @@ interface DecisionRow {
   score_resonance: number | null;
   score_register: number | null;
   source_title: string | null;
+  source_title_en: string | null;
   source_url: string | null;
   source_snippet: string | null;
   rationale: string | null;
@@ -91,7 +92,7 @@ export default async function RunsPage({
       at::text as at,
       stage, verdict,
       score_specificity, score_resonance, score_register,
-      source_title, source_url, source_snippet, rationale,
+      source_title, source_title_en, source_url, source_snippet, rationale,
       queue_id::text as queue_id,
       city_id
     from ai_decisions
@@ -188,15 +189,20 @@ export default async function RunsPage({
                     </a>
                   ) : null}
                 </div>
-                {d.source_title ? (
+                {d.source_title_en || d.source_title ? (
                   <div className="d-title">
                     {d.source_url ? (
                       <a href={d.source_url} target="_blank" rel="noreferrer">
-                        {d.source_title}
+                        {d.source_title_en || d.source_title}
                       </a>
                     ) : (
-                      d.source_title
+                      d.source_title_en || d.source_title
                     )}
+                    {d.source_title_en &&
+                    d.source_title &&
+                    d.source_title_en !== d.source_title ? (
+                      <span className="d-title-orig"> · {d.source_title}</span>
+                    ) : null}
                   </div>
                 ) : null}
                 {d.rationale ? (
@@ -428,6 +434,12 @@ export default async function RunsPage({
         .d-title a:hover {
           border-bottom-color: var(--accent);
           color: var(--accent);
+        }
+        .d-title-orig {
+          color: var(--ink-faint);
+          font-style: italic;
+          font-size: 12px;
+          margin-left: 4px;
         }
         .d-rationale {
           margin-top: 3px;

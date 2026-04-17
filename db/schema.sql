@@ -164,3 +164,7 @@ create table if not exists ai_decisions (
 
 create index if not exists ai_decisions_at_idx on ai_decisions (at desc);
 create index if not exists ai_decisions_city_idx on ai_decisions (city_id, at desc);
+
+-- English translation of source_title for the runs dashboard (scannable
+-- at a glance regardless of feed language). Populated during prefilter.
+alter table ai_decisions add column if not exists source_title_en text;
