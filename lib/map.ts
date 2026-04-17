@@ -16,10 +16,12 @@ interface MapOpts {
 }
 
 function base(lat: number, lng: number, { size = 200, zoom = 11 }: MapOpts = {}) {
-  // Stadia's static map API: /static/{style}.jpg?center=lng,lat&zoom=N&size=WxH
-  // The @2x suffix that other providers accept makes Stadia return 422, so
-  // we render at the requested CSS size directly.
-  return `https://tiles.stadiamaps.com/static/stamen_watercolor.jpg?center=${lng},${lat}&zoom=${zoom}&size=${size}x${size}`;
+  // Stadia's static map API: /static/{style}.jpg?center=lat,lng&zoom=N&size=WxH
+  // (Note lat first — unlike Mapbox/Google which use lng,lat. Wrong order
+  // gives HTTP 400 "Unable to parse query argument center".)
+  // @2x suffix on size is not supported and causes 422; request the pixel
+  // size directly and let CSS scale.
+  return `https://tiles.stadiamaps.com/static/stamen_watercolor.jpg?center=${lat},${lng}&zoom=${zoom}&size=${size}x${size}`;
 }
 
 /** Watercolor map URL. api_key is added only in non-production envs. */
