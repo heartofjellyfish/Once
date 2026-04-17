@@ -126,74 +126,105 @@ const WATER_VERTEX = /* glsl */ `
   }
 `;
 
-// Hockney-style pool water.
+// Hockney pool, take 2 — reductive instead of additive.
 //
-// David Hockney's pool paintings (Bigger Splash '67, Pool with Two
-// Figures '72, Paper Pools series '78) treat water as pop-graphic,
-// not photographic. The look is:
-//   • Flat cerulean with only a whisper of vertical gradient
-//   • Confident hand-drawn curly white lines (his "curly-hair"
-//     signature) that map the shimmer onto a few intentional marks
-//     instead of a noise field
-//   • Very small, slow motion — the painting almost holds still
+// What Hockney actually does:
+//   • A flat block of cerulean. Not a gradient. One colour.
+//   • ~10-15 small, independent, painterly marks scattered across it.
+//     Each has its own angle, length, slight curve, and tapered ends
+//     (like the start and stop of a brush).
+//   • The vast majority of the canvas is UNTOUCHED — nothing but blue.
+//   • Very little motion. The painting almost holds still.
 //
-// So: drop the tile floor, caustics net, absorption filter, and
-// sparkle noise. Keep a flat-ish base + 11 lightly animated wavy
-// white curves. Minimal, confident, graphic.
+// Previous attempt drew 11 horizontal parallel wavy lines, which
+// read like wood grain or wallpaper, not like Hockney's confident
+// scattered marks. This version uses SDF-based brushstrokes at
+// pseudo-random positions in a grid, most cells empty.
 const WATER_FRAGMENT = /* glsl */ `
   uniform float uTime;
   varying vec2 vUv;
 
+  float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+  }
+
+  // Distance-to-curved-arc SDF with a brush-like taper at both ends.
+  // Returns 0..1 coverage.
+  float drawMark(
+    vec2 uv, vec2 center, float angle, float len, float curve, float width
+  ) {
+    vec2 d = uv - center;
+    float c = cos(-angle), s = sin(-angle);
+    vec2 rd = vec2(c * d.x - s * d.y, s * d.x + c * d.y);
+
+    // Outside the mark's along-axis extent → no ink.
+    if (abs(rd.x) > len * 0.5) return 0.0;
+
+    // Parametric position along the stroke, normalised to -1..1.
+    float tN = rd.x / (len * 0.5);
+
+    // The stroke's Y is a gentle sine → curl.
+    float expectedY = curve * sin(tN * 3.14159);
+
+    // Distance from the curve.
+    float dist = abs(rd.y - expectedY);
+
+    // Taper: stroke is full-width in the middle, narrow at the ends.
+    float taper = 1.0 - pow(abs(tN), 3.0);
+    float w = width * (0.35 + taper * 0.65);
+
+    return smoothstep(w, w * 0.25, dist);
+  }
+
   void main() {
     vec2 uv = vUv;
-    float t = uTime * 0.12;
+    float t = uTime * 0.08;
 
-    // Flat cerulean base with a gentle top-to-bottom shift —
-    // Hockney pools are never a strict single colour but the
-    // gradient is slight.
-    vec3 top = vec3(0.32, 0.72, 0.93);   // #52B8ED
-    vec3 mid = vec3(0.18, 0.56, 0.84);   // #2E8FD6
-    vec3 bot = vec3(0.09, 0.39, 0.69);   // #1762B0
-    vec3 color = mix(bot, mid, smoothstep(0.0, 0.5, uv.y));
-    color = mix(color, top, smoothstep(0.5, 1.0, uv.y));
+    // One flat Hockney cerulean. Not a gradient. #2E99D9-ish.
+    vec3 water = vec3(0.18, 0.60, 0.85);
 
-    // Curly white marks — horizontal wavy lines with varied per-row
-    // amplitude / frequency / phase / speed. The two added sines per
-    // line give each curve the double-hump "curly-hair" shape that
-    // Hockney paints.
+    // Nudge slightly darker at the edges for depth, but only a
+    // whisper (~8 %).
+    vec2 centRad = uv - vec2(0.5, 0.5);
+    water *= 1.0 - length(centRad) * 0.10;
+
+    // Scattered marks on a 6×4 grid. Each cell has ~55 % chance of
+    // being empty → ~10–12 marks visible, well-spaced.
     float marks = 0.0;
-    for (int i = 0; i < 11; i++) {
-      float fi = float(i);
-      // Evenly spaced y with a pseudo-random jitter, so they don't
-      // line up on a strict grid.
-      float y = (fi + 0.5) / 11.0 + sin(fi * 7.3) * 0.012;
-      // Amplitude + frequency vary per line.
-      float amp  = 0.020 + fract(sin(fi * 12.9898) * 43758.5453) * 0.022;
-      float freq = 4.0 + fract(cos(fi * 7.1) * 1234.5) * 6.5;
-      // Each line phases at its own speed for that hand-drawn
-      // asynchronous shimmer.
-      float speed = 0.35 + fract(sin(fi * 2.7)) * 0.55;
-      float phase = fi * 1.7 + t * speed;
+    for (int gy = 0; gy < 4; gy++) {
+      for (int gx = 0; gx < 6; gx++) {
+        vec2 cell = vec2(float(gx), float(gy));
 
-      // Two sines added gives the asymmetric curly look.
-      float curveY = y
-        + sin(uv.x * freq + phase) * amp
-        + sin(uv.x * freq * 0.43 - phase * 0.7) * amp * 0.38;
+        // Skip-or-paint: most cells stay empty.
+        if (hash(cell + 31.0) < 0.55) continue;
 
-      float dist = abs(uv.y - curveY);
-      float line = smoothstep(0.007, 0.0015, dist);
-      marks += line;
+        // Cell centre with jitter inside the cell.
+        vec2 center = (cell + 0.5) / vec2(6.0, 4.0);
+        center += (vec2(hash(cell), hash(cell + 51.0)) - 0.5) * 0.15;
+
+        // Very slow drift, per-mark phase — so they don't move in sync.
+        float phase = hash(cell + 91.0) * 6.28318;
+        center += vec2(
+          sin(t * 0.4 + phase) * 0.006,
+          cos(t * 0.33 + phase * 1.3) * 0.006
+        );
+
+        // Each mark's own brush: any angle, random length, random
+        // curl sign, slight width variation.
+        float angle  = hash(cell + 71.0) * 6.28318;
+        float len    = 0.055 + hash(cell + 13.0) * 0.08;
+        float curve  = (hash(cell + 23.0) - 0.5) * 0.045;
+        float width  = 0.0035 + hash(cell + 37.0) * 0.0025;
+
+        marks += drawMark(uv, center, angle, len, curve, width);
+      }
     }
     marks = clamp(marks, 0.0, 1.0);
 
-    // A slightly off-white, so the marks don't feel like a highlight
-    // pass but like painted strokes.
-    vec3 strokeColor = vec3(0.93, 0.98, 1.00);
-    color = mix(color, strokeColor, marks * 0.86);
-
-    // Whisper of depth vignette.
-    vec2 cent = uv - vec2(0.5, 0.5);
-    color *= 1.0 - length(cent) * 0.18;
+    // Paint strokes — slightly warm off-white, so they read as paint
+    // rather than highlight.
+    vec3 strokeColor = vec3(0.96, 0.99, 1.00);
+    vec3 color = mix(water, strokeColor, marks * 0.9);
 
     gl_FragColor = vec4(color, 1.0);
   }
