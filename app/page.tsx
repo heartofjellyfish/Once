@@ -105,12 +105,18 @@ export default async function Page() {
   const TITLE_FADEIN = 200 / TITLE_DUR;
   const TITLE_STARE = Math.max(0, titleTypingEnd - 200) / TITLE_DUR;
 
-  const POLAROID_DUR = 3500;
-  const STAMP_DUR = 3100;
-  const NOTE_DUR = 3800;
+  // Slightly longer stage durations so the blur-in has room to
+  // transition alongside the element's fly-in.
+  const POLAROID_DUR = 4000;
+  const STAMP_DUR = 3600;
+  const NOTE_DUR = 4300;
   // Pause between stages: the next piece waits until the previous has
   // fully landed + this many ms of quiet before it starts flying in.
   const GAP_BETWEEN_STAGES = 900;
+
+  // Title keeps revealing across its whole stare (typing), so its blur
+  // should peak at the end of stare, not at the end of fadeIn.
+  const TITLE_BLUR_COMPLETE_AT = TITLE_FADEIN + TITLE_STARE;
 
   const dTitle = 0;
   const dPolaroid = dTitle + TITLE_DUR + GAP_BETWEEN_STAGES;
@@ -261,6 +267,7 @@ export default async function Page() {
             scale={1.08}
             fadeIn={TITLE_FADEIN}
             stare={TITLE_STARE}
+            blurCompleteAt={TITLE_BLUR_COMPLETE_AT}
           >
             <PencilText
               className="greeting"

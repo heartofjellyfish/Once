@@ -14,6 +14,13 @@ interface Props {
   stare?: number;
   /** 0-1. Fraction of duration spent fading in at the start. */
   fadeIn?: number;
+  /** 0-1. Fraction of duration at which the backdrop blur should be
+   *  fully on. Defaults to fadeIn — blur completes exactly as the
+   *  element finishes materializing. For the title (which keeps
+   *  "appearing" via typing across the whole stare phase), pass a
+   *  value equal to fadeIn + stare so the blur peaks when the last
+   *  character lands. */
+  blurCompleteAt?: number;
   children: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
@@ -33,12 +40,15 @@ interface Props {
  */
 export default function StagedCenter({
   delay,
-  duration = 3200,
+  duration = 3800,
   scale = 1.18,
-  // Each phase is a deliberate fraction of the total. fadeIn is long
-  // enough that the blur→crisp transition feels gradual, not snapped.
-  stare = 0.28,
-  fadeIn = 0.22,
+  // Slower element materialization gives the blur ramp more breathing
+  // room. fadeIn is the fraction during which the element is flying
+  // to center + de-blurring; a longer fadeIn means the backdrop's
+  // parallel blur-in feels gradual instead of rushed.
+  stare = 0.26,
+  fadeIn = 0.32,
+  blurCompleteAt,
   children,
   className,
   style
@@ -74,6 +84,15 @@ export default function StagedCenter({
   const stareEndPct = Math.round((fadeIn + stare) * 100);
   const keyName = `staged-fly-${fadeInPct}-${stareEndPct}`;
 
+  // Backdrop timing: starts ramping the moment the element enters (0%),
+  // completes exactly as the element is fully in foreground. Holds for
+  // a beat, then fades out.
+  const blurPeakPct = Math.round(
+    (blurCompleteAt != null ? blurCompleteAt : fadeIn) * 100
+  );
+  const bdHoldEndPct = Math.min(92, blurPeakPct + Math.max(6, Math.round((100 - blurPeakPct) * 0.35)));
+  const bdKeyName = `stage-bd-${blurPeakPct}-${bdHoldEndPct}`;
+
   const shouldAnimate = measured && !reduced && !settled;
 
   const styleVars: React.CSSProperties = shouldAnimate
@@ -98,12 +117,12 @@ export default function StagedCenter({
     .filter(Boolean)
     .join(" ");
 
-  // Per-stage backdrop: starts OFF while the element materializes, then
-  // gradually blurs the whole viewport during stare/fly-out and clears
-  // before the element lands. Portaled to <body> so it escapes every
-  // parent stacking context and blurs the entire page, not just a
-  // subtree. Same animation clock as the stage → naturally paused
-  // until body.story-ready (via globals.css pause rule on .stage-backdrop).
+  // Per-stage backdrop: starts ramping from the moment the element
+  // enters, peaks exactly when the element is fully in the foreground,
+  // holds for a beat, then fades out during the fly-home tail.
+  // Portaled to <body> so it escapes every parent stacking context and
+  // blurs the entire viewport. Pause-gate via globals.css matches on
+  // .stage-backdrop and keeps this frozen until envelope is dismissed.
   const backdrop =
     shouldAnimate && typeof document !== "undefined"
       ? createPortal(
@@ -127,23 +146,23 @@ export default function StagedCenter({
                 z-index: 100;
                 pointer-events: none;
                 opacity: 0;
-                animation-name: stage-bd-cycle;
-                animation-duration: var(--bd-duration, 3200ms);
+                animation-name: ${bdKeyName};
+                animation-duration: var(--bd-duration, 3800ms);
                 animation-delay: var(--bd-delay, 0ms);
-                animation-timing-function: cubic-bezier(0.42, 0, 0.22, 1);
+                animation-timing-function: cubic-bezier(0.38, 0, 0.25, 1);
                 animation-fill-mode: forwards;
                 will-change: opacity;
               }
-              @keyframes stage-bd-cycle {
-                /* Element materializes alone — backdrop stays clear so
-                   nothing competes for attention. */
-                0%, 26% { opacity: 0; }
-                /* Slow blur-in over ~30% of the stage: "慢慢的虚化". */
-                58% { opacity: 1; }
-                /* Brief hold while the element is at center + early fly-out. */
-                74% { opacity: 1; }
-                /* Clear the blur before the element lands. */
-                96%, 100% { opacity: 0; }
+              @keyframes ${bdKeyName} {
+                /* Starts ramping from the instant the element enters. */
+                0% { opacity: 0; }
+                /* Blur complete exactly when the element is fully in
+                   the foreground (blurCompleteAt, defaults to fadeIn). */
+                ${blurPeakPct}% { opacity: 1; }
+                /* Hold while the element is at center + early fly-out. */
+                ${bdHoldEndPct}% { opacity: 1; }
+                /* Fade out during the tail of fly-home. */
+                100% { opacity: 0; }
               }
             `}</style>
           </div>,
