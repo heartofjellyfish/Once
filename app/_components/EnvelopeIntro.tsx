@@ -131,12 +131,7 @@ export default function EnvelopeIntro({
 
           <div className="middle">
             <p className="slogan en">
-              A slice of{" "}
-              <span className="crossed">
-                mundane
-                <span className="cross-line" aria-hidden="true" />
-              </span>
-              {" "}ordinary life,
+              A slice of ordinary life,
               <br />
               from elsewhere &mdash; hourly.
             </p>
@@ -323,23 +318,6 @@ export default function EnvelopeIntro({
           color: var(--ink-muted);
           opacity: 0.92;
           max-width: 22em;
-        }
-        .crossed {
-          position: relative;
-          display: inline-block;
-          color: var(--ink-faint);
-        }
-        .cross-line {
-          position: absolute;
-          top: 52%;
-          left: -3%;
-          width: 106%;
-          height: 1.4px;
-          background: var(--ink-muted);
-          transform: rotate(-3.5deg);
-          transform-origin: center;
-          border-radius: 1px;
-          opacity: 0.85;
         }
         .hint {
           position: absolute;
