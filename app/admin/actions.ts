@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireSql } from "@/lib/db";
 import { curate } from "@/lib/curate";
 import { runIngest } from "@/lib/pipeline";
+import { enrichAndPublish } from "@/lib/enrich";
 import { currentHour } from "@/lib/stories";
 
 /** Slug helper for generated story IDs. ASCII-only, kebab. */
@@ -103,184 +104,137 @@ export async function ingestAction(formData: FormData): Promise<void> {
   redirect(failureMsg ? `/admin?err=${encodeURIComponent(failureMsg)}` : "/admin");
 }
 
-/** COMPOSE — manual entry, no AI, goes straight to published. */
+/**
+ * COMPOSE — minimal manual entry.
+ *
+ * Only asks for: headline, city (free text), optional body, photo, source.
+ * `enrichAndPublish` resolves the city (inserting a canonical cities row
+ * if needed), rewrites the headline in Once voice + the city's language,
+ * scrapes / fallbacks the photo, fetches weather, and pulls everything
+ * else (timezone, currency, prices, language, location_summary) from
+ * the canonical city record. Pins to the current hour so it shows up
+ * on the homepage immediately.
+ */
 export async function composeAction(formData: FormData): Promise<void> {
   const f = (k: string) => String(formData.get(k) ?? "").trim();
-  const n = (k: string) => Number(formData.get(k) ?? 0);
 
-  const city = f("city");
-  const country = f("country");
-  if (!city || !country) throw new Error("city and country are required");
+  const headline = f("headline");
+  const cityText = f("city");
 
-  const id = `${slug(city)}-${shortId()}`;
+  if (!headline || !cityText) {
+    redirect(
+      `/admin/compose?err=${encodeURIComponent(
+        "headline and city are required"
+      )}`
+    );
+  }
 
-  const sql = requireSql();
-  await sql`
-    insert into stories (
-      id, photo_url, country, region, city, timezone, local_hour,
-      original_language, original_text, english_text,
-      currency_code, currency_symbol,
-      milk_price_local, eggs_price_local,
-      milk_price_usd, eggs_price_usd,
-      source_url, source_name
-    ) values (
-      ${id}, ${f("photo_url") || null}, ${country}, ${f("region") || null},
-      ${city}, ${f("timezone")}, ${Number(f("local_hour")) || 12},
-      ${f("original_language")}, ${f("original_text")}, ${f("english_text")},
-      ${f("currency_code")}, ${f("currency_symbol")},
-      ${n("milk_price_local")}, ${n("eggs_price_local")},
-      ${n("milk_price_usd")}, ${n("eggs_price_usd")},
-      ${f("source_url") || null}, ${f("source_name") || null}
-    )
-  `;
+  try {
+    await enrichAndPublish({
+      headline,
+      body: f("body") || undefined,
+      cityText,
+      sourceUrl: f("source_url") || undefined,
+      sourceName: f("source_name") || undefined,
+      photoUrl: f("photo_url") || undefined
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    redirect(`/admin/compose?err=${encodeURIComponent(msg)}`);
+  }
 
   revalidatePath("/");
   revalidatePath("/admin");
-  redirect("/admin");
+  redirect("/admin?tab=approved&pinned=1");
 }
 
-/** APPROVE — promote a queue item to the published stories table. */
+/**
+ * APPROVE — promote a queue item to the published stories table.
+ *
+ * New design (post-refactor): delegate to enrichAndPublish, which
+ * uses the city resolver to fill in timezone / currency / language /
+ * prices / location_summary from the canonical cities row. The form
+ * only needs city + headline to be non-empty; everything else is
+ * derived or reused from the queue's AI rewrite.
+ */
 export async function approveAction(formData: FormData): Promise<void> {
   const queueId = String(formData.get("id") ?? "");
   if (!queueId) throw new Error("id required");
 
   const sql = requireSql();
 
-  // Read with optional edits from the approval form (all fields honoured).
-  const latRaw = formData.get("lat");
-  const lngRaw = formData.get("lng");
-  const edited = {
-    photo_url: String(formData.get("photo_url") ?? "").trim(),
-    country: String(formData.get("country") ?? "").trim(),
-    region: String(formData.get("region") ?? "").trim(),
-    city: String(formData.get("city") ?? "").trim(),
-    timezone: String(formData.get("timezone") ?? "").trim(),
-    local_hour: Number(formData.get("local_hour") ?? 12),
-    lat: latRaw !== null && latRaw !== "" ? Number(latRaw) : null,
-    lng: lngRaw !== null && lngRaw !== "" ? Number(lngRaw) : null,
-    original_language: String(formData.get("original_language") ?? "").trim(),
-    original_text: String(formData.get("original_text") ?? "").trim(),
-    english_text: String(formData.get("english_text") ?? "").trim(),
-    currency_code: String(formData.get("currency_code") ?? "").trim(),
-    currency_symbol: String(formData.get("currency_symbol") ?? "").trim(),
-    milk_price_local: Number(formData.get("milk_price_local") ?? 0),
-    eggs_price_local: Number(formData.get("eggs_price_local") ?? 0),
-    milk_price_usd: Number(formData.get("milk_price_usd") ?? 0),
-    eggs_price_usd: Number(formData.get("eggs_price_usd") ?? 0),
-    source_url: String(formData.get("source_url") ?? "").trim()
-  };
+  const queueRows = (await sql`
+    select city, source_input, source_url, photo_url,
+           original_text, english_text, original_language
+    from moderation_queue where id = ${queueId}
+  `) as unknown as {
+    city: string | null;
+    source_input: string | null;
+    source_url: string | null;
+    photo_url: string | null;
+    original_text: string | null;
+    english_text: string | null;
+    original_language: string | null;
+  }[];
+  const q = queueRows[0];
+  if (!q) throw new Error("queue row not found");
 
-  const missing = [
-    !edited.city && "city",
-    !edited.country && "country",
-    !edited.timezone && "timezone",
-    !edited.original_text && "original_text",
-    !edited.original_language && "original_language",
-    !edited.currency_code && "currency_code",
-    !edited.currency_symbol && "currency_symbol",
-  ].filter(Boolean);
+  // Form edits override queue values (the edit page lets the user fix
+  // fields before approving).
+  const cityText = String(formData.get("city") ?? q.city ?? "").trim();
+  const aiRewrite = String(
+    formData.get("original_text") ?? q.original_text ?? ""
+  ).trim();
+  const aiEnglish = String(
+    formData.get("english_text") ?? q.english_text ?? ""
+  ).trim();
+  const aiLanguage = String(
+    formData.get("original_language") ?? q.original_language ?? ""
+  ).trim();
 
-  if (missing.length > 0) {
+  // Fallback headline: if the queue has no AI rewrite, take the first
+  // line of the source_input (the pipeline writes "title\n\nsnippet").
+  const sourceInputTitle =
+    (q.source_input ?? "").split(/\n\n/, 1)[0]?.trim() ?? "";
+  const headline = aiRewrite || sourceInputTitle;
+
+  if (!cityText || !headline) {
     redirect(
       `/admin/edit/${queueId}?err=${encodeURIComponent(
-        `Fill in before publishing: ${missing.join(", ")}`
+        "Need a city and a headline (or AI rewrite) before publishing."
       )}`
     );
   }
 
-  const id = `${slug(edited.city)}-${shortId()}`;
+  const sourceUrl = String(formData.get("source_url") ?? q.source_url ?? "").trim();
+  const photoUrl = String(formData.get("photo_url") ?? q.photo_url ?? "").trim();
 
-  // Carry through weather + location_summary + fetched_at from the
-  // queue row so the published story keeps its context.
-  const qmetaRows = (await sql`
-    select weather_current, location_summary, fetched_at
-    from moderation_queue where id = ${queueId}
-  `) as unknown as {
-    weather_current: string | null;
-    location_summary: string | null;
-    fetched_at: string | null;
-  }[];
-  const qmeta = qmetaRows[0] ?? {
-    weather_current: null,
-    location_summary: null,
-    fetched_at: null
-  };
-
-  // Approve & publish now — always pin to the current hour so the
-  // homepage shows this story immediately. Freshness rotation picks up
-  // again on the next hour (selected_hour is per-hour, not persistent).
-  const pinNow = true;
-  const pinnedHour = currentHour();
-
-  await sql`
-    insert into stories (
-      id, photo_url, country, region, city, timezone, local_hour,
-      original_language, original_text, english_text,
-      currency_code, currency_symbol,
-      milk_price_local, eggs_price_local,
-      milk_price_usd, eggs_price_usd,
-      source_url, lat, lng,
-      weather_current, location_summary, fetched_at,
-      selected_hour
-    ) values (
-      ${id},
-      ${edited.photo_url || null},
-      ${edited.country},
-      ${edited.region || null},
-      ${edited.city},
-      ${edited.timezone},
-      ${edited.local_hour},
-      ${edited.original_language},
-      ${edited.original_text},
-      ${edited.english_text},
-      ${edited.currency_code},
-      ${edited.currency_symbol},
-      ${edited.milk_price_local},
-      ${edited.eggs_price_local},
-      ${edited.milk_price_usd},
-      ${edited.eggs_price_usd},
-      ${edited.source_url || null},
-      ${edited.lat},
-      ${edited.lng},
-      ${qmeta.weather_current},
-      ${qmeta.location_summary},
-      ${qmeta.fetched_at},
-      ${pinnedHour}
-    )
-  `;
+  let publishedId: string;
+  try {
+    const result = await enrichAndPublish({
+      headline,
+      cityText,
+      sourceUrl: sourceUrl || undefined,
+      photoUrl: photoUrl || undefined,
+      preRewrittenOriginal: aiRewrite || undefined,
+      preRewrittenEnglish: aiEnglish || undefined,
+      preRewrittenLanguage: aiLanguage || undefined
+    });
+    publishedId = result.id;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    redirect(
+      `/admin/edit/${queueId}?err=${encodeURIComponent(`Enrich failed: ${msg}`)}`
+    );
+  }
 
   await sql`
     update moderation_queue
     set status='approved',
-        published_as_id=${id},
+        published_as_id=${publishedId},
         reviewed_at=now(),
-        reviewer='editor',
-        -- also save the edited fields back to the queue for audit
-        photo_url=${edited.photo_url || null},
-        country=${edited.country},
-        region=${edited.region || null},
-        city=${edited.city},
-        timezone=${edited.timezone},
-        local_hour=${edited.local_hour},
-        lat=${edited.lat},
-        lng=${edited.lng},
-        original_language=${edited.original_language},
-        original_text=${edited.original_text},
-        english_text=${edited.english_text},
-        currency_code=${edited.currency_code},
-        currency_symbol=${edited.currency_symbol},
-        milk_price_local=${edited.milk_price_local},
-        eggs_price_local=${edited.eggs_price_local},
-        milk_price_usd=${edited.milk_price_usd},
-        eggs_price_usd=${edited.eggs_price_usd}
+        reviewer='editor'
     where id=${queueId}
-  `;
-
-  // Clear any prior pin on another story for this hour so there's no
-  // collision (selectStory picks whichever row has selected_hour = hour).
-  await sql`
-    update stories set selected_hour = null
-    where selected_hour = ${pinnedHour} and id <> ${id}
   `;
 
   revalidatePath("/");

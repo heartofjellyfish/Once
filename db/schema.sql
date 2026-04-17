@@ -142,6 +142,20 @@ create table if not exists cities (
 
 create index if not exists cities_active_idx on cities (is_active) where is_active;
 
+-- City-level enrichment cache. Prices are expensive/noisy to recompute
+-- per-story, so we estimate them once per city and reuse until
+-- prices_updated_at ages out. Currency / language / location_summary
+-- already live on cities; this extends that pattern.
+alter table cities add column if not exists milk_price_local numeric(14,4);
+alter table cities add column if not exists eggs_price_local numeric(14,4);
+alter table cities add column if not exists milk_price_usd   numeric(10,4);
+alter table cities add column if not exists eggs_price_usd   numeric(10,4);
+alter table cities add column if not exists prices_updated_at timestamptz;
+-- Free-text aliases used by the city resolver: e.g. a row for "tokyo"
+-- might also match "Tōkyō", "東京", "Tokyo Metropolis". Plain text[] —
+-- resolver does case-insensitive lookup.
+alter table cities add column if not exists aliases text[] not null default '{}';
+
 -- Audit log of every AI decision the ingest pipeline makes.
 -- One row per candidate the pipeline evaluated, whether it made it into
 -- the queue or not. Used for debugging and (later) as few-shot examples

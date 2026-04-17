@@ -95,6 +95,16 @@ const SEED_CITIES = [
  */
 export async function seedCitiesAction(): Promise<void> {
   const sql = requireSql();
+
+  // Apply idempotent schema migrations inline so the user doesn't need
+  // terminal access. Safe to run every time.
+  await sql`alter table cities add column if not exists milk_price_local numeric(14,4)`;
+  await sql`alter table cities add column if not exists eggs_price_local numeric(14,4)`;
+  await sql`alter table cities add column if not exists milk_price_usd   numeric(10,4)`;
+  await sql`alter table cities add column if not exists eggs_price_usd   numeric(10,4)`;
+  await sql`alter table cities add column if not exists prices_updated_at timestamptz`;
+  await sql`alter table cities add column if not exists aliases text[] not null default '{}'`;
+
   const wantedIds = SEED_CITIES.map((c) => c.id);
 
   for (const c of SEED_CITIES) {
