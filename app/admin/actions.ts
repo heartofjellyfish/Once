@@ -170,8 +170,22 @@ export async function approveAction(formData: FormData): Promise<void> {
     source_url: String(formData.get("source_url") ?? "").trim()
   };
 
-  if (!edited.city || !edited.country || !edited.timezone) {
-    throw new Error("city, country, timezone are required to publish");
+  const missing = [
+    !edited.city && "city",
+    !edited.country && "country",
+    !edited.timezone && "timezone",
+    !edited.original_text && "original_text",
+    !edited.original_language && "original_language",
+    !edited.currency_code && "currency_code",
+    !edited.currency_symbol && "currency_symbol",
+  ].filter(Boolean);
+
+  if (missing.length > 0) {
+    redirect(
+      `/admin/edit/${queueId}?err=${encodeURIComponent(
+        `Fill in before publishing: ${missing.join(", ")}`
+      )}`
+    );
   }
 
   const id = `${slug(edited.city)}-${shortId()}`;

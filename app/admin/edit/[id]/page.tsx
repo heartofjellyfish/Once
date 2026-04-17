@@ -25,11 +25,15 @@ interface QueueRow {
 }
 
 export default async function EditPage({
-  params
+  params,
+  searchParams
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ err?: string }>;
 }) {
   const { id } = await params;
+  const sp = await searchParams;
+  const errMsg = sp.err;
   const sql = requireSql();
   const rows = (await sql`
     select id, status, photo_url, country, region, city, timezone, local_hour,
@@ -48,6 +52,9 @@ export default async function EditPage({
   return (
     <section>
       <h2>edit candidate</h2>
+      {errMsg ? (
+        <div className="err">⚠ {errMsg}</div>
+      ) : null}
       {r.ai_rationale ? (
         <p className="rationale">AI: {r.ai_rationale}</p>
       ) : null}
@@ -124,6 +131,15 @@ export default async function EditPage({
       </form>
 
       <style>{`
+        .err {
+          padding: 10px 12px;
+          border-radius: 3px;
+          font-size: 13px;
+          font-family: var(--mono);
+          background: rgba(168, 90, 60, 0.1);
+          color: var(--accent-dark, #8a3a2a);
+          margin-bottom: 4px;
+        }
         h2 {
           font-family: var(--serif);
           font-weight: 400;

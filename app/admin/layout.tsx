@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { dbAvailable } from "@/lib/db";
+import AdminNav from "./_components/AdminNav";
 import {
   weeklySpend,
   weeklyRemaining,
@@ -42,16 +42,7 @@ export default async function AdminLayout({
           <Link href="/admin" className="brand">
             Once · admin
           </Link>
-          <nav>
-            <Link href="/admin">queue</Link>
-            <Link href="/admin/runs">runs</Link>
-            <Link href="/admin/sources">sources</Link>
-            <Link href="/admin/ingest">ingest</Link>
-            <Link href="/admin/compose">compose</Link>
-            <Link href="/" target="_blank" rel="noreferrer">
-              site ↗
-            </Link>
-          </nav>
+          <AdminNav />
         </div>
 
         {dbReady ? (
@@ -114,19 +105,6 @@ export default async function AdminLayout({
           text-decoration: none;
           letter-spacing: 0.01em;
         }
-
-        nav {
-          display: flex;
-          gap: 18px;
-          font-size: 12px;
-          letter-spacing: 0.14em;
-          text-transform: uppercase;
-        }
-        nav a {
-          color: var(--ink-muted);
-          text-decoration: none;
-        }
-        nav a:hover { color: var(--ink); }
 
         .budget {
           margin-top: 14px;
