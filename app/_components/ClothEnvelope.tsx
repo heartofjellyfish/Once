@@ -126,105 +126,91 @@ const WATER_VERTEX = /* glsl */ `
   }
 `;
 
-// Hockney pool, take 2 — reductive instead of additive.
-//
-// What Hockney actually does:
-//   • A flat block of cerulean. Not a gradient. One colour.
-//   • ~10-15 small, independent, painterly marks scattered across it.
-//     Each has its own angle, length, slight curve, and tapered ends
-//     (like the start and stop of a brush).
-//   • The vast majority of the canvas is UNTOUCHED — nothing but blue.
-//   • Very little motion. The painting almost holds still.
-//
-// Previous attempt drew 11 horizontal parallel wavy lines, which
-// read like wood grain or wallpaper, not like Hockney's confident
-// scattered marks. This version uses SDF-based brushstrokes at
-// pseudo-random positions in a grid, most cells empty.
+// Hockney pool — take 4, finally with the right reference image in
+// hand. His pools aren't scattered marks; they're a DENSE CAUSTIC
+// NETWORK. A Voronoi cellular pattern with white edges nails it
+// structurally. Plus a top-to-bottom gradient (deep → pale) and a
+// darker patch in one corner for the shadow regions you see in
+// actual Hockney pool paintings.
 const WATER_FRAGMENT = /* glsl */ `
   uniform float uTime;
   varying vec2 vUv;
 
-  float hash(vec2 p) {
+  vec2 hash2(vec2 p) {
+    return fract(sin(vec2(
+      dot(p, vec2(127.1, 311.7)),
+      dot(p, vec2(269.5, 183.3))
+    )) * 43758.5453);
+  }
+  float hash1(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
   }
+  float vnoise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(
+      mix(hash1(i), hash1(i + vec2(1.0, 0.0)), f.x),
+      mix(hash1(i + vec2(0.0, 1.0)), hash1(i + vec2(1.0, 1.0)), f.x),
+      f.y
+    );
+  }
 
-  // Distance-to-curved-arc SDF with a brush-like taper at both ends.
-  // Returns 0..1 coverage.
-  float drawMark(
-    vec2 uv, vec2 center, float angle, float len, float curve, float width
-  ) {
-    vec2 d = uv - center;
-    float c = cos(-angle), s = sin(-angle);
-    vec2 rd = vec2(c * d.x - s * d.y, s * d.x + c * d.y);
-
-    // Outside the mark's along-axis extent → no ink.
-    if (abs(rd.x) > len * 0.5) return 0.0;
-
-    // Parametric position along the stroke, normalised to -1..1.
-    float tN = rd.x / (len * 0.5);
-
-    // The stroke's Y is a gentle sine → curl.
-    float expectedY = curve * sin(tN * 3.14159);
-
-    // Distance from the curve.
-    float dist = abs(rd.y - expectedY);
-
-    // Taper: stroke is full-width in the middle, narrow at the ends.
-    float taper = 1.0 - pow(abs(tN), 3.0);
-    float w = width * (0.35 + taper * 0.65);
-
-    return smoothstep(w, w * 0.25, dist);
+  // Voronoi F2 − F1: small near cell edges, larger inside cells.
+  float voronoiEdge(vec2 uv) {
+    vec2 i = floor(uv);
+    vec2 f = fract(uv);
+    float d1 = 8.0;
+    float d2 = 8.0;
+    for (int y = -1; y <= 1; y++) {
+      for (int x = -1; x <= 1; x++) {
+        vec2 n = vec2(float(x), float(y));
+        vec2 jitter = hash2(i + n);
+        vec2 p = n + jitter - f;
+        float d = dot(p, p);
+        if (d < d1) { d2 = d1; d1 = d; }
+        else if (d < d2) { d2 = d; }
+      }
+    }
+    return sqrt(d2) - sqrt(d1);
   }
 
   void main() {
     vec2 uv = vUv;
-    float t = uTime * 0.08;
+    float t = uTime * 0.06;
 
-    // One flat Hockney cerulean. Not a gradient. #2E99D9-ish.
-    vec3 water = vec3(0.18, 0.60, 0.85);
+    // Slow breathing distortion — the caustic cells morph gently.
+    vec2 dUv = uv + vec2(
+      vnoise(uv * 2.2 + t * 0.8) - 0.5,
+      vnoise(uv * 2.2 - t * 0.6 + 5.0) - 0.5
+    ) * 0.022;
 
-    // Nudge slightly darker at the edges for depth, but only a
-    // whisper (~8 %).
-    vec2 centRad = uv - vec2(0.5, 0.5);
-    water *= 1.0 - length(centRad) * 0.10;
+    // Voronoi at Hockney-pool scale.
+    float edge = voronoiEdge(dUv * 6.5);
 
-    // Scattered marks on a 6×4 grid. Each cell has ~55 % chance of
-    // being empty → ~10–12 marks visible, well-spaced.
-    float marks = 0.0;
-    for (int gy = 0; gy < 4; gy++) {
-      for (int gx = 0; gx < 6; gx++) {
-        vec2 cell = vec2(float(gx), float(gy));
+    // Variable stroke thickness — painterly, not uniform. A noise
+    // field modulates the threshold so some edges are thick and
+    // some are thin.
+    float thickMod = vnoise(uv * 4.0 + t * 0.5) * 0.06;
+    float net = smoothstep(0.12 + thickMod, 0.006, edge);
 
-        // Skip-or-paint: most cells stay empty.
-        if (hash(cell + 31.0) < 0.55) continue;
+    // Vertical gradient — TOP deeper, BOTTOM paler (matches reference).
+    // Note: uv.y=1 is the top of the plane, uv.y=0 is bottom.
+    vec3 deep  = vec3(0.13, 0.38, 0.50);   // #205F7F
+    vec3 mid   = vec3(0.24, 0.65, 0.72);   // #3DA5B7
+    vec3 pale  = vec3(0.58, 0.86, 0.84);   // #94DBD6
+    vec3 water = mix(pale, mid, smoothstep(0.25, 0.7, uv.y));
+    water = mix(water, deep, smoothstep(0.75, 1.0, uv.y));
 
-        // Cell centre with jitter inside the cell.
-        vec2 center = (cell + 0.5) / vec2(6.0, 4.0);
-        center += (vec2(hash(cell), hash(cell + 51.0)) - 0.5) * 0.15;
+    // Dark shadow patch near the top-right, like the shaded side of
+    // a real pool (tree, pool edge, umbrella).
+    vec2 shadowCentre = vec2(0.88, 0.96);
+    float shadowFactor = smoothstep(0.45, 0.0, length(uv - shadowCentre));
+    water *= 1.0 - shadowFactor * 0.38;
 
-        // Very slow drift, per-mark phase — so they don't move in sync.
-        float phase = hash(cell + 91.0) * 6.28318;
-        center += vec2(
-          sin(t * 0.4 + phase) * 0.006,
-          cos(t * 0.33 + phase * 1.3) * 0.006
-        );
-
-        // Each mark's own brush: any angle, random length, random
-        // curl sign, slight width variation.
-        float angle  = hash(cell + 71.0) * 6.28318;
-        float len    = 0.055 + hash(cell + 13.0) * 0.08;
-        float curve  = (hash(cell + 23.0) - 0.5) * 0.045;
-        float width  = 0.0035 + hash(cell + 37.0) * 0.0025;
-
-        marks += drawMark(uv, center, angle, len, curve, width);
-      }
-    }
-    marks = clamp(marks, 0.0, 1.0);
-
-    // Paint strokes — slightly warm off-white, so they read as paint
-    // rather than highlight.
-    vec3 strokeColor = vec3(0.96, 0.99, 1.00);
-    vec3 color = mix(water, strokeColor, marks * 0.9);
+    // Paint the white caustic net on top of the water.
+    vec3 netColor = vec3(0.95, 0.99, 0.98);
+    vec3 color = mix(water, netColor, net * 0.90);
 
     gl_FragColor = vec4(color, 1.0);
   }
