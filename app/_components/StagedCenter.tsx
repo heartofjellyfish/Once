@@ -32,10 +32,12 @@ interface Props {
  */
 export default function StagedCenter({
   delay,
-  duration = 2500,
+  duration = 3200,
   scale = 1.18,
-  stare = 0.3,
-  fadeIn = 0.15,
+  // Each phase is a deliberate fraction of the total. fadeIn is long
+  // enough that the blur→crisp transition feels gradual, not snapped.
+  stare = 0.28,
+  fadeIn = 0.22,
   children,
   className,
   style
@@ -116,9 +118,12 @@ export default function StagedCenter({
         }
         .staged.playing {
           opacity: 0;
-          animation-duration: var(--stage-duration, 2500ms);
+          animation-duration: var(--stage-duration, 3200ms);
           animation-delay: var(--stage-delay, 0ms);
-          animation-timing-function: cubic-bezier(0.4, 0.08, 0.2, 1);
+          /* Gentler S-curve for a calmer landing. Slow start, smooth
+             through, long tail so the "putting down" decelerates over
+             the last third instead of snapping into place. */
+          animation-timing-function: cubic-bezier(0.42, 0, 0.22, 1);
           animation-fill-mode: forwards;
           will-change: transform, opacity, filter;
           /* High z + positioning + isolation ensures a stacking context
@@ -151,7 +156,8 @@ export default function StagedCenter({
             opacity: 0;
             transform: translate(var(--fly-x, 0), var(--fly-y, 0))
                        scale(var(--stage-scale, 1.18));
-            filter: blur(6px);
+            /* Softer starting blur so the deblur ramp is less contrasty. */
+            filter: blur(3.5px);
           }
           ${fadeInPct}% {
             opacity: 1;

@@ -34,9 +34,12 @@ interface Props {
 export default function PencilText({
   text,
   lang,
-  speed = 38,
-  periodPauseMs = 260,
-  commaPauseMs = 140,
+  // Calmer pace: give the reader time to breathe between characters and
+  // longer rests at natural stops. This app's purpose is to slow people
+  // down, not to race the ink to the page.
+  speed = 50,
+  periodPauseMs = 380,
+  commaPauseMs = 200,
   className,
   startDelay = 0,
   ariaHidden
@@ -117,7 +120,7 @@ export default function PencilText({
         .pencil-text .ch {
           display: inline-block;
           opacity: 0;
-          animation: ink-in 520ms forwards cubic-bezier(0.2, 0.75, 0.3, 1);
+          animation: ink-in 680ms forwards cubic-bezier(0.22, 0.65, 0.3, 1);
           animation-fill-mode: both;
           will-change: opacity, transform, filter;
         }

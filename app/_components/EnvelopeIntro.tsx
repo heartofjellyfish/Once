@@ -60,7 +60,7 @@ export default function EnvelopeIntro({
     if (typeof document !== "undefined") {
       document.body.classList.add("story-ready");
     }
-    window.setTimeout(() => setPhase("hidden"), 650);
+    window.setTimeout(() => setPhase("hidden"), 900);
   }
 
   if (phase === "hidden") return null;

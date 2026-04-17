@@ -38,10 +38,10 @@ function idHash(id: string): number {
  */
 function computeTitleDurationMs(text: string): number {
   const leadIn = 140;
-  const speedMs = 38;
-  const periodPauseMs = 260;
-  const commaPauseMs = 140;
-  const perCharAnimDuration = 520;
+  const speedMs = 50;
+  const periodPauseMs = 380;
+  const commaPauseMs = 200;
+  const perCharAnimDuration = 680;
   let t = leadIn;
   for (const c of text) {
     t += speedMs;
@@ -80,7 +80,8 @@ export default async function Page() {
   // greeting → original → translation. startDelays chain the typing so
   // each waits for the previous to finish + a small breath.
   const greetingText = `From ${s.city}, this ${weekday} \u2014`;
-  const GAP_BETWEEN_SEGMENTS = 320;
+  // Breath between greeting / original / translation inside the title stage.
+  const GAP_BETWEEN_SEGMENTS = 450;
 
   const dGreeting = 0;
   const greetingDur = computeTitleDurationMs(greetingText);
@@ -99,18 +100,18 @@ export default async function Page() {
     ? dInnerTranslation + translationDur
     : dOriginal + originalDur;
 
-  const TITLE_FLYOUT = 1400;
+  const TITLE_FLYOUT = 1900;
   const TITLE_DUR = titleTypingEnd + TITLE_FLYOUT;
   // Typing happens during fadeIn + stare; fly-out begins as last char lands.
   const TITLE_FADEIN = 200 / TITLE_DUR;
   const TITLE_STARE = Math.max(0, titleTypingEnd - 200) / TITLE_DUR;
 
-  const POLAROID_DUR = 2800;
-  const STAMP_DUR = 2500;
-  const NOTE_DUR = 3000;
+  const POLAROID_DUR = 3500;
+  const STAMP_DUR = 3100;
+  const NOTE_DUR = 3800;
   // Pause between stages: the next piece waits until the previous has
   // fully landed + this many ms of quiet before it starts flying in.
-  const GAP_BETWEEN_STAGES = 650;
+  const GAP_BETWEEN_STAGES = 900;
 
   const dTitle = 0;
   const dPolaroid = dTitle + TITLE_DUR + GAP_BETWEEN_STAGES;

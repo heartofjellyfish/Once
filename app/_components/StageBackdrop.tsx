@@ -58,8 +58,8 @@ export default function StageBackdrop({ startMs, endMs }: Props) {
         }
         .stage-backdrop.on {
           animation:
-            bd-in 700ms var(--bd-in-start, 0ms) forwards,
-            bd-out 900ms var(--bd-out-start, 0ms) forwards;
+            bd-in 1100ms var(--bd-in-start, 0ms) forwards,
+            bd-out 1200ms var(--bd-out-start, 0ms) forwards;
         }
         @keyframes bd-in {
           from { opacity: 0; }
