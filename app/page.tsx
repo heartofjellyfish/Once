@@ -75,12 +75,35 @@ export default async function Page() {
   // Sequential reveal: title types at center → flies home, then polaroid,
   // stamp, note each make the same entrance. Longer durations + small
   // overlap so each "settle" beat feels 从容, not rushed.
-  const titleEnd = computeTitleDurationMs(s.original_text);
+  //
+  // The title is three chained PencilText segments inside one StagedCenter:
+  // greeting → original → translation. startDelays chain the typing so
+  // each waits for the previous to finish + a small breath.
+  const greetingText = `From ${s.city}, this ${weekday} \u2014`;
+  const GAP_BETWEEN_SEGMENTS = 320;
+
+  const dGreeting = 0;
+  const greetingDur = computeTitleDurationMs(greetingText);
+
+  const dOriginal = dGreeting + greetingDur + GAP_BETWEEN_SEGMENTS;
+  const originalDur = computeTitleDurationMs(s.original_text);
+
+  const dInnerTranslation = showTranslation
+    ? dOriginal + originalDur + GAP_BETWEEN_SEGMENTS
+    : 0;
+  const translationDur = showTranslation
+    ? computeTitleDurationMs(s.english_text)
+    : 0;
+
+  const titleTypingEnd = showTranslation
+    ? dInnerTranslation + translationDur
+    : dOriginal + originalDur;
+
   const TITLE_FLYOUT = 1400;
-  const TITLE_DUR = titleEnd + TITLE_FLYOUT;
-  // Typing happens during fadeIn+stare; fly-out begins as last char lands.
+  const TITLE_DUR = titleTypingEnd + TITLE_FLYOUT;
+  // Typing happens during fadeIn + stare; fly-out begins as last char lands.
   const TITLE_FADEIN = 200 / TITLE_DUR;
-  const TITLE_STARE = Math.max(0, titleEnd - 200) / TITLE_DUR;
+  const TITLE_STARE = Math.max(0, titleTypingEnd - 200) / TITLE_DUR;
 
   const POLAROID_DUR = 2800;
   const STAMP_DUR = 2500;
@@ -92,9 +115,6 @@ export default async function Page() {
   const dStamp = dPolaroid + POLAROID_DUR - OVERLAP;
   const dNote = dStamp + STAMP_DUR - OVERLAP;
   const dNoteEnd = dNote + NOTE_DUR;
-
-  // Translation waits until the title stage has fully settled.
-  const dTranslation = dTitle + TITLE_DUR + 80;
 
   return (
     <>
@@ -242,27 +262,27 @@ export default async function Page() {
             fadeIn={TITLE_FADEIN}
             stare={TITLE_STARE}
           >
-            <p className="greeting" aria-hidden="true">
-              From {s.city}, this {weekday} &mdash;
-            </p>
+            <PencilText
+              className="greeting"
+              text={greetingText}
+              ariaHidden
+              startDelay={dGreeting}
+            />
             <PencilText
               className="original"
               text={s.original_text}
               lang={s.original_language}
+              startDelay={dOriginal}
             />
+            {showTranslation ? (
+              <PencilText
+                className="translation"
+                text={s.english_text}
+                lang="en"
+                startDelay={dInnerTranslation}
+              />
+            ) : null}
           </StagedCenter>
-
-          {showTranslation ? (
-            <p
-              className="translation reveal"
-              lang="en"
-              style={
-                { "--reveal-delay": `${dTranslation}ms` } as React.CSSProperties
-              }
-            >
-              {s.english_text}
-            </p>
-          ) : null}
 
           {s.source_url ? (
             <p

@@ -10,6 +10,12 @@ interface Props {
   periodPauseMs?: number;
   commaPauseMs?: number;
   className?: string;
+  /** Extra ms before the first character starts. Used when chaining
+   *  several PencilText blocks (greeting → original → translation). */
+  startDelay?: number;
+  /** Mirror aria-hidden on the rendered <p> (useful for decorative
+   *  intros that duplicate info already spoken elsewhere). */
+  ariaHidden?: boolean;
 }
 
 /**
@@ -31,7 +37,9 @@ export default function PencilText({
   speed = 38,
   periodPauseMs = 260,
   commaPauseMs = 140,
-  className
+  className,
+  startDelay = 0,
+  ariaHidden
 }: Props) {
   const [animate, setAnimate] = useState(false);
   const [ready, setReady] = useState(false);
@@ -45,7 +53,7 @@ export default function PencilText({
   // SSR and reduced-motion render plain text.
   if (!ready || !animate) {
     return (
-      <p className={className} lang={lang}>
+      <p className={className} lang={lang} aria-hidden={ariaHidden || undefined}>
         {text}
       </p>
     );
@@ -63,7 +71,7 @@ export default function PencilText({
 
   // Compute cumulative delay per character, with natural pauses.
   const delays: number[] = [];
-  let t = 140; // small lead-in
+  let t = startDelay + 140; // small lead-in after any chaining offset
   for (let i = 0; i < graphemes.length; i++) {
     delays.push(t);
     const c = graphemes[i];
@@ -80,7 +88,11 @@ export default function PencilText({
   }
 
   return (
-    <p className={`${className ?? ""} pencil-text`} lang={lang}>
+    <p
+      className={`${className ?? ""} pencil-text`}
+      lang={lang}
+      aria-hidden={ariaHidden || undefined}
+    >
       {graphemes.map((c, i) => {
         if (c === " " || c === "\n" || c === "\t") return c;
         const dx = jitter(i + 1, 0.4).toFixed(2);
