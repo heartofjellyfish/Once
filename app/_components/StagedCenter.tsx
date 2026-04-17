@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface Props {
   /** Animation-delay in ms. When the stage-in starts for this element. */
@@ -97,6 +98,59 @@ export default function StagedCenter({
     .filter(Boolean)
     .join(" ");
 
+  // Per-stage backdrop: starts OFF while the element materializes, then
+  // gradually blurs the whole viewport during stare/fly-out and clears
+  // before the element lands. Portaled to <body> so it escapes every
+  // parent stacking context and blurs the entire page, not just a
+  // subtree. Same animation clock as the stage → naturally paused
+  // until body.story-ready (via globals.css pause rule on .stage-backdrop).
+  const backdrop =
+    shouldAnimate && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            className="stage-backdrop"
+            aria-hidden="true"
+            style={
+              {
+                "--bd-duration": `${duration}ms`,
+                "--bd-delay": `${delay}ms`
+              } as React.CSSProperties
+            }
+          >
+            <style>{`
+              .stage-backdrop {
+                position: fixed;
+                inset: 0;
+                background: rgba(20, 14, 6, 0.22);
+                backdrop-filter: blur(8px) saturate(0.85);
+                -webkit-backdrop-filter: blur(8px) saturate(0.85);
+                z-index: 100;
+                pointer-events: none;
+                opacity: 0;
+                animation-name: stage-bd-cycle;
+                animation-duration: var(--bd-duration, 3200ms);
+                animation-delay: var(--bd-delay, 0ms);
+                animation-timing-function: cubic-bezier(0.42, 0, 0.22, 1);
+                animation-fill-mode: forwards;
+                will-change: opacity;
+              }
+              @keyframes stage-bd-cycle {
+                /* Element materializes alone — backdrop stays clear so
+                   nothing competes for attention. */
+                0%, 26% { opacity: 0; }
+                /* Slow blur-in over ~30% of the stage: "慢慢的虚化". */
+                58% { opacity: 1; }
+                /* Brief hold while the element is at center + early fly-out. */
+                74% { opacity: 1; }
+                /* Clear the blur before the element lands. */
+                96%, 100% { opacity: 0; }
+              }
+            `}</style>
+          </div>,
+          document.body
+        )
+      : null;
+
   return (
     <div
       ref={ref}
@@ -110,6 +164,7 @@ export default function StagedCenter({
       }}
     >
       {children}
+      {backdrop}
 
       <style>{`
         .staged {

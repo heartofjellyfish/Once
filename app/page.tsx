@@ -4,7 +4,6 @@ import PencilText from "./_components/PencilText";
 import MapPostmark from "./_components/MapPostmark";
 import EnvelopeIntro from "./_components/EnvelopeIntro";
 import StagedCenter from "./_components/StagedCenter";
-import StageBackdrop from "./_components/StageBackdrop";
 
 export const revalidate = 3600;
 
@@ -132,8 +131,6 @@ export default async function Page() {
         lng={s.lng ?? null}
         language={s.original_language}
       />
-
-      <StageBackdrop startMs={dTitle} endMs={dNoteEnd} />
 
       <main>
         <div className="stage">
