@@ -133,6 +133,7 @@ export default async function Page() {
               </div>
             </div>
           </aside>
+          </div>
         </div>
 
         <article id="moment" className="moment">
