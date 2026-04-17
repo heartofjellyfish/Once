@@ -35,4 +35,29 @@ export interface Story {
   source_url?: string;
   /** Human-readable source name (shown if source_url is set). */
   source_name?: string;
+
+  /** Weather snapshot for the city at fetch time, e.g. "Cloudy, 18°C". */
+  weather_current?: string;
+  /** Brief location intro, e.g. "a district in northern China, ~1M people". */
+  location_summary?: string;
+  /** When the ingest pipeline picked up this story from its source. */
+  fetched_at?: string;
+}
+
+/** City config — the pipeline picks one of these per cron cycle. */
+export interface City {
+  id: string;
+  name: string;
+  country: string;
+  region?: string;
+  timezone: string;
+  lat: number;
+  lng: number;
+  currency_code?: string;
+  currency_symbol?: string;
+  original_language?: string;
+  location_summary?: string;
+  rss_feeds: string[];
+  is_active: boolean;
+  last_ingest_at?: string;
 }

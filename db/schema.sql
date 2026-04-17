@@ -37,6 +37,11 @@ create table if not exists stories (
 alter table stories add column if not exists lat numeric(9,5);
 alter table stories add column if not exists lng numeric(9,5);
 
+-- Phase 3 (ingest pipeline) additions.
+alter table stories add column if not exists weather_current     text;
+alter table stories add column if not exists location_summary    text;
+alter table stories add column if not exists fetched_at          timestamptz;
+
 create index if not exists stories_published_at_idx on stories (published_at desc);
 create index if not exists stories_selected_hour_idx on stories (selected_hour) where selected_hour is not null;
 
@@ -87,6 +92,13 @@ create table if not exists moderation_queue (
 alter table moderation_queue add column if not exists lat numeric(9,5);
 alter table moderation_queue add column if not exists lng numeric(9,5);
 
+alter table moderation_queue add column if not exists weather_current  text;
+alter table moderation_queue add column if not exists location_summary text;
+alter table moderation_queue add column if not exists fetched_at       timestamptz;
+alter table moderation_queue add column if not exists score_specificity smallint;
+alter table moderation_queue add column if not exists score_resonance   smallint;
+alter table moderation_queue add column if not exists score_register    smallint;
+
 create index if not exists queue_status_created_idx
   on moderation_queue (status, created_at desc);
 
@@ -106,3 +118,49 @@ create table if not exists budget_ledger (
 );
 
 create index if not exists budget_ledger_at_idx on budget_ledger (at desc);
+
+-- Cities. The pipeline picks one of these each run and fetches their
+-- configured RSS feeds. Seeded from scripts/seed-cities.mjs and can be
+-- curated manually afterwards.
+create table if not exists cities (
+  id               text primary key,                -- "tokyo", "sarajevo"
+  name             text not null,                   -- display name
+  country          text not null,
+  region           text,
+  timezone         text not null,
+  lat              numeric(9,5) not null,
+  lng              numeric(9,5) not null,
+  currency_code    text,
+  currency_symbol  text,
+  original_language text,                            -- ISO 639-1
+  location_summary text,                             -- "a district in northern China, ~1M people"
+  rss_feeds        text[] not null default '{}',    -- URLs
+  is_active        boolean not null default true,
+  last_ingest_at   timestamptz,                      -- updated by pipeline
+  created_at       timestamptz not null default now()
+);
+
+create index if not exists cities_active_idx on cities (is_active) where is_active;
+
+-- Audit log of every AI decision the ingest pipeline makes.
+-- One row per candidate the pipeline evaluated, whether it made it into
+-- the queue or not. Used for debugging and (later) as few-shot examples
+-- from historical editor approvals.
+create table if not exists ai_decisions (
+  id                bigserial primary key,
+  at                timestamptz not null default now(),
+  city_id           text references cities(id) on delete set null,
+  source_url        text,
+  source_title      text,
+  source_snippet    text,
+  stage             text not null,                   -- 'prefilter' | 'score' | 'rewrite'
+  verdict           text,                            -- 'pass' | 'fail' | 'selected'
+  score_specificity smallint,
+  score_resonance   smallint,
+  score_register    smallint,
+  rationale         text,
+  queue_id          uuid references moderation_queue(id) on delete set null
+);
+
+create index if not exists ai_decisions_at_idx on ai_decisions (at desc);
+create index if not exists ai_decisions_city_idx on ai_decisions (city_id, at desc);
