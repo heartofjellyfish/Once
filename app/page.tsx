@@ -71,22 +71,28 @@ export default async function Page() {
   const tilt = ((hash % 50) - 25) / 10; // -2.5°..+2.5°
   const noteTilt = ((hash % 40) / 10 - 2).toFixed(2); // -2°..+2° different seed feel
 
-  // Sequential reveal timings. Big-four blocks stage in at screen center
-  // (fly → stare → settle into place); small trimmings use simple fades.
-  // Stages overlap slightly so the next piece starts flying in while the
-  // previous one is leaving center.
+  // Sequential reveal: title types at center → flies home, then polaroid,
+  // stamp, note each make the same entrance. Stages overlap by ~700ms so
+  // the next piece starts flying in as the previous is settling.
   const titleEnd = computeTitleDurationMs(s.original_text);
+  const TITLE_FLYOUT = 900;
+  const TITLE_DUR = titleEnd + TITLE_FLYOUT;
+  // Split so typing happens during fadeIn+stare, fly-out starts right as
+  // the last char lands. Keep fadeIn short (~200ms) and let stare run
+  // through the rest of the typing window.
+  const TITLE_FADEIN = 200 / TITLE_DUR;
+  const TITLE_STARE = Math.max(0, titleEnd - 200) / TITLE_DUR;
+
   const POLAROID_DUR = 2000;
   const STAMP_DUR = 1700;
-  const PLACE_DUR = 1700;
-  const PRICES_DUR = 1700;
-  const OVERLAP = 700; // ms the next stage pulls back against the prior
+  const NOTE_DUR = 2000;
+  const OVERLAP = 700;
 
-  const dPolaroid = titleEnd + 120;
+  const dTitle = 0;
+  const dPolaroid = dTitle + TITLE_DUR - OVERLAP;
   const dStamp = dPolaroid + POLAROID_DUR - OVERLAP;
-  const dPlace = dStamp + STAMP_DUR - OVERLAP;
-  const dPrices = dPlace + PLACE_DUR - OVERLAP;
-  const dPricesEnd = dPrices + PRICES_DUR;
+  const dNote = dStamp + STAMP_DUR - OVERLAP;
+  const dNoteEnd = dNote + NOTE_DUR;
 
   return (
     <>
@@ -160,13 +166,13 @@ export default async function Page() {
               aria-label="Today's prices and place"
               style={{ "--note-tilt": `${noteTilt}deg` } as React.CSSProperties}
             >
-              <div className="paper">
-                <StagedCenter
-                  delay={dPlace}
-                  duration={PLACE_DUR}
-                  scale={1.2}
-                  stare={0.36}
-                >
+              <StagedCenter
+                delay={dNote}
+                duration={NOTE_DUR}
+                scale={1.18}
+                stare={0.38}
+              >
+                <div className="paper">
                   <div className="topline">
                     <span className="city">{s.city}</span>
                     <span className="sep" aria-hidden="true">·</span>
@@ -185,14 +191,7 @@ export default async function Page() {
                       ) : null}
                     </div>
                   ) : null}
-                </StagedCenter>
 
-                <StagedCenter
-                  delay={dPrices}
-                  duration={PRICES_DUR}
-                  scale={1.25}
-                  stare={0.36}
-                >
                   <div className="rule" aria-hidden="true">
                     &mdash; · &mdash;
                   </div>
@@ -223,37 +222,40 @@ export default async function Page() {
                       {formatUsd(s.eggs_price_usd)}
                     </span>
                   </div>
-                </StagedCenter>
-              </div>
+                </div>
+              </StagedCenter>
             </aside>
           </div>
         </div>
 
         <article id="moment" className="moment">
-          <p className="greeting" aria-hidden="true">
-            From {s.city}, this {weekday} &mdash;
-          </p>
-          <PencilText
-            className="original"
-            text={s.original_text}
-            lang={s.original_language}
-          />
-          {showTranslation ? (
-            <p
-              className="translation reveal"
-              lang="en"
-              style={
-                { "--reveal-delay": `${titleEnd + 60}ms` } as React.CSSProperties
-              }
-            >
-              {s.english_text}
+          <StagedCenter
+            delay={dTitle}
+            duration={TITLE_DUR}
+            scale={1.08}
+            fadeIn={TITLE_FADEIN}
+            stare={TITLE_STARE}
+          >
+            <p className="greeting" aria-hidden="true">
+              From {s.city}, this {weekday} &mdash;
             </p>
-          ) : null}
+            <PencilText
+              className="original"
+              text={s.original_text}
+              lang={s.original_language}
+            />
+            {showTranslation ? (
+              <p className="translation" lang="en">
+                {s.english_text}
+              </p>
+            ) : null}
+          </StagedCenter>
+
           {s.source_url ? (
             <p
               className="source reveal"
               style={
-                { "--reveal-delay": `${dPricesEnd + 200}ms` } as React.CSSProperties
+                { "--reveal-delay": `${dNoteEnd + 240}ms` } as React.CSSProperties
               }
             >
               <a href={s.source_url} target="_blank" rel="noreferrer">
