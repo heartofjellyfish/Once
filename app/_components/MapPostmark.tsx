@@ -51,14 +51,10 @@ export default function MapPostmark({
       }
     >
       <div className="inner">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          className="map"
-          src={src}
-          alt=""
-          width={mapW}
-          height={mapH}
-        />
+        <div className="map-crop">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="map" src={src} alt="" />
+        </div>
         <div className="labels">
           <div className="city">{city.toUpperCase()}</div>
           <div className="country">{country.toUpperCase()}</div>
@@ -108,17 +104,25 @@ export default function MapPostmark({
           border-radius: 1px;
         }
 
+        /* Container crops bottom attribution via overflow: hidden. Image
+           below is rendered at its natural (taller) height; the extra
+           portion simply gets clipped. More bulletproof than object-fit
+           shenanigans. */
+        .stamp .map-crop {
+          position: relative;
+          width: 100%;
+          aspect-ratio: 1 / 1;
+          overflow: hidden;
+          border-radius: 1px;
+        }
         .stamp .map {
           display: block;
           width: 100%;
-          aspect-ratio: 1 / 1;
-          object-fit: cover;
-          object-position: center top;
+          height: auto;
           /* Push the watercolor into the page's earthtone palette. Stronger
              than the photo filter because the map has cool blues/greens
              baked in that need more warming to blend. */
           filter: sepia(0.55) saturate(0.65) contrast(0.98) brightness(0.98);
-          border-radius: 1px;
         }
 
         .stamp .labels {

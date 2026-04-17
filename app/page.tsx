@@ -75,28 +75,31 @@ export default async function Page() {
                 <div className="photo photo-empty" aria-hidden="true" />
               )}
               <div className="grain" aria-hidden="true" />
-              {s.lat != null && s.lng != null ? (
-                <div className="postmark-slot">
-                  <MapPostmark
-                    lat={s.lat}
-                    lng={s.lng}
-                    city={s.city}
-                    country={s.country}
-                  />
-                </div>
-              ) : null}
             </div>
             <figcaption className="caption">
               {s.city} &middot; {weekday}
             </figcaption>
           </figure>
 
-          <aside
-            className="note"
-            aria-label="Today's prices and place"
-            style={{ "--note-tilt": `${noteTilt}deg` } as React.CSSProperties}
-          >
-            <div className="paper">
+          <div className="right-column">
+            {s.lat != null && s.lng != null ? (
+              <div className="stamp-wrap">
+                <MapPostmark
+                  lat={s.lat}
+                  lng={s.lng}
+                  city={s.city}
+                  country={s.country}
+                  width={108}
+                />
+              </div>
+            ) : null}
+
+            <aside
+              className="note"
+              aria-label="Today's prices and place"
+              style={{ "--note-tilt": `${noteTilt}deg` } as React.CSSProperties}
+            >
+              <div className="paper">
               <div className="topline">
                 <span className="city">{s.city}</span>
                 <span className="sep" aria-hidden="true">·</span>
@@ -243,19 +246,24 @@ export default async function Page() {
           color: var(--accent-dark);
           opacity: 0.78;
         }
-        .postmark-slot {
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          z-index: 2;
+        /* ── right column: stamp on top, handwritten note below ────── */
+        .right-column {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: clamp(18px, 3vh, 32px);
+          padding-top: clamp(8px, 1.5vh, 18px);
+        }
+        .stamp-wrap {
+          align-self: center;
         }
 
         /* ── handwritten note (replaces wooden sign) ──────────────── */
         .note {
           --note-tilt: 1deg;
-          margin-top: clamp(18px, 3vh, 36px);
           transform: rotate(var(--note-tilt));
           transform-origin: top center;
+          width: 100%;
         }
         .note .paper {
           position: relative;
@@ -421,23 +429,23 @@ export default async function Page() {
             padding: 18px 14px 28px;
           }
           .stage {
-            display: block;
-            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
           }
-          .note {
-            position: absolute;
-            bottom: -12px;
-            right: -4px;
-            width: 170px;
-            margin: 0;
-            z-index: 2;
+          .right-column {
+            flex-direction: row;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 14px;
+            padding-top: 0;
           }
+          .note { flex: 1; max-width: 240px; }
           .note .paper { padding: 12px 14px 10px; }
-          .note .prices .label { font-size: 15px; }
-          .note .prices .value { font-size: 18px; }
-          .postmark-slot { top: 8px; right: 8px; }
+          .note .prices .label { font-size: 16px; }
+          .note .prices .value { font-size: 20px; }
           .polaroid { padding-bottom: 36px; }
-          .moment { margin-top: 110px; }
+          .moment { margin-top: 0; }
         }
       `}</style>
     </>
