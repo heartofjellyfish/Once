@@ -1,4 +1,4 @@
-import { watercolorMapUrl, wikipediaLink } from "@/lib/map";
+import { watercolorMapUrl, googleMapsLink } from "@/lib/map";
 
 interface Props {
   lat: number;
@@ -25,10 +25,14 @@ export default function MapPostmark({
   width = 92
 }: Props) {
   const height = Math.round(width * 1.22);
-  // Request 2x pixels for retina, display at CSS width.
-  const mapPx = (width - 18) * 2;
-  const src = watercolorMapUrl(lat, lng, { size: mapPx, zoom: 10 });
-  const link = wikipediaLink(city);
+  // Request 2x pixels for retina, display at CSS width. Ask for a taller
+  // image than we display — we'll crop the bottom 14% in CSS to hide the
+  // Stamen/OpenMapTiles attribution that Stadia bakes into the JPG.
+  // Attribution is shown on /about instead.
+  const mapW = (width - 18) * 2;
+  const mapH = Math.round(mapW * 1.18);
+  const src = watercolorMapUrl(lat, lng, { size: mapW, height: mapH, zoom: 12 });
+  const link = googleMapsLink(lat, lng, `${city}, ${country}`);
 
   return (
     <a
@@ -36,7 +40,7 @@ export default function MapPostmark({
       href={link}
       target="_blank"
       rel="noreferrer"
-      aria-label={`Read about ${city} on Wikipedia`}
+      aria-label={`Open ${city}, ${country} in Google Maps`}
       style={
         {
           "--w": `${width}px`,
@@ -46,7 +50,13 @@ export default function MapPostmark({
     >
       <div className="inner">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="map" src={src} alt="" />
+        <img
+          className="map"
+          src={src}
+          alt=""
+          width={mapW}
+          height={mapH}
+        />
         <div className="labels">
           <div className="city">{city.toUpperCase()}</div>
           <div className="country">{country.toUpperCase()}</div>
@@ -64,6 +74,8 @@ export default function MapPostmark({
           height: var(--h);
           padding: 3px;
           background: #fbf4e2;
+          text-decoration: none;
+          color: inherit;
           background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.8' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.25  0 0 0 0 0.17  0 0 0 0 0.09  0 0 0 0.14 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E"),
             linear-gradient(168deg, #fdf7e6 0%, #f2e8cf 100%);
           background-blend-mode: multiply, normal;
@@ -95,9 +107,9 @@ export default function MapPostmark({
         .stamp .map {
           display: block;
           width: 100%;
-          height: auto;
           aspect-ratio: 1 / 1;
           object-fit: cover;
+          object-position: center top;
           filter: sepia(0.1) saturate(0.9) contrast(1.02) brightness(0.97);
           border-radius: 1px;
         }

@@ -11,17 +11,26 @@
  */
 
 interface MapOpts {
-  size?: number;   // pixels (square); Stadia returns @2x so CSS size is halved
-  zoom?: number;   // 0–20; ~11 is good for a city neighbourhood
+  /** width in pixels */
+  size?: number;
+  /** height in pixels; defaults to `size` */
+  height?: number;
+  /** 0–20; 12 ≈ city centre, 10 ≈ metro area */
+  zoom?: number;
 }
 
-function base(lat: number, lng: number, { size = 200, zoom = 11 }: MapOpts = {}) {
+function base(
+  lat: number,
+  lng: number,
+  { size = 200, height, zoom = 12 }: MapOpts = {}
+) {
+  const h = height ?? size;
   // Stadia's static map API: /static/{style}.jpg?center=lat,lng&zoom=N&size=WxH
   // (Note lat first — unlike Mapbox/Google which use lng,lat. Wrong order
   // gives HTTP 400 "Unable to parse query argument center".)
   // @2x suffix on size is not supported and causes 422; request the pixel
   // size directly and let CSS scale.
-  return `https://tiles.stadiamaps.com/static/stamen_watercolor.jpg?center=${lat},${lng}&zoom=${zoom}&size=${size}x${size}`;
+  return `https://tiles.stadiamaps.com/static/stamen_watercolor.jpg?center=${lat},${lng}&zoom=${zoom}&size=${size}x${h}`;
 }
 
 /** Watercolor map URL. api_key is added only in non-production envs. */
@@ -42,14 +51,12 @@ export function watercolorMapUrl(
   return url;
 }
 
-/**
- * English Wikipedia article link for the given city. We use the canonical
- * `/wiki/<slug>` form (spaces → underscores, diacritics URL-encoded).
- * Wikipedia's redirects handle the common variations ("Oaxaca de Juárez"
- * → "Oaxaca City", "Hà Nội" → "Hanoi", etc.). Rare mismatches land on
- * the search-suggestion page, which is still useful.
- */
-export function wikipediaLink(city: string): string {
-  const slug = city.replace(/\s+/g, "_");
-  return `https://en.wikipedia.org/wiki/${encodeURI(slug)}`;
+/** A Google Maps search link centred on the place. */
+export function googleMapsLink(
+  lat: number,
+  lng: number,
+  place: string
+): string {
+  const q = encodeURIComponent(place);
+  return `https://www.google.com/maps/search/?api=1&query=${q}&ll=${lat},${lng}`;
 }

@@ -31,6 +31,22 @@ export default function AboutPage() {
         possible thread connecting you to someone else's ordinary day.
       </p>
 
+      <p className="attribution">
+        Maps on the stamps: watercolor tiles by{" "}
+        <a href="https://maps.stamen.com" target="_blank" rel="noreferrer">
+          Stamen Design
+        </a>
+        , served via{" "}
+        <a href="https://stadiamaps.com" target="_blank" rel="noreferrer">
+          Stadia Maps
+        </a>
+        , data &copy;{" "}
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
+          OpenStreetMap
+        </a>{" "}
+        contributors.
+      </p>
+
       <p className="back">
         <a href="/">return</a>
       </p>
@@ -92,8 +108,22 @@ export default function AboutPage() {
           color: var(--ink-muted);
         }
 
+        .attribution {
+          margin-top: 20px;
+          font-style: italic;
+          font-size: 12px;
+          color: var(--ink-faint);
+          line-height: 1.6;
+        }
+        .attribution a {
+          color: var(--ink-muted);
+          text-decoration: none;
+          border-bottom: 1px solid var(--hairline);
+        }
+        .attribution a:hover { color: var(--accent); }
+
         .back {
-          margin-top: 24px;
+          margin-top: 18px;
           font-style: italic;
           font-size: 13px;
           color: var(--ink-faint);
