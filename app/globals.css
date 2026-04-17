@@ -154,3 +154,26 @@ body:not(.story-ready) .stage-backdrop,
 body:not(.story-ready) .pencil-text .ch {
   animation-play-state: paused !important;
 }
+
+/* Per-stage backdrop — each StagedCenter portals an instance to <body>.
+   Every stage uses the SAME visual styles and timing function; only the
+   @keyframes name and duration differ, both of which are bound inline
+   on the element so CSS cascade can't cross-clobber them. */
+.stage-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 14, 6, 0.42);
+  -webkit-backdrop-filter: blur(14px) saturate(0.6);
+  backdrop-filter: blur(14px) saturate(0.6);
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  animation-timing-function: cubic-bezier(0.38, 0, 0.25, 1);
+  animation-fill-mode: forwards;
+  will-change: opacity;
+}
+/* Fallback if the browser can't paint backdrop-filter — still gives a
+   visible "background pushed back" via the dim layer alone. */
+@supports not (backdrop-filter: blur(1px)) {
+  .stage-backdrop { background: rgba(20, 14, 6, 0.55); }
+}

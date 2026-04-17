@@ -120,52 +120,29 @@ export default function StagedCenter({
   // Per-stage backdrop: starts ramping from the moment the element
   // enters, peaks exactly when the element is fully in the foreground,
   // holds for a beat, then fades out during the fly-home tail.
+  //
   // Portaled to <body> so it escapes every parent stacking context and
-  // blurs the entire viewport. Pause-gate via globals.css matches on
-  // .stage-backdrop and keeps this frozen until envelope is dismissed.
+  // blurs the entire viewport. Shared .stage-backdrop styles (position,
+  // dim, blur) live in globals.css — bound inline here are only the
+  // per-instance animation-name, duration, and delay, so the CSS
+  // cascade can never let one stage's keyframe name overwrite another.
   const backdrop =
     shouldAnimate && typeof document !== "undefined"
       ? createPortal(
           <div
             className="stage-backdrop"
             aria-hidden="true"
-            style={
-              {
-                "--bd-duration": `${duration}ms`,
-                "--bd-delay": `${delay}ms`
-              } as React.CSSProperties
-            }
+            style={{
+              animationName: bdKeyName,
+              animationDuration: `${duration}ms`,
+              animationDelay: `${delay}ms`
+            }}
           >
             <style>{`
-              .stage-backdrop {
-                position: fixed;
-                inset: 0;
-                /* Stronger dim + desaturation so the "push back" reads
-                   even when the area behind is a flat background color.
-                   Blur bump gives more visible softening where there
-                   actually is content. */
-                background: rgba(20, 14, 6, 0.42);
-                backdrop-filter: blur(14px) saturate(0.6);
-                -webkit-backdrop-filter: blur(14px) saturate(0.6);
-                z-index: 100;
-                pointer-events: none;
-                opacity: 0;
-                animation-name: ${bdKeyName};
-                animation-duration: var(--bd-duration, 3800ms);
-                animation-delay: var(--bd-delay, 0ms);
-                animation-timing-function: cubic-bezier(0.38, 0, 0.25, 1);
-                animation-fill-mode: forwards;
-                will-change: opacity;
-              }
               @keyframes ${bdKeyName} {
-                /* Starts ramping from the instant the element enters. */
                 0% { opacity: 0; }
-                /* Blur complete exactly when the element is fully in
-                   the foreground (blurCompleteAt, defaults to fadeIn). */
                 ${blurPeakPct}% { opacity: 1; }
-                /* Hold while the element is at center + early fly-out. */
                 ${bdHoldEndPct}% { opacity: 1; }
-                /* Fade out during the tail of fly-home. */
                 100% { opacity: 0; }
               }
             `}</style>
