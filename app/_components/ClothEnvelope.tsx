@@ -126,96 +126,74 @@ const WATER_VERTEX = /* glsl */ `
   }
 `;
 
-// Layered pool water:
-//   1. Pool floor — multi-octave noise with slow diagonal UV scroll
-//      so the terrain is constantly flowing past. This is the
-//      single biggest "don't-look-fake" move: real pools have a
-//      clear floor you can see through the water.
-//   2. Caustics — sin-interference net, also drifting, darkens →
-//      brightens the floor.
-//   3. Water absorption — multiplicative warm-to-cyan filter +
-//      radial depth darkening, the optics of looking through water.
-//   4. Surface sparkles — two layers of threshold-ed noise with
-//      different frequencies and opposite motion, gives "波光粼粼".
+// Hockney-style pool water.
+//
+// David Hockney's pool paintings (Bigger Splash '67, Pool with Two
+// Figures '72, Paper Pools series '78) treat water as pop-graphic,
+// not photographic. The look is:
+//   • Flat cerulean with only a whisper of vertical gradient
+//   • Confident hand-drawn curly white lines (his "curly-hair"
+//     signature) that map the shimmer onto a few intentional marks
+//     instead of a noise field
+//   • Very small, slow motion — the painting almost holds still
+//
+// So: drop the tile floor, caustics net, absorption filter, and
+// sparkle noise. Keep a flat-ish base + 11 lightly animated wavy
+// white curves. Minimal, confident, graphic.
 const WATER_FRAGMENT = /* glsl */ `
   uniform float uTime;
   varying vec2 vUv;
 
-  float hash(vec2 p) {
-    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-  }
-  float vnoise(vec2 p) {
-    vec2 i = floor(p);
-    vec2 f = fract(p);
-    f = f * f * (3.0 - 2.0 * f);
-    float a = hash(i);
-    float b = hash(i + vec2(1.0, 0.0));
-    float c = hash(i + vec2(0.0, 1.0));
-    float d = hash(i + vec2(1.0, 1.0));
-    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-  }
-
-  vec3 poolFloor(vec2 uv, float t) {
-    // Slow diagonal scroll — the floor drifts past, giving the eye a
-    // reference for motion without ever looking like a treadmill.
-    vec2 s = uv + vec2(t * 0.018, t * 0.012);
-
-    // Three octaves of noise for organic patches.
-    float n1 = vnoise(s * 3.5);
-    float n2 = vnoise(s * 9.0 + 5.0);
-    float n3 = vnoise(s * 22.0 + 11.0);
-    float n = n1 * 0.55 + n2 * 0.30 + n3 * 0.15;
-
-    // Concrete/tile colour — light when bright, darker in the cracks.
-    vec3 grout  = vec3(0.26, 0.50, 0.62);
-    vec3 tile   = vec3(0.62, 0.86, 0.90);
-    vec3 bright = vec3(0.82, 0.95, 0.96);
-
-    vec3 c = mix(grout, tile, smoothstep(0.28, 0.55, n));
-    c = mix(c, bright, smoothstep(0.65, 0.82, n));
-    return c;
-  }
-
   void main() {
     vec2 uv = vUv;
-    float t = uTime * 0.14;
+    float t = uTime * 0.12;
 
-    // Slight refraction wobble — looking at the floor through moving
-    // water; the pattern you see is bent by the surface.
-    vec2 refracted = uv + vec2(
-      sin(uv.y * 18.0 + t * 1.1) * 0.006,
-      sin(uv.x * 14.0 + t * 0.9) * 0.006
-    );
+    // Flat cerulean base with a gentle top-to-bottom shift —
+    // Hockney pools are never a strict single colour but the
+    // gradient is slight.
+    vec3 top = vec3(0.32, 0.72, 0.93);   // #52B8ED
+    vec3 mid = vec3(0.18, 0.56, 0.84);   // #2E8FD6
+    vec3 bot = vec3(0.09, 0.39, 0.69);   // #1762B0
+    vec3 color = mix(bot, mid, smoothstep(0.0, 0.5, uv.y));
+    color = mix(color, top, smoothstep(0.5, 1.0, uv.y));
 
-    vec3 color = poolFloor(refracted, t);
+    // Curly white marks — horizontal wavy lines with varied per-row
+    // amplitude / frequency / phase / speed. The two added sines per
+    // line give each curve the double-hump "curly-hair" shape that
+    // Hockney paints.
+    float marks = 0.0;
+    for (int i = 0; i < 11; i++) {
+      float fi = float(i);
+      // Evenly spaced y with a pseudo-random jitter, so they don't
+      // line up on a strict grid.
+      float y = (fi + 0.5) / 11.0 + sin(fi * 7.3) * 0.012;
+      // Amplitude + frequency vary per line.
+      float amp  = 0.020 + fract(sin(fi * 12.9898) * 43758.5453) * 0.022;
+      float freq = 4.0 + fract(cos(fi * 7.1) * 1234.5) * 6.5;
+      // Each line phases at its own speed for that hand-drawn
+      // asynchronous shimmer.
+      float speed = 0.35 + fract(sin(fi * 2.7)) * 0.55;
+      float phase = fi * 1.7 + t * speed;
 
-    // ── Caustics net drifting across the floor ──
-    vec2 cc = uv * 7.0 + vec2(t * 0.25, t * 0.15);
-    float caustic =
-        sin(cc.x + t * 1.5)
-      + sin(cc.y + t * 1.8)
-      + sin((cc.x + cc.y) * 0.6 + t * 1.2);
-    caustic = smoothstep(1.2, 2.5, caustic);
-    color = mix(color, color * 1.35 + vec3(0.18, 0.24, 0.22), caustic * 0.6);
+      // Two sines added gives the asymmetric curly look.
+      float curveY = y
+        + sin(uv.x * freq + phase) * amp
+        + sin(uv.x * freq * 0.43 - phase * 0.7) * amp * 0.38;
 
-    // ── Water absorption — multiplicative cyan-ish filter, a real
-    // physical behaviour (red wavelengths absorb faster than blue). ──
-    vec3 waterFilter = vec3(0.58, 0.88, 0.98);
-    color *= waterFilter;
+      float dist = abs(uv.y - curveY);
+      float line = smoothstep(0.007, 0.0015, dist);
+      marks += line;
+    }
+    marks = clamp(marks, 0.0, 1.0);
 
-    // ── Radial depth darkening: edges of the view are "deeper". ──
+    // A slightly off-white, so the marks don't feel like a highlight
+    // pass but like painted strokes.
+    vec3 strokeColor = vec3(0.93, 0.98, 1.00);
+    color = mix(color, strokeColor, marks * 0.86);
+
+    // Whisper of depth vignette.
     vec2 cent = uv - vec2(0.5, 0.5);
-    float depth = length(cent);
-    color *= 1.0 - depth * 0.38;
-    color += vec3(0.0, 0.04, 0.07) * (1.0 - depth);
-
-    // ── Surface sparkles — two layers, opposite motion, threshold-ed
-    // so only the brightest peaks show. This is the "波光粼粼". ──
-    float sp1 = vnoise(uv * 110.0 + vec2(t * 4.2, t * 2.1));
-    sp1 = smoothstep(0.84, 0.95, sp1) * 0.75;
-    float sp2 = vnoise(uv * 160.0 - vec2(t * 5.5, t * 3.0));
-    sp2 = smoothstep(0.88, 0.97, sp2) * 0.55;
-    color += vec3(sp1 + sp2);
+    color *= 1.0 - length(cent) * 0.18;
 
     gl_FragColor = vec4(color, 1.0);
   }
