@@ -27,7 +27,8 @@ export async function loadStories(): Promise<Story[]> {
         published_at, selected_hour,
         lat::float8 as lat,
         lng::float8 as lng,
-        source_url, source_name
+        source_url, source_name,
+        weather_current, location_summary, fetched_at
       from stories
     `) as unknown as Story[];
     // If the table is empty (fresh DB, not yet seeded), fall back to JSON

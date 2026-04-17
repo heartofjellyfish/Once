@@ -140,6 +140,22 @@ export default async function Page() {
                   {formatUsd(s.eggs_price_usd)}
                 </span>
               </div>
+
+              {s.location_summary || s.weather_current ? (
+                <details className="place-info">
+                  <summary>about</summary>
+                  <div className="place-lines">
+                    {s.location_summary ? (
+                      <div className="line">{s.location_summary}</div>
+                    ) : null}
+                    {s.weather_current ? (
+                      <div className="line weather">
+                        {s.weather_current.toLowerCase()}
+                      </div>
+                    ) : null}
+                  </div>
+                </details>
+              ) : null}
             </div>
           </aside>
           </div>
@@ -368,6 +384,43 @@ export default async function Page() {
           color: var(--ink-faint);
           font-variant-numeric: tabular-nums;
           letter-spacing: 0.02em;
+        }
+
+        /* ── place-info: click-to-reveal location + weather ───────── */
+        .place-info {
+          margin-top: 8px;
+          padding-top: 6px;
+          border-top: 1px dashed rgba(34, 27, 18, 0.14);
+        }
+        .place-info > summary {
+          list-style: none;
+          cursor: pointer;
+          font-family: var(--cursive);
+          font-size: 12.5px;
+          color: var(--ink-faint);
+          letter-spacing: 0.02em;
+          padding: 2px 0;
+          text-align: center;
+        }
+        .place-info > summary::-webkit-details-marker { display: none; }
+        .place-info[open] > summary { color: var(--ink-muted); }
+        .place-info > summary:hover { color: var(--accent); }
+        .place-info .place-lines {
+          margin-top: 6px;
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+          font-family: var(--serif);
+          font-style: italic;
+          font-size: 11.5px;
+          line-height: 1.45;
+          color: var(--ink-muted);
+          text-align: center;
+          text-wrap: pretty;
+        }
+        .place-info .line.weather {
+          color: var(--ink-faint);
+          font-size: 11px;
         }
 
         /* ── moment ───────────────────────────────────────────────── */

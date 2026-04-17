@@ -174,6 +174,22 @@ export async function approveAction(formData: FormData): Promise<void> {
 
   const id = `${slug(edited.city)}-${shortId()}`;
 
+  // Carry through weather + location_summary + fetched_at from the
+  // queue row so the published story keeps its context.
+  const qmetaRows = (await sql`
+    select weather_current, location_summary, fetched_at
+    from moderation_queue where id = ${queueId}
+  `) as unknown as {
+    weather_current: string | null;
+    location_summary: string | null;
+    fetched_at: string | null;
+  }[];
+  const qmeta = qmetaRows[0] ?? {
+    weather_current: null,
+    location_summary: null,
+    fetched_at: null
+  };
+
   await sql`
     insert into stories (
       id, photo_url, country, region, city, timezone, local_hour,
@@ -181,7 +197,8 @@ export async function approveAction(formData: FormData): Promise<void> {
       currency_code, currency_symbol,
       milk_price_local, eggs_price_local,
       milk_price_usd, eggs_price_usd,
-      source_url, lat, lng
+      source_url, lat, lng,
+      weather_current, location_summary, fetched_at
     ) values (
       ${id},
       ${edited.photo_url || null},
@@ -201,7 +218,10 @@ export async function approveAction(formData: FormData): Promise<void> {
       ${edited.eggs_price_usd},
       ${edited.source_url || null},
       ${edited.lat},
-      ${edited.lng}
+      ${edited.lng},
+      ${qmeta.weather_current},
+      ${qmeta.location_summary},
+      ${qmeta.fetched_at}
     )
   `;
 
