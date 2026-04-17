@@ -209,18 +209,37 @@ export default async function Page() {
                     <span className="city">{s.city}</span>
                     <span className="sep" aria-hidden="true">·</span>
                     <span className="clock">{clock}</span>
+                    {(() => {
+                      // weather_current is "Cloudy, 18°C" — split so the
+                      // temperature can sit next to the clock (a-la a
+                      // postmark stamp) and the condition reads as a
+                      // soft adjective after.
+                      if (!s.weather_current) return null;
+                      const parts = s.weather_current.split(",").map((p) => p.trim());
+                      const condition = parts[0];
+                      const temp = parts.slice(1).join(", ");
+                      return (
+                        <>
+                          {temp ? (
+                            <>
+                              <span className="sep" aria-hidden="true">·</span>
+                              <span className="temp">{temp}</span>
+                            </>
+                          ) : null}
+                          {condition ? (
+                            <>
+                              <span className="sep" aria-hidden="true">·</span>
+                              <span className="weather">{condition.toLowerCase()}</span>
+                            </>
+                          ) : null}
+                        </>
+                      );
+                    })()}
                   </div>
 
-                  {s.location_summary || s.weather_current ? (
+                  {s.location_summary ? (
                     <div className="place-info">
-                      {s.location_summary ? (
-                        <div className="line">{s.location_summary}</div>
-                      ) : null}
-                      {s.weather_current ? (
-                        <div className="line weather">
-                          {s.weather_current.toLowerCase()}
-                        </div>
-                      ) : null}
+                      <div className="line">{s.location_summary}</div>
                     </div>
                   ) : null}
 
@@ -450,15 +469,21 @@ export default async function Page() {
           display: flex;
           align-items: baseline;
           justify-content: center;
-          gap: 10px;
+          gap: 8px;
+          flex-wrap: wrap;
           font-family: var(--cursive);
           font-size: clamp(14px, 1.5vw, 16px);
           color: var(--ink-soft);
           letter-spacing: 0.01em;
         }
         .note .topline .sep { color: var(--ink-faint); }
-        .note .topline .clock {
+        .note .topline .clock,
+        .note .topline .temp {
           font-variant-numeric: tabular-nums;
+        }
+        .note .topline .weather {
+          font-style: italic;
+          color: var(--ink-muted);
         }
 
         .note .rule {
@@ -537,23 +562,21 @@ export default async function Page() {
           letter-spacing: 0.02em;
         }
 
-        /* ── place-info: location + weather (always visible) ─────── */
+        /* ── place-info: one-sentence city intro (italic, quieter) ── */
         .place-info {
-          margin-top: 8px;
-          padding-top: 6px;
+          margin-top: 10px;
+          padding-top: 8px;
           border-top: 1px dashed rgba(34, 27, 18, 0.14);
           display: flex;
           flex-direction: column;
           gap: 3px;
           font-family: var(--serif);
           font-style: italic;
-          font-size: 12px;
+          font-size: 13px;
+          line-height: 1.45;
           color: var(--ink-soft);
           text-align: center;
-        }
-        .place-info .line.weather {
-          color: var(--ink-faint);
-          font-size: 11px;
+          text-wrap: pretty;
         }
 
         /* ── moment ───────────────────────────────────────────────── */
