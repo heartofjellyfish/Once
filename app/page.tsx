@@ -2,6 +2,7 @@ import { getCurrentStory } from "@/lib/stories";
 import { formatLocal, formatUsd } from "@/lib/format";
 import PencilText from "./_components/PencilText";
 import MapPostmark from "./_components/MapPostmark";
+import EnvelopeIntro from "./_components/EnvelopeIntro";
 
 export const revalidate = 3600;
 
@@ -54,6 +55,13 @@ export default async function Page() {
       <a href="#moment" className="skip-link">
         Skip to the moment
       </a>
+
+      <EnvelopeIntro
+        city={s.city}
+        country={s.country}
+        lat={s.lat ?? null}
+        lng={s.lng ?? null}
+      />
 
       <main>
         <div className="stage">
