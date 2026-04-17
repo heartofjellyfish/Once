@@ -1,15 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import dynamic from "next/dynamic";
 import MapPostmark from "./MapPostmark";
 import { SLOGAN_BY_LANG, RTL_LANGS } from "@/lib/slogan";
-
-// Cloth envelope is code-split — ~180KB (three + r3f) only loads when we
-// actually want it. Stays out of the main page bundle.
-const ClothEnvelope = dynamic(() => import("./ClothEnvelope"), {
-  ssr: false
-});
 
 interface Props {
   city: string;
@@ -20,20 +13,15 @@ interface Props {
   language?: string;
 }
 
-/** Quick WebGL probe so we can fall back gracefully. */
-function hasWebGL(): boolean {
-  try {
-    const canvas = document.createElement("canvas");
-    return !!(
-      canvas.getContext("webgl2") ||
-      canvas.getContext("webgl") ||
-      canvas.getContext("experimental-webgl")
-    );
-  } catch {
-    return false;
-  }
-}
-
+/**
+ * Envelope intro — HTML only. The Three.js cloth + pool experiment is
+ * parked in ./ClothEnvelope.tsx; restore by dynamic-importing it again
+ * when credits and time allow.
+ *
+ * Every visit shows the envelope. Click / Enter / Space / Esc to open.
+ * Backdrop heavily blurs the content behind — the user can sense that
+ * something is there, but nothing is legible until they open.
+ */
 export default function EnvelopeIntro({
   city,
   country,
@@ -44,21 +32,9 @@ export default function EnvelopeIntro({
   const [phase, setPhase] = useState<"hidden" | "visible" | "closing">(
     "hidden"
   );
-  // Opt into Three.js cloth if the browser can handle it and the user
-  // hasn't asked for reduced motion.
-  const [useCloth, setUseCloth] = useState(false);
-  // Becomes true once the cloth's canvas texture + plane are rendered —
-  // we then fade the HTML fallback out.
-  const [clothReady, setClothReady] = useState(false);
 
   useEffect(() => {
     const t = window.setTimeout(() => setPhase("visible"), 140);
-    const reducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    ).matches;
-    if (!reducedMotion && hasWebGL()) {
-      setUseCloth(true);
-    }
     return () => window.clearTimeout(t);
   }, []);
 
@@ -94,118 +70,98 @@ export default function EnvelopeIntro({
       aria-label="Once — a slice of ordinary life, from elsewhere — hourly"
       onClick={dismiss}
     >
-      {/* HTML envelope — fallback + first-paint while Three.js loads.
-          Unmounts once cloth texture is ready. */}
-      {!clothReady ? (
-        <div className="env-arrival">
-          <button
-            type="button"
-            className="envelope"
-            onClick={(e) => {
-              e.stopPropagation();
-              dismiss();
-            }}
-            aria-label="Open Once"
-          >
-            <div className="flap" aria-hidden="true">
-              <svg viewBox="0 0 100 60" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="flapShade" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="rgba(80, 45, 15, 0.18)" />
-                    <stop offset="100%" stopColor="rgba(80, 45, 15, 0)" />
-                  </linearGradient>
-                </defs>
-                <path
-                  d="M 0 0 L 50 58 L 100 0 L 100 60 L 0 60 Z"
-                  fill="url(#flapShade)"
-                />
-                <path
-                  d="M 0 0 L 50 58 L 100 0"
-                  fill="none"
-                  stroke="rgba(80, 45, 15, 0.28)"
-                  strokeWidth="0.5"
-                />
+      <div className="env-arrival">
+        <button
+          type="button"
+          className="envelope"
+          onClick={(e) => {
+            e.stopPropagation();
+            dismiss();
+          }}
+          aria-label="Open Once"
+        >
+          <div className="flap" aria-hidden="true">
+            <svg viewBox="0 0 100 60" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="flapShade" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="rgba(80, 45, 15, 0.18)" />
+                  <stop offset="100%" stopColor="rgba(80, 45, 15, 0)" />
+                </linearGradient>
+              </defs>
+              <path
+                d="M 0 0 L 50 58 L 100 0 L 100 60 L 0 60 Z"
+                fill="url(#flapShade)"
+              />
+              <path
+                d="M 0 0 L 50 58 L 100 0"
+                fill="none"
+                stroke="rgba(80, 45, 15, 0.28)"
+                strokeWidth="0.5"
+              />
+            </svg>
+          </div>
+
+          <div className="corner-fold" aria-hidden="true" />
+
+          <div className="return-address">
+            From {city}, {country}
+          </div>
+
+          {lat != null && lng != null ? (
+            <div className="stamp-area">
+              <MapPostmark
+                lat={lat}
+                lng={lng}
+                city={city}
+                country={country}
+                width={84}
+              />
+              <svg
+                className="cancellation"
+                viewBox="0 0 140 48"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <path d="M 4 10 Q 22 4, 40 10 T 76 10 T 112 10 T 140 10" />
+                <path d="M 4 24 Q 22 18, 40 24 T 76 24 T 112 24 T 140 24" />
+                <path d="M 4 38 Q 22 32, 40 38 T 76 38 T 112 38 T 140 38" />
               </svg>
             </div>
+          ) : null}
 
-            <div className="corner-fold" aria-hidden="true" />
+          <div className="middle">
+            <p className="slogan en">
+              A slice of{" "}
+              <span className="crossed">
+                mundane
+                <span className="cross-line" aria-hidden="true" />
+              </span>
+              {" "}ordinary life,
+              <br />
+              from elsewhere &mdash; hourly.
+            </p>
 
-            <div className="return-address">
-              From {city}, {country}
-            </div>
-
-            {lat != null && lng != null ? (
-              <div className="stamp-area">
-                <MapPostmark
-                  lat={lat}
-                  lng={lng}
-                  city={city}
-                  country={country}
-                  width={84}
-                />
-                <svg
-                  className="cancellation"
-                  viewBox="0 0 140 48"
-                  preserveAspectRatio="none"
-                  aria-hidden="true"
-                >
-                  <path d="M 4 10 Q 22 4, 40 10 T 76 10 T 112 10 T 140 10" />
-                  <path d="M 4 24 Q 22 18, 40 24 T 76 24 T 112 24 T 140 24" />
-                  <path d="M 4 38 Q 22 32, 40 38 T 76 38 T 112 38 T 140 38" />
-                </svg>
-              </div>
-            ) : null}
-
-            <div className="middle">
-              <p className="slogan en">
-                A slice of{" "}
-                <span className="crossed">
-                  mundane
-                  <span className="cross-line" aria-hidden="true" />
-                </span>
-                {" "}ordinary life,
-                <br />
-                from elsewhere &mdash; hourly.
+            {localSlogan ? (
+              <p
+                className="slogan local"
+                lang={language}
+                dir={localIsRtl ? "rtl" : undefined}
+              >
+                {localSlogan}
               </p>
+            ) : null}
+          </div>
 
-              {localSlogan ? (
-                <p
-                  className="slogan local"
-                  lang={language}
-                  dir={localIsRtl ? "rtl" : undefined}
-                >
-                  {localSlogan}
-                </p>
-              ) : null}
-            </div>
-
-            <div className="hint" aria-hidden="true">
-              <span>click to open</span>
-            </div>
-          </button>
-        </div>
-      ) : null}
-
-      {/* Cloth envelope — Three.js, loaded lazily. Hides HTML fallback
-          once its own texture is built and the plane first renders. */}
-      {useCloth ? (
-        <ClothEnvelope
-          city={city}
-          country={country}
-          lat={lat}
-          lng={lng}
-          language={language}
-          state={phase === "closing" ? "closing" : "visible"}
-          onDismiss={dismiss}
-          onReady={() => setClothReady(true)}
-        />
-      ) : null}
+          <div className="hint" aria-hidden="true">
+            <span>click to open</span>
+          </div>
+        </button>
+      </div>
 
       <style>{`
-        /* ── backdrop: summer-afternoon pool. Solid pool-blue gradient
-           so there's something to look at while Three.js loads, and so
-           users with reduced-motion or no-WebGL still get a pool feel.
-           Once cloth is ready, the Three.js water plane covers this.  */
+        /* Backdrop: heavy blur over the real content. You can sense
+           that there's something behind — shapes, colours — but
+           nothing is legible until you open. */
         .env-overlay {
           position: fixed;
           inset: 0;
@@ -214,9 +170,9 @@ export default function EnvelopeIntro({
           align-items: center;
           justify-content: center;
           padding: 24px;
-          background:
-            radial-gradient(ellipse 70% 50% at 30% 20%, rgba(255, 255, 255, 0.18), transparent 55%),
-            linear-gradient(180deg, #94d6ed 0%, #4c9ed1 50%, #216599 100%);
+          background: rgba(40, 28, 12, 0.36);
+          backdrop-filter: blur(26px) saturate(0.85) brightness(0.92);
+          -webkit-backdrop-filter: blur(26px) saturate(0.85) brightness(0.92);
           animation: env-overlay-in 600ms ease-out both;
         }
         .env-overlay.closing {
@@ -230,7 +186,6 @@ export default function EnvelopeIntro({
           to { opacity: 0; }
         }
 
-        /* ── arrival / exit wrapper (handles enter + leave) ─────────── */
         .env-arrival {
           transform: rotate(-2deg);
           animation: env-arrive 900ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
@@ -248,7 +203,6 @@ export default function EnvelopeIntro({
           100% { opacity: 0; transform: rotate(-3deg) translateY(-40px) scale(1.04); }
         }
 
-        /* ── HTML envelope (fallback) ──────────────────────────────── */
         .envelope {
           position: relative;
           display: block;
