@@ -140,9 +140,13 @@ export default function StagedCenter({
               .stage-backdrop {
                 position: fixed;
                 inset: 0;
-                background: rgba(20, 14, 6, 0.22);
-                backdrop-filter: blur(8px) saturate(0.85);
-                -webkit-backdrop-filter: blur(8px) saturate(0.85);
+                /* Stronger dim + desaturation so the "push back" reads
+                   even when the area behind is a flat background color.
+                   Blur bump gives more visible softening where there
+                   actually is content. */
+                background: rgba(20, 14, 6, 0.42);
+                backdrop-filter: blur(14px) saturate(0.6);
+                -webkit-backdrop-filter: blur(14px) saturate(0.6);
                 z-index: 100;
                 pointer-events: none;
                 opacity: 0;
