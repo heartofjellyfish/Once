@@ -126,8 +126,17 @@ const WATER_VERTEX = /* glsl */ `
   }
 `;
 
-// Fragment-only water: depth gradient + ripple tint + sin-interference
-// caustics + tiny sparkle spots. Cheap, works on mobile.
+// Layered pool water:
+//   1. Pool floor — multi-octave noise with slow diagonal UV scroll
+//      so the terrain is constantly flowing past. This is the
+//      single biggest "don't-look-fake" move: real pools have a
+//      clear floor you can see through the water.
+//   2. Caustics — sin-interference net, also drifting, darkens →
+//      brightens the floor.
+//   3. Water absorption — multiplicative warm-to-cyan filter +
+//      radial depth darkening, the optics of looking through water.
+//   4. Surface sparkles — two layers of threshold-ed noise with
+//      different frequencies and opposite motion, gives "波光粼粼".
 const WATER_FRAGMENT = /* glsl */ `
   uniform float uTime;
   varying vec2 vUv;
@@ -146,39 +155,67 @@ const WATER_FRAGMENT = /* glsl */ `
     return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
   }
 
+  vec3 poolFloor(vec2 uv, float t) {
+    // Slow diagonal scroll — the floor drifts past, giving the eye a
+    // reference for motion without ever looking like a treadmill.
+    vec2 s = uv + vec2(t * 0.018, t * 0.012);
+
+    // Three octaves of noise for organic patches.
+    float n1 = vnoise(s * 3.5);
+    float n2 = vnoise(s * 9.0 + 5.0);
+    float n3 = vnoise(s * 22.0 + 11.0);
+    float n = n1 * 0.55 + n2 * 0.30 + n3 * 0.15;
+
+    // Concrete/tile colour — light when bright, darker in the cracks.
+    vec3 grout  = vec3(0.26, 0.50, 0.62);
+    vec3 tile   = vec3(0.62, 0.86, 0.90);
+    vec3 bright = vec3(0.82, 0.95, 0.96);
+
+    vec3 c = mix(grout, tile, smoothstep(0.28, 0.55, n));
+    c = mix(c, bright, smoothstep(0.65, 0.82, n));
+    return c;
+  }
+
   void main() {
     vec2 uv = vUv;
-    float t = uTime * 0.22;
+    float t = uTime * 0.14;
 
-    // Pool blue: deeper at bottom, sky reflection at top.
-    vec3 deep    = vec3(0.13, 0.39, 0.63);  // #216599
-    vec3 mid     = vec3(0.30, 0.62, 0.82);  // #4C9ED1
-    vec3 shallow = vec3(0.58, 0.84, 0.93);  // #94D6ED
-    vec3 base = mix(deep, mid, smoothstep(0.0, 0.45, uv.y));
-    base = mix(base, shallow, smoothstep(0.6, 1.0, uv.y));
+    // Slight refraction wobble — looking at the floor through moving
+    // water; the pattern you see is bent by the surface.
+    vec2 refracted = uv + vec2(
+      sin(uv.y * 18.0 + t * 1.1) * 0.006,
+      sin(uv.x * 14.0 + t * 0.9) * 0.006
+    );
 
-    // Ripple hue variation — small shifts in the blue as light plays
-    // through the moving surface.
-    float r = vnoise(uv * 5.0 + vec2(t * 0.5, t * 0.3));
-    r += vnoise(uv * 11.0 - vec2(t * 0.7, t * 0.45)) * 0.5;
-    r = (r - 0.7) * 0.22;
+    vec3 color = poolFloor(refracted, t);
 
-    // Sin-interference caustics — the classic pool-floor light net.
-    vec2 c = uv * 8.0;
+    // ── Caustics net drifting across the floor ──
+    vec2 cc = uv * 7.0 + vec2(t * 0.25, t * 0.15);
     float caustic =
-        sin(c.x + t * 1.2)
-      + sin(c.y + t * 1.5)
-      + sin((c.x + c.y) * 0.6 + t * 0.9);
-    caustic = smoothstep(1.4, 2.5, caustic) * 0.32;
+        sin(cc.x + t * 1.5)
+      + sin(cc.y + t * 1.8)
+      + sin((cc.x + cc.y) * 0.6 + t * 1.2);
+    caustic = smoothstep(1.2, 2.5, caustic);
+    color = mix(color, color * 1.35 + vec3(0.18, 0.24, 0.22), caustic * 0.6);
 
-    // Tiny sparkle spots from afternoon sun catching the peaks.
-    float sp = vnoise(uv * 50.0 + t * 2.0);
-    sp = smoothstep(0.84, 0.95, sp) * 0.55;
+    // ── Water absorption — multiplicative cyan-ish filter, a real
+    // physical behaviour (red wavelengths absorb faster than blue). ──
+    vec3 waterFilter = vec3(0.58, 0.88, 0.98);
+    color *= waterFilter;
 
-    vec3 color = base
-      + vec3(caustic * 0.9, caustic * 1.0, caustic * 1.05)
-      + vec3(sp)
-      + vec3(r * 0.28);
+    // ── Radial depth darkening: edges of the view are "deeper". ──
+    vec2 cent = uv - vec2(0.5, 0.5);
+    float depth = length(cent);
+    color *= 1.0 - depth * 0.38;
+    color += vec3(0.0, 0.04, 0.07) * (1.0 - depth);
+
+    // ── Surface sparkles — two layers, opposite motion, threshold-ed
+    // so only the brightest peaks show. This is the "波光粼粼". ──
+    float sp1 = vnoise(uv * 110.0 + vec2(t * 4.2, t * 2.1));
+    sp1 = smoothstep(0.84, 0.95, sp1) * 0.75;
+    float sp2 = vnoise(uv * 160.0 - vec2(t * 5.5, t * 3.0));
+    sp2 = smoothstep(0.88, 0.97, sp2) * 0.55;
+    color += vec3(sp1 + sp2);
 
     gl_FragColor = vec4(color, 1.0);
   }
