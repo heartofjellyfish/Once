@@ -55,7 +55,7 @@ const VERTEX_SHADER = /* glsl */ `
     vUv = uv;
     vec3 pos = position;
 
-    float t = uTime * 0.3;
+    float t = uTime * 0.35;
 
     // ── Z bending (cloth) — corners flap more than centre ──
     float w = vnoise(vec2(pos.x * 1.0 + t, pos.y * 1.2)) * 0.55
@@ -65,19 +65,25 @@ const VERTEX_SHADER = /* glsl */ `
       (1.0 - cos(uv.x * 3.14159)) * 0.55 +
       (1.0 - cos(uv.y * 3.14159)) * 0.45;
     edgeW = edgeW * 0.6 + 0.25;
-    float z = (w + gustWave) * edgeW * 0.12;
+    float z = (w + gustWave) * edgeW * 0.18;
     pos.z += z;
     vShade = z;
 
-    // ── rigid-body rotation — noise-driven, visible sway ──
-    float rotAngle = vnoise(vec2(t * 0.5, 7.0)) * 0.028 + uGust * 0.04;
+    // ── rigid-body rotation: dominant sin so motion is unambiguous,
+    // modulated by noise for organic variation. ──
+    float rotSin = sin(t * 0.7) * 0.08;
+    float rotNoise = vnoise(vec2(t * 0.5, 7.0)) * 0.04;
+    float rotAngle = rotSin + rotNoise + uGust * 0.06;
     float cr = cos(rotAngle), sr = sin(rotAngle);
     mat2 rot = mat2(cr, -sr, sr, cr);
     pos.xy = rot * pos.xy;
 
-    // ── rigid-body drift — gentle float in the breeze ──
-    pos.x += vnoise(vec2(t * 0.4, 13.0)) * 0.07;
-    pos.y += vnoise(vec2(t * 0.45, 23.0)) * 0.05 + uGust * 0.05;
+    // ── rigid-body drift: dominant sin + noise. ──
+    pos.x += sin(t * 0.6 + 1.3) * 0.18
+           + vnoise(vec2(t * 0.4, 13.0)) * 0.08;
+    pos.y += cos(t * 0.82) * 0.12
+           + vnoise(vec2(t * 0.45, 23.0)) * 0.06
+           + uGust * 0.06;
 
     gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
   }
@@ -90,8 +96,10 @@ const FRAGMENT_SHADER = /* glsl */ `
 
   void main() {
     vec4 c = texture2D(uTex, vUv);
-    // Stronger shading so the bending is visible as light & shadow.
-    float shade = clamp(1.0 + vShade * 5.5, 0.78, 1.22);
+    // Paper is matte — very small brightness swing. Previously we had
+    // 5.5×/± 22% which read like sheet metal, not paper. Motion now
+    // comes mostly from rigid-body rotation + drift, not shading.
+    float shade = clamp(1.0 + vShade * 1.8, 0.94, 1.06);
     gl_FragColor = vec4(c.rgb * shade, c.a);
   }
 `;
@@ -511,34 +519,34 @@ function ClothMesh({
   const planeW = viewport.width * 0.72;
   const planeH = planeW / aspect;
 
-  useFrame((s, delta) => {
-    if (!matRef.current || !meshRef.current) return;
-    uniforms.uTime.value += delta;
+  useFrame((_s, delta) => {
+    // Always advance uTime, even before refs settle. The uniforms object
+    // is the one attached to the material, so the shader sees each tick.
+    const u = matRef.current?.uniforms ?? uniforms;
+    u.uTime.value += delta;
 
     // Gust scheduling
-    const now = uniforms.uTime.value;
+    const now = u.uTime.value;
     if (now > gustRef.current.nextAt) {
       gustRef.current.target = 1;
-      // Schedule next gust 10-22 seconds from now
       gustRef.current.nextAt = now + 10 + Math.random() * 12;
-      // Ramp gust down after ~1.6s
       window.setTimeout(() => {
         gustRef.current.target = 0;
       }, 1600);
     }
     gustRef.current.value +=
       (gustRef.current.target - gustRef.current.value) * delta * 3.2;
-    uniforms.uGust.value = gustRef.current.value;
+    u.uGust.value = gustRef.current.value;
 
     // Closing animation
-    if (state === "closing") {
+    if (state === "closing" && meshRef.current) {
       if (closingRef.current.started < 0) closingRef.current.started = now;
       const t = Math.min(1, (now - closingRef.current.started) / 0.55);
       meshRef.current.position.y = t * 1.4;
       meshRef.current.rotation.z = t * 0.12;
-      (meshRef.current.material as THREE.ShaderMaterial).transparent = true;
-      const op = 1 - t;
-      (meshRef.current.material as THREE.ShaderMaterial).opacity = op;
+      const mat = meshRef.current.material as THREE.ShaderMaterial;
+      mat.transparent = true;
+      mat.opacity = 1 - t;
     }
   });
 
@@ -656,6 +664,28 @@ export default function ClothEnvelope({
           align-items: center;
           justify-content: center;
           animation: cloth-in 700ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+        }
+        /* Soft drop shadow so the envelope reads as paper sitting on a
+           surface, not a flat tin sheet floating in mid-air. Static
+           (doesn't track the cloth sway), but the eye reads it as
+           thickness + weight. */
+        .cloth-root::before {
+          content: "";
+          position: absolute;
+          left: 50%;
+          top: 58%;
+          width: 56%;
+          height: 22%;
+          transform: translateX(-50%);
+          background: radial-gradient(
+            ellipse,
+            rgba(20, 12, 4, 0.42) 0%,
+            rgba(20, 12, 4, 0.18) 45%,
+            rgba(20, 12, 4, 0) 75%
+          );
+          filter: blur(22px);
+          pointer-events: none;
+          z-index: -1;
         }
         .cloth-root.closing {
           animation: cloth-out 550ms ease-in forwards;
