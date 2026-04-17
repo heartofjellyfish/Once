@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireSql } from "@/lib/db";
 import { curate } from "@/lib/curate";
+import { runIngest } from "@/lib/pipeline";
 
 /** Slug helper for generated story IDs. ASCII-only, kebab. */
 function slug(input: string): string {
@@ -255,6 +256,33 @@ export async function approveAction(formData: FormData): Promise<void> {
   revalidatePath("/");
   revalidatePath("/admin");
   redirect("/admin");
+}
+
+/** Manually trigger the ingest pipeline. Optional city override. */
+export async function runIngestAction(formData: FormData): Promise<void> {
+  const cityId = String(formData.get("city") || "").trim() || undefined;
+
+  let summary = "";
+  let errorMsg = "";
+  try {
+    const r = await runIngest({ cityId });
+    const scorePart = r.scores
+      ? ` [s${r.scores.specificity}/r${r.scores.resonance}/g${r.scores.register}]`
+      : "";
+    summary = [
+      r.city_name ?? "(no city)",
+      r.reason,
+      `considered ${r.entries_considered}, prefilter ${r.entries_prefilter_pass}${scorePart}`
+    ].join(" · ");
+  } catch (err) {
+    errorMsg = err instanceof Error ? err.message : String(err);
+  }
+
+  revalidatePath("/admin");
+  if (errorMsg) {
+    redirect(`/admin?ingest_err=${encodeURIComponent(errorMsg)}`);
+  }
+  redirect(`/admin?ingest_ok=${encodeURIComponent(summary)}`);
 }
 
 /** REJECT with a reason. */
