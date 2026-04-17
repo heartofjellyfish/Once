@@ -31,10 +31,12 @@ interface Props {
  */
 export default function StagedCenter({
   delay,
-  duration = 1800,
+  duration = 2500,
   scale = 1.18,
-  stare = 0.38,
-  fadeIn = 0.22,
+  // Fraction of duration spent holding at center (the 凝视 beat).
+  stare = 0.30,
+  // Fraction spent fading in at the start.
+  fadeIn = 0.15,
   children,
   className,
   style
@@ -102,12 +104,14 @@ export default function StagedCenter({
         }
         .staged.playing {
           opacity: 0;
-          animation-duration: var(--stage-duration, 1800ms);
+          animation-duration: var(--stage-duration, 2500ms);
           animation-delay: var(--stage-delay, 0ms);
-          animation-timing-function: cubic-bezier(0.22, 0.7, 0.2, 1);
+          /* Gentle S-curve: quick settle-in at center, then a leisurely
+             deceleration as it lands in place. */
+          animation-timing-function: cubic-bezier(0.4, 0.08, 0.2, 1);
           animation-fill-mode: forwards;
           will-change: transform, opacity, filter;
-          z-index: 3;
+          z-index: 120;
           position: relative;
         }
         @keyframes staged-fly-${fadeInPct}-${stareEndPct} {

@@ -4,6 +4,7 @@ import PencilText from "./_components/PencilText";
 import MapPostmark from "./_components/MapPostmark";
 import EnvelopeIntro from "./_components/EnvelopeIntro";
 import StagedCenter from "./_components/StagedCenter";
+import StageBackdrop from "./_components/StageBackdrop";
 
 export const revalidate = 3600;
 
@@ -72,27 +73,28 @@ export default async function Page() {
   const noteTilt = ((hash % 40) / 10 - 2).toFixed(2); // -2°..+2° different seed feel
 
   // Sequential reveal: title types at center → flies home, then polaroid,
-  // stamp, note each make the same entrance. Stages overlap by ~700ms so
-  // the next piece starts flying in as the previous is settling.
+  // stamp, note each make the same entrance. Longer durations + small
+  // overlap so each "settle" beat feels 从容, not rushed.
   const titleEnd = computeTitleDurationMs(s.original_text);
-  const TITLE_FLYOUT = 900;
+  const TITLE_FLYOUT = 1400;
   const TITLE_DUR = titleEnd + TITLE_FLYOUT;
-  // Split so typing happens during fadeIn+stare, fly-out starts right as
-  // the last char lands. Keep fadeIn short (~200ms) and let stare run
-  // through the rest of the typing window.
+  // Typing happens during fadeIn+stare; fly-out begins as last char lands.
   const TITLE_FADEIN = 200 / TITLE_DUR;
   const TITLE_STARE = Math.max(0, titleEnd - 200) / TITLE_DUR;
 
-  const POLAROID_DUR = 2000;
-  const STAMP_DUR = 1700;
-  const NOTE_DUR = 2000;
-  const OVERLAP = 700;
+  const POLAROID_DUR = 2800;
+  const STAMP_DUR = 2500;
+  const NOTE_DUR = 3000;
+  const OVERLAP = 350;
 
   const dTitle = 0;
   const dPolaroid = dTitle + TITLE_DUR - OVERLAP;
   const dStamp = dPolaroid + POLAROID_DUR - OVERLAP;
   const dNote = dStamp + STAMP_DUR - OVERLAP;
   const dNoteEnd = dNote + NOTE_DUR;
+
+  // Translation waits until the title stage has fully settled.
+  const dTranslation = dTitle + TITLE_DUR + 80;
 
   return (
     <>
@@ -107,6 +109,8 @@ export default async function Page() {
         lng={s.lng ?? null}
         language={s.original_language}
       />
+
+      <StageBackdrop startMs={dTitle} endMs={dNoteEnd} />
 
       <main>
         <div className="stage">
@@ -244,12 +248,19 @@ export default async function Page() {
               text={s.original_text}
               lang={s.original_language}
             />
-            {showTranslation ? (
-              <p className="translation" lang="en">
-                {s.english_text}
-              </p>
-            ) : null}
           </StagedCenter>
+
+          {showTranslation ? (
+            <p
+              className="translation reveal"
+              lang="en"
+              style={
+                { "--reveal-delay": `${dTranslation}ms` } as React.CSSProperties
+              }
+            >
+              {s.english_text}
+            </p>
+          ) : null}
 
           {s.source_url ? (
             <p
