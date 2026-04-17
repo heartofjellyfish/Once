@@ -7,6 +7,7 @@ import {
   recordSpend,
   type UsageBreakdown
 } from "./budget";
+import { fetchWeatherLabel } from "./weather";
 import type { City } from "./types";
 
 /**
@@ -273,12 +274,16 @@ export async function runIngest(opts: { cityId?: string } = {}): Promise<IngestR
   );
   const clearedThreshold = minScore >= SCORE_THRESHOLD;
 
+  // Weather at the city right now (best effort, non-blocking).
+  const weather = await fetchWeatherLabel(city.lat, city.lng);
+
   // 6. Write to moderation_queue.
   const queuedId = await writeQueue({
     city,
     entry: winner.entry,
     full: winner.full,
-    passedFilter: clearedThreshold
+    passedFilter: clearedThreshold,
+    weather
   });
 
   return {
@@ -455,8 +460,9 @@ async function writeQueue(args: {
   entry: FeedEntry;
   full: FullResult;
   passedFilter: boolean;
+  weather: string | null;
 }): Promise<string> {
-  const { city, entry, full, passedFilter } = args;
+  const { city, entry, full, passedFilter, weather } = args;
   const sql = requireSql();
 
   const rows = (await sql`
@@ -469,7 +475,7 @@ async function writeQueue(args: {
       currency_code, currency_symbol,
       milk_price_local, eggs_price_local,
       milk_price_usd, eggs_price_usd,
-      location_summary, fetched_at,
+      location_summary, weather_current, fetched_at,
       score_specificity, score_resonance, score_register
     ) values (
       'pending',
@@ -496,6 +502,7 @@ async function writeQueue(args: {
       ${full.milk_price_usd || 0},
       ${full.eggs_price_usd || 0},
       ${city.location_summary ?? null},
+      ${weather},
       now(),
       ${full.score_specificity},
       ${full.score_resonance},
