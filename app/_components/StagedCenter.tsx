@@ -127,6 +127,12 @@ export default function StagedCenter({
           z-index: 120;
           position: relative;
           isolation: isolate;
+          /* While staging (which includes the paused-until-envelope-
+             dismissed phase where opacity is still 0), the wrapper is
+             transparent but would otherwise still intercept clicks and
+             swallow the envelope's onClick. Let pointer events pass
+             through until the element is settled and interactive. */
+          pointer-events: none;
         }
         .staged.settled {
           /* Animation fully over: drop the high z-index so the next stage
