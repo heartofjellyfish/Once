@@ -184,7 +184,7 @@ export default function EnvelopeIntro({
       </div>
 
       <style>{`
-        /* ── opaque backdrop so content behind isn't spoiled ───────── */
+        /* ── backdrop: heavy blur over the real content, slight dark ── */
         .env-overlay {
           position: fixed;
           inset: 0;
@@ -193,14 +193,9 @@ export default function EnvelopeIntro({
           align-items: center;
           justify-content: center;
           padding: 24px;
-          background-color: var(--bg);
-          background-image:
-            radial-gradient(ellipse 110% 75% at 20% 0%, var(--bg-warm) 0%, transparent 55%),
-            url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='640'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.01 0.22' numOctaves='2' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.32  0 0 0 0 0.22  0 0 0 0 0.11  0 0 0 0.14 0'/%3E%3C/filter%3E%3Crect width='640' height='640' filter='url(%23f)'/%3E%3C/svg%3E"),
-            url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='2.2' numOctaves='1' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.2  0 0 0 0 0.14  0 0 0 0 0.07  0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23f)'/%3E%3C/svg%3E");
-          background-repeat: no-repeat, repeat, repeat;
-          background-size: auto, 640px 640px, 220px 220px;
-          background-blend-mode: normal, multiply, multiply;
+          background: rgba(40, 28, 12, 0.36);
+          backdrop-filter: blur(26px) saturate(0.85) brightness(0.92);
+          -webkit-backdrop-filter: blur(26px) saturate(0.85) brightness(0.92);
           animation: env-overlay-in 600ms ease-out both;
         }
         .env-overlay.closing {
@@ -246,12 +241,23 @@ export default function EnvelopeIntro({
           border: 1px solid rgba(80, 45, 15, 0.14);
           border-radius: 2px;
           overflow: hidden;    /* clips cancellation marks inside */
-          background-color: #faf3df;
+          /* Paper — 5-layer composition:
+             1. soft lit highlight in the upper-left (radial)
+             2. fine specks (high-freq noise, dark)
+             3. long horizontal fibers (Y-biased low-freq noise)
+             4. broad tonal variation (very low freq — organic patches)
+             5. warm ivory gradient (baseline cream)
+             Envelope is visibly lighter than the backdrop for contrast. */
+          background-color: #fbf3d8;
           background-image:
-            url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='360'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.018 0.28' numOctaves='2' seed='5' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.32  0 0 0 0 0.22  0 0 0 0 0.11  0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='360' height='360' filter='url(%23n)'/%3E%3C/svg%3E"),
-            url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.8' numOctaves='1' seed='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.22  0 0 0 0 0.15  0 0 0 0 0.08  0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E"),
-            linear-gradient(172deg, #fdf6e2 0%, #efe3c2 100%);
-          background-blend-mode: multiply, multiply, normal;
+            radial-gradient(ellipse 85% 65% at 22% 16%, rgba(255, 248, 214, 0.55) 0%, transparent 58%),
+            url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='2.4' numOctaves='1' seed='5' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.18  0 0 0 0 0.12  0 0 0 0 0.05  0 0 0 0.28 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E"),
+            url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.008 0.28' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.32  0 0 0 0 0.22  0 0 0 0 0.11  0 0 0 0.22 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),
+            url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='800'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0035' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.36  0 0 0 0 0.25  0 0 0 0 0.11  0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3C/svg%3E"),
+            linear-gradient(172deg, #fdf6db 0%, #f0e2b4 100%);
+          background-repeat: no-repeat, repeat, repeat, repeat, no-repeat;
+          background-size: auto, 240px 240px, 600px 600px, 800px 800px, auto;
+          background-blend-mode: normal, multiply, multiply, multiply, normal;
           box-shadow:
             0 1px 0 rgba(32, 23, 8, 0.06),
             0 44px 92px -36px rgba(42, 23, 8, 0.5),
