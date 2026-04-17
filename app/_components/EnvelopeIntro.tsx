@@ -11,20 +11,18 @@ interface Props {
 }
 
 const SLOGAN = "A slice of ordinary life, from elsewhere — hourly.";
-const STORAGE_KEY = "once.seen";
 
 /**
- * First-visit envelope. On return visits it stays out of the way.
+ * Envelope shown on every visit. No caching — the intro is part of the
+ * experience, not a one-time onboarding step.
  *
  * Flow:
- *   1. Mount → check localStorage; if user has been here before, do
- *      nothing. Content below is already SSR'd.
- *   2. Otherwise fade in a dimmed backdrop with a tilted envelope
- *      containing the current story's stamp, return address, wordmark,
- *      and slogan.
- *   3. Click / tap / Enter / Space / Escape → envelope lifts and fades,
- *      backdrop fades, content shows through. localStorage gets marked.
- *   4. prefers-reduced-motion skips animations.
+ *   1. Mount → after a short beat (so the page paints first), fade in
+ *      a dimmed backdrop and a tilted envelope with today's stamp,
+ *      return address, wordmark, and slogan.
+ *   2. Click / tap / Enter / Space / Escape → envelope lifts and fades;
+ *      backdrop fades; content shows through.
+ *   3. prefers-reduced-motion skips animations.
  */
 export default function EnvelopeIntro({ city, country, lat, lng }: Props) {
   const [phase, setPhase] = useState<"hidden" | "visible" | "closing">(
@@ -32,11 +30,6 @@ export default function EnvelopeIntro({ city, country, lat, lng }: Props) {
   );
 
   useEffect(() => {
-    try {
-      if (localStorage.getItem(STORAGE_KEY)) return;
-    } catch {
-      // localStorage unavailable — still show the envelope once.
-    }
     // Let the page paint first so the envelope appears *onto* content.
     const t = window.setTimeout(() => setPhase("visible"), 140);
     return () => window.clearTimeout(t);
@@ -58,11 +51,6 @@ export default function EnvelopeIntro({ city, country, lat, lng }: Props) {
   function dismiss() {
     if (phase === "closing" || phase === "hidden") return;
     setPhase("closing");
-    try {
-      localStorage.setItem(STORAGE_KEY, "1");
-    } catch {
-      // ignore
-    }
     window.setTimeout(() => setPhase("hidden"), 650);
   }
 
