@@ -540,10 +540,12 @@ async function writeQueue(args: {
   const sql = requireSql();
 
   // Hero image — try OG scrape of the source article, fall back to a
-  // deterministic picsum placeholder so every story always has one.
+  // watercolor map of the city (on-brand with the postmark stamp), and
+  // only use the deterministic picsum placeholder as a last resort.
   const photoUrl = await resolveHeroImage(
     entry.link,
-    `${city.id}-${entry.title}`
+    `${city.id}-${entry.title}`,
+    { lat: city.lat, lng: city.lng }
   );
 
   const rows = (await sql`

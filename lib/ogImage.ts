@@ -1,13 +1,36 @@
 /**
  * Hero-image resolution for ingest.
  *
- * Tries the article's OG image (og:image / twitter:image / first reasonable
- * <img>) and falls back to a deterministic picsum placeholder so every
- * story always has *some* photo.
+ * Strategy, in order:
+ *   1. Scrape the article's head for og:image / twitter:image candidates.
+ *      Parse size hints (og:image:width / og:image:height) where they
+ *      exist, then pick the best-scoring candidate (bigger is better,
+ *      obvious logos rejected).
+ *   2. If that fails, fall back to a 720×480 Stamen Watercolor map
+ *      centred on the story's city — on-brand for Once (same art style
+ *      as the postmark stamp), deterministic per location, and free.
+ *   3. If no lat/lng is available, last-resort picsum placeholder so
+ *      the story still has *some* photo.
  */
+
+import { watercolorMapUrl } from "./map";
 
 const FETCH_TIMEOUT_MS = 6000;
 const MAX_HTML_BYTES = 400_000; // ~400KB — plenty for <head>
+
+// URL substrings that almost always indicate a site-level logo or
+// generic placeholder rather than a story-specific image. Rejected
+// regardless of advertised size.
+const LOGO_PATTERNS =
+  /(^|[/_.-])(logo|favicon|og[-_]?default|site[-_]?icon|placeholder|default[-_]?image|apple[-_]?touch)(s)?([/_.-]|$)/i;
+
+interface ImageCandidate {
+  url: string;
+  width?: number;
+  height?: number;
+  /** Which meta key / <img> type produced this candidate (for debugging). */
+  source: "og" | "og:secure" | "twitter" | "twitter:src" | "first-img";
+}
 
 /** Slugify a string so it's safe in a picsum seed. */
 function slugForSeed(s: string): string {
@@ -22,7 +45,7 @@ function slugForSeed(s: string): string {
   );
 }
 
-/** Placeholder URL — deterministic per (city, headline). */
+/** Last-resort placeholder — deterministic per seed. */
 export function placeholderImage(seedKey: string): string {
   const seed = slugForSeed(seedKey || "once");
   return `https://picsum.photos/seed/${encodeURIComponent(seed)}/1200/900`;
@@ -36,7 +59,6 @@ async function fetchWithTimeout(url: string): Promise<Response | null> {
       signal: ac.signal,
       redirect: "follow",
       headers: {
-        // Some sites 403 without a UA.
         "user-agent":
           "Mozilla/5.0 (compatible; OnceBot/1.0; +https://once.qi.land)",
         accept: "text/html,application/xhtml+xml"
@@ -50,30 +72,22 @@ async function fetchWithTimeout(url: string): Promise<Response | null> {
   }
 }
 
-/** Pull out the first matching attribute value for a meta name/property. */
-function findMeta(html: string, key: string): string | null {
-  // Match <meta property="og:image" content="..."> or name=, or attrs in any order.
-  const re = new RegExp(
-    `<meta\\s+[^>]*(?:property|name)\\s*=\\s*["']${key}["'][^>]*>`,
-    "i"
-  );
-  const tag = html.match(re)?.[0];
-  if (!tag) return null;
-  const content = tag.match(/content\s*=\s*["']([^"']+)["']/i)?.[1];
-  return content ? content.trim() : null;
-}
-
-/** Extract the first <img> that looks real (skips tiny/sprite images). */
-function findFirstImg(html: string): string | null {
-  const re = /<img\s+[^>]*src\s*=\s*["']([^"']+)["'][^>]*>/gi;
-  for (const m of html.matchAll(re)) {
-    const src = m[1];
-    if (!src) continue;
-    if (/^data:/i.test(src)) continue;
-    if (/sprite|blank|spacer|pixel|1x1/i.test(src)) continue;
-    return src;
+async function readCappedText(res: Response): Promise<string> {
+  const reader = res.body?.getReader();
+  if (!reader) return res.text();
+  const decoder = new TextDecoder();
+  let html = "";
+  let total = 0;
+  while (total < MAX_HTML_BYTES) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    html += decoder.decode(value, { stream: true });
   }
-  return null;
+  try {
+    await reader.cancel();
+  } catch {}
+  return html;
 }
 
 function absolutize(raw: string, base: string): string | null {
@@ -85,8 +99,93 @@ function absolutize(raw: string, base: string): string | null {
 }
 
 /**
- * Try to find a hero image for `sourceUrl`. Returns null if no usable image
- * was found (callers should fall back to placeholderImage).
+ * Parse every <meta> and the first <img> into a candidate list. og:image
+ * groups are associated with the og:image:width / og:image:height tags
+ * that follow them in document order (Open Graph convention).
+ */
+function extractCandidates(html: string): ImageCandidate[] {
+  const out: ImageCandidate[] = [];
+
+  // Walk meta tags in document order, tracking the most-recently-seen
+  // og:image block so width/height/secure_url can attach to it.
+  const metaRe = /<meta\s+[^>]*>/gi;
+  let pending: ImageCandidate | null = null;
+  for (const m of html.matchAll(metaRe)) {
+    const tag = m[0];
+    const key = tag
+      .match(/(?:property|name)\s*=\s*["']([^"']+)["']/i)?.[1]
+      ?.toLowerCase();
+    const content = tag.match(/content\s*=\s*["']([^"']+)["']/i)?.[1];
+    if (!key || !content) continue;
+
+    if (key === "og:image") {
+      if (pending) out.push(pending);
+      pending = { url: content, source: "og" };
+    } else if (key === "og:image:secure_url" && pending) {
+      // Prefer the secure URL for an existing candidate.
+      pending.url = content;
+      pending.source = "og:secure";
+    } else if (key === "og:image:width" && pending) {
+      const n = Number(content);
+      if (Number.isFinite(n)) pending.width = n;
+    } else if (key === "og:image:height" && pending) {
+      const n = Number(content);
+      if (Number.isFinite(n)) pending.height = n;
+    } else if (key === "twitter:image" || key === "twitter:image:src") {
+      out.push({
+        url: content,
+        source: key === "twitter:image" ? "twitter" : "twitter:src"
+      });
+    }
+  }
+  if (pending) out.push(pending);
+
+  // First reasonable <img> as a last-resort candidate.
+  const imgRe = /<img\s+[^>]*src\s*=\s*["']([^"']+)["'][^>]*>/gi;
+  for (const m of html.matchAll(imgRe)) {
+    const src = m[1];
+    if (!src) continue;
+    if (/^data:/i.test(src)) continue;
+    if (/sprite|blank|spacer|pixel|1x1/i.test(src)) continue;
+    // Read width/height attributes if present.
+    const tag = m[0];
+    const w = Number(tag.match(/\swidth\s*=\s*["']?(\d+)/i)?.[1]);
+    const h = Number(tag.match(/\sheight\s*=\s*["']?(\d+)/i)?.[1]);
+    out.push({
+      url: src,
+      width: Number.isFinite(w) ? w : undefined,
+      height: Number.isFinite(h) ? h : undefined,
+      source: "first-img"
+    });
+    break; // just the first
+  }
+
+  return out;
+}
+
+function score(c: ImageCandidate): number {
+  // Start with pixel area when known, otherwise a neutral baseline that
+  // beats nothing-known-but-obviously-small but loses to anything
+  // confidently large.
+  let s = c.width && c.height ? c.width * c.height : 260_000;
+
+  // Size floor — reject plausibly-thumbnail candidates if dims known.
+  if (c.width && c.width < 300) s -= 500_000;
+  if (c.height && c.height < 200) s -= 500_000;
+
+  // Strong penalty for logo-shaped URLs.
+  if (LOGO_PATTERNS.test(c.url)) s -= 2_000_000;
+
+  // Preference tiers for the source of the candidate: og > twitter > first-img.
+  if (c.source === "og" || c.source === "og:secure") s += 50_000;
+  if (c.source === "twitter" || c.source === "twitter:src") s += 20_000;
+
+  return s;
+}
+
+/**
+ * Try to find a hero image for `sourceUrl`. Returns null if no usable
+ * image was found.
  */
 export async function scrapeOgImage(sourceUrl: string): Promise<string | null> {
   if (!sourceUrl) return null;
@@ -99,57 +198,62 @@ export async function scrapeOgImage(sourceUrl: string): Promise<string | null> {
   }
   if (!res || !res.ok) return null;
 
-  // Read at most MAX_HTML_BYTES. fetch() body can be huge on some sites.
   let html = "";
   try {
-    const reader = res.body?.getReader();
-    if (!reader) {
-      html = await res.text();
-    } else {
-      const decoder = new TextDecoder();
-      let total = 0;
-      while (total < MAX_HTML_BYTES) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        total += value.byteLength;
-        html += decoder.decode(value, { stream: true });
-      }
-      try {
-        await reader.cancel();
-      } catch {}
-    }
+    html = await readCappedText(res);
   } catch {
     return null;
   }
-
   if (!html) return null;
 
-  // Priority order.
-  const candidates = [
-    findMeta(html, "og:image:secure_url"),
-    findMeta(html, "og:image"),
-    findMeta(html, "twitter:image"),
-    findMeta(html, "twitter:image:src"),
-    findFirstImg(html)
-  ].filter((x): x is string => !!x);
+  const raw = extractCandidates(html);
+  const absolute = raw
+    .map((c) => {
+      const abs = absolutize(c.url, sourceUrl);
+      return abs && /^https?:\/\//i.test(abs) ? { ...c, url: abs } : null;
+    })
+    .filter((c): c is ImageCandidate => !!c);
 
-  for (const raw of candidates) {
-    const abs = absolutize(raw, sourceUrl);
-    if (abs && /^https?:\/\//i.test(abs)) return abs;
-  }
-  return null;
+  if (absolute.length === 0) return null;
+
+  // Pick the best-scoring candidate, but require a positive score — a
+  // sea of logo-only or too-small results means we'd rather fall back.
+  const sorted = [...absolute].sort((a, b) => score(b) - score(a));
+  const best = sorted[0];
+  if (score(best) <= 0) return null;
+  return best.url;
 }
 
 /**
- * Top-level: always returns a URL. Tries to scrape, falls back to picsum
- * seeded by `seedKey` (usually city-headline) so the same story always
- * gets the same placeholder.
+ * Top-level: always returns a URL. Preference order:
+ *   1. Best OG / twitter image we could scrape.
+ *   2. Stamen Watercolor map of the story's city (if lat/lng provided) —
+ *      brand-coherent with the postmark stamp, free, and always works.
+ *   3. Deterministic picsum placeholder keyed on seedKey — last resort.
  */
 export async function resolveHeroImage(
   sourceUrl: string,
-  seedKey: string
+  seedKey: string,
+  fallback?: { lat: number | null | undefined; lng: number | null | undefined }
 ): Promise<string> {
   const scraped = await scrapeOgImage(sourceUrl);
   if (scraped) return scraped;
+
+  if (
+    fallback &&
+    fallback.lat != null &&
+    fallback.lng != null &&
+    Number.isFinite(fallback.lat) &&
+    Number.isFinite(fallback.lng)
+  ) {
+    // Request a large 3:2 watercolor panel — matches the polaroid's
+    // aspect ratio so object-fit: cover doesn't clip anything important.
+    return watercolorMapUrl(fallback.lat, fallback.lng, {
+      size: 720,
+      height: 480,
+      zoom: 12
+    });
+  }
+
   return placeholderImage(seedKey);
 }
