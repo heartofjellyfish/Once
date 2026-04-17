@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import MapPostmark from "./MapPostmark";
+import { SLOGAN_BY_LANG, RTL_LANGS } from "@/lib/slogan";
+
+// Cloth envelope is code-split — ~180KB (three + r3f) only loads when we
+// actually want it. Stays out of the main page bundle.
+const ClothEnvelope = dynamic(() => import("./ClothEnvelope"), {
+  ssr: false
+});
 
 interface Props {
   city: string;
@@ -12,46 +20,19 @@ interface Props {
   language?: string;
 }
 
-const SLOGAN_EN = "A slice of ordinary life, from elsewhere — hourly.";
-
-/** Local-language translations. Missing languages just show the English line. */
-const SLOGAN_BY_LANG: Record<string, string> = {
-  ar: "قطعة من الحياة اليومية، من مكان آخر — كل ساعة.",
-  bs: "Komadić svakodnevnog života, odnekud drugdje — svaki sat.",
-  da: "Et stykke hverdagsliv, et andet sted fra — hver time.",
-  de: "Ein Stück Alltag, von anderswo — zur vollen Stunde.",
-  el: "Μια στιγμή καθημερινότητας, από αλλού — κάθε ώρα.",
-  es: "Un trozo de vida cotidiana, desde otro lugar — cada hora.",
-  et: "Tükike tavaelu, mujalt — iga tunni tagant.",
-  fi: "Pala arkielämää, muualta — joka tunti.",
-  fr: "Une tranche de vie ordinaire, d'ailleurs — chaque heure.",
-  hy: "Սովորական կյանքի մի կտոր, այլ տեղից — ամեն ժամ։",
-  is: "Brot úr daglegu lífi, annars staðar frá — á klukkustundar fresti.",
-  it: "Un frammento di vita ordinaria, da altrove — ogni ora.",
-  ja: "ありふれた暮らしのひとかけら、よそから — 一時間ごとに。",
-  ka: "ჩვეულებრივი ცხოვრების ნაჭერი, სხვა ადგილიდან — ყოველ საათში.",
-  ko: "어딘가의 평범한 한 조각, 매 시간마다.",
-  lt: "Kasdienybės gabalėlis, iš kitur — kas valandą.",
-  mk: "Парче од секојдневниот живот, од некаде — секој час.",
-  ms: "Sekeping kehidupan harian, dari tempat lain — setiap jam.",
-  nl: "Een stukje gewoon leven, ergens anders vandaan — ieder uur.",
-  no: "En bit av hverdagen, fra et annet sted — hver time.",
-  pl: "Kawałek zwykłego życia, skądinąd — co godzinę.",
-  pt: "Uma fatia da vida comum, de outro lugar — a cada hora.",
-  ro: "O felie de viață obișnuită, de altundeva — în fiecare oră.",
-  ru: "Кусочек обычной жизни, откуда-то ещё — каждый час.",
-  sk: "Kúsok obyčajného života, odinakiaľ — každú hodinu.",
-  sl: "Košček običajnega življenja, od drugod — vsako uro.",
-  sq: "Një copë e jetës së përditshme, nga diku tjetër — çdo orë.",
-  sr: "Парче свакодневног живота, са другог места — сваког сата.",
-  th: "เสี้ยวหนึ่งของชีวิตประจำวัน จากที่อื่น — ทุกชั่วโมง",
-  tr: "Başka bir yerden, sıradan bir an — her saat başı.",
-  uk: "Шматочок буденного життя, звідкись ще — щогодини.",
-  vi: "Một lát đời thường, từ nơi khác — mỗi giờ.",
-  zh: "某处的平凡片刻，每小时一次。"
-};
-
-const RTL = new Set(["ar", "he", "fa", "ur"]);
+/** Quick WebGL probe so we can fall back gracefully. */
+function hasWebGL(): boolean {
+  try {
+    const canvas = document.createElement("canvas");
+    return !!(
+      canvas.getContext("webgl2") ||
+      canvas.getContext("webgl") ||
+      canvas.getContext("experimental-webgl")
+    );
+  } catch {
+    return false;
+  }
+}
 
 export default function EnvelopeIntro({
   city,
@@ -63,9 +44,21 @@ export default function EnvelopeIntro({
   const [phase, setPhase] = useState<"hidden" | "visible" | "closing">(
     "hidden"
   );
+  // Opt into Three.js cloth if the browser can handle it and the user
+  // hasn't asked for reduced motion.
+  const [useCloth, setUseCloth] = useState(false);
+  // Becomes true once the cloth's canvas texture + plane are rendered —
+  // we then fade the HTML fallback out.
+  const [clothReady, setClothReady] = useState(false);
 
   useEffect(() => {
     const t = window.setTimeout(() => setPhase("visible"), 140);
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+    if (!reducedMotion && hasWebGL()) {
+      setUseCloth(true);
+    }
     return () => window.clearTimeout(t);
   }, []);
 
@@ -91,7 +84,7 @@ export default function EnvelopeIntro({
   if (phase === "hidden") return null;
 
   const localSlogan = language ? SLOGAN_BY_LANG[language] : undefined;
-  const localIsRtl = language ? RTL.has(language) : false;
+  const localIsRtl = language ? RTL_LANGS.has(language) : false;
 
   return (
     <div
@@ -101,90 +94,115 @@ export default function EnvelopeIntro({
       aria-label="Once — a slice of ordinary life, from elsewhere — hourly"
       onClick={dismiss}
     >
-      <div className="env-arrival">
-        <button
-          type="button"
-          className="envelope"
-          onClick={(e) => {
-            e.stopPropagation();
-            dismiss();
-          }}
-          aria-label="Open Once"
-        >
-          {/* Flap seam — V-shape coming down from top corners to centre, with
-              a gradient shadow underneath so the fold has some heft. */}
-          <div className="flap" aria-hidden="true">
-            <svg viewBox="0 0 100 60" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="flapShade" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="rgba(80, 45, 15, 0.18)" />
-                  <stop offset="100%" stopColor="rgba(80, 45, 15, 0)" />
-                </linearGradient>
-              </defs>
-              <path d="M 0 0 L 50 58 L 100 0 L 100 60 L 0 60 Z" fill="url(#flapShade)" />
-              <path d="M 0 0 L 50 58 L 100 0" fill="none" stroke="rgba(80, 45, 15, 0.28)" strokeWidth="0.5" />
-            </svg>
-          </div>
-
-          {/* Corner fold — bottom-right, subtle triangular highlight + shadow
-              as if the paper was dog-eared once. */}
-          <div className="corner-fold" aria-hidden="true" />
-
-          <div className="return-address">From {city}, {country}</div>
-
-          {lat != null && lng != null ? (
-            <div className="stamp-area">
-              <MapPostmark
-                lat={lat}
-                lng={lng}
-                city={city}
-                country={country}
-                width={84}
-              />
-              <svg
-                className="cancellation"
-                viewBox="0 0 140 48"
-                preserveAspectRatio="none"
-                aria-hidden="true"
-              >
-                <path d="M 4 10 Q 22 4, 40 10 T 76 10 T 112 10 T 140 10" />
-                <path d="M 4 24 Q 22 18, 40 24 T 76 24 T 112 24 T 140 24" />
-                <path d="M 4 38 Q 22 32, 40 38 T 76 38 T 112 38 T 140 38" />
+      {/* HTML envelope — fallback + first-paint while Three.js loads.
+          Unmounts once cloth texture is ready. */}
+      {!clothReady ? (
+        <div className="env-arrival">
+          <button
+            type="button"
+            className="envelope"
+            onClick={(e) => {
+              e.stopPropagation();
+              dismiss();
+            }}
+            aria-label="Open Once"
+          >
+            <div className="flap" aria-hidden="true">
+              <svg viewBox="0 0 100 60" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="flapShade" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="rgba(80, 45, 15, 0.18)" />
+                    <stop offset="100%" stopColor="rgba(80, 45, 15, 0)" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M 0 0 L 50 58 L 100 0 L 100 60 L 0 60 Z"
+                  fill="url(#flapShade)"
+                />
+                <path
+                  d="M 0 0 L 50 58 L 100 0"
+                  fill="none"
+                  stroke="rgba(80, 45, 15, 0.28)"
+                  strokeWidth="0.5"
+                />
               </svg>
             </div>
-          ) : null}
 
-          <div className="middle">
-            <p className="slogan en">
-              A slice of{" "}
-              <span className="crossed">
-                mundane
-                <span className="cross-line" aria-hidden="true" />
-              </span>
-              {" "}ordinary life,
-              <br />
-              from elsewhere &mdash; hourly.
-            </p>
+            <div className="corner-fold" aria-hidden="true" />
 
-            {localSlogan ? (
-              <p
-                className="slogan local"
-                lang={language}
-                dir={localIsRtl ? "rtl" : undefined}
-              >
-                {localSlogan}
-              </p>
+            <div className="return-address">
+              From {city}, {country}
+            </div>
+
+            {lat != null && lng != null ? (
+              <div className="stamp-area">
+                <MapPostmark
+                  lat={lat}
+                  lng={lng}
+                  city={city}
+                  country={country}
+                  width={84}
+                />
+                <svg
+                  className="cancellation"
+                  viewBox="0 0 140 48"
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                >
+                  <path d="M 4 10 Q 22 4, 40 10 T 76 10 T 112 10 T 140 10" />
+                  <path d="M 4 24 Q 22 18, 40 24 T 76 24 T 112 24 T 140 24" />
+                  <path d="M 4 38 Q 22 32, 40 38 T 76 38 T 112 38 T 140 38" />
+                </svg>
+              </div>
             ) : null}
-          </div>
 
-          <div className="hint" aria-hidden="true">
-            <span>click to open</span>
-          </div>
-        </button>
-      </div>
+            <div className="middle">
+              <p className="slogan en">
+                A slice of{" "}
+                <span className="crossed">
+                  mundane
+                  <span className="cross-line" aria-hidden="true" />
+                </span>
+                {" "}ordinary life,
+                <br />
+                from elsewhere &mdash; hourly.
+              </p>
+
+              {localSlogan ? (
+                <p
+                  className="slogan local"
+                  lang={language}
+                  dir={localIsRtl ? "rtl" : undefined}
+                >
+                  {localSlogan}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="hint" aria-hidden="true">
+              <span>click to open</span>
+            </div>
+          </button>
+        </div>
+      ) : null}
+
+      {/* Cloth envelope — Three.js, loaded lazily. Hides HTML fallback
+          once its own texture is built and the plane first renders. */}
+      {useCloth ? (
+        <ClothEnvelope
+          city={city}
+          country={country}
+          lat={lat}
+          lng={lng}
+          language={language}
+          state={phase === "closing" ? "closing" : "visible"}
+          onDismiss={dismiss}
+          onReady={() => setClothReady(true)}
+        />
+      ) : null}
 
       <style>{`
-        /* ── backdrop: heavy blur over the real content, slight dark ── */
+        /* ── backdrop: heavy blur over the real content ─────────────── */
         .env-overlay {
           position: fixed;
           inset: 0;
@@ -202,7 +220,7 @@ export default function EnvelopeIntro({
           animation: env-overlay-out 500ms ease-in forwards;
         }
         @keyframes env-overlay-in {
-          from { opacity: 0; }
+          from { opacity: 0; backdrop-filter: blur(0) saturate(1); }
           to   { opacity: 1; }
         }
         @keyframes env-overlay-out {
@@ -227,7 +245,7 @@ export default function EnvelopeIntro({
           100% { opacity: 0; transform: rotate(-3deg) translateY(-40px) scale(1.04); }
         }
 
-        /* ── envelope body + wind sway (occasional gusts) ───────────── */
+        /* ── HTML envelope (fallback) ──────────────────────────────── */
         .envelope {
           position: relative;
           display: block;
@@ -240,14 +258,7 @@ export default function EnvelopeIntro({
           cursor: pointer;
           border: 1px solid rgba(80, 45, 15, 0.14);
           border-radius: 2px;
-          overflow: hidden;    /* clips cancellation marks inside */
-          /* Paper — 5-layer composition:
-             1. soft lit highlight in the upper-left (radial)
-             2. fine specks (high-freq noise, dark)
-             3. long horizontal fibers (Y-biased low-freq noise)
-             4. broad tonal variation (very low freq — organic patches)
-             5. warm ivory gradient (baseline cream)
-             Envelope is visibly lighter than the backdrop for contrast. */
+          overflow: hidden;
           background-color: #fbf3d8;
           background-image:
             radial-gradient(ellipse 85% 65% at 22% 16%, rgba(255, 248, 214, 0.55) 0%, transparent 58%),
@@ -263,29 +274,12 @@ export default function EnvelopeIntro({
             0 44px 92px -36px rgba(42, 23, 8, 0.5),
             0 22px 46px -22px rgba(42, 23, 8, 0.28),
             inset 0 0 0 1px rgba(42, 23, 8, 0.04);
-          animation: env-wind 18s 2.2s ease-in-out infinite;
-          will-change: transform;
-        }
-        /* Occasional wind gusts — most of the cycle is still, two small
-           gusts give the envelope a sense of being out in the breeze. */
-        @keyframes env-wind {
-          0%, 14%, 42%, 48%, 78%, 100% { transform: rotate(0deg) translate(0, 0); }
-          16%  { transform: rotate(-0.7deg) translate(1px, 0); }
-          18%  { transform: rotate(0.4deg) translate(-1px, -1px); }
-          20%  { transform: rotate(-0.3deg) translate(1px, 0); }
-          22%  { transform: rotate(0.2deg) translate(0, -1px); }
-          24%  { transform: rotate(0deg) translate(0, 0); }
-          70%  { transform: rotate(0.9deg) translate(-2px, -2px); }
-          72%  { transform: rotate(-0.5deg) translate(1px, -1px); }
-          74%  { transform: rotate(0.3deg) translate(-1px, 0); }
-          76%  { transform: rotate(0deg) translate(0, 0); }
         }
         .envelope:focus-visible {
           outline: 2px solid var(--accent);
           outline-offset: 4px;
         }
 
-        /* Flap ── V-fold with gradient shadow ──────────────────────── */
         .flap {
           position: absolute;
           inset: 0 0 auto 0;
@@ -293,13 +287,8 @@ export default function EnvelopeIntro({
           height: 62%;
           pointer-events: none;
         }
-        .flap svg {
-          width: 100%;
-          height: 100%;
-          display: block;
-        }
+        .flap svg { width: 100%; height: 100%; display: block; }
 
-        /* Bottom-right corner fold (dog-ear) ──────────────────────── */
         .corner-fold {
           position: absolute;
           bottom: 0;
@@ -313,7 +302,6 @@ export default function EnvelopeIntro({
           opacity: 0.6;
         }
 
-        /* Return address — handwritten in Caveat, warm brown ────── */
         .return-address {
           position: absolute;
           top: 16px;
@@ -328,7 +316,6 @@ export default function EnvelopeIntro({
           z-index: 2;
         }
 
-        /* Stamp + cancellation ───────────────────────────────────── */
         .stamp-area {
           position: absolute;
           top: 14px;
@@ -352,7 +339,6 @@ export default function EnvelopeIntro({
           fill: none;
         }
 
-        /* ── slogan block ──────────────────────────────────────────── */
         .middle {
           position: absolute;
           inset: 0;
@@ -364,7 +350,6 @@ export default function EnvelopeIntro({
           gap: clamp(10px, 1.4vh, 18px);
           z-index: 1;
         }
-
         .slogan {
           margin: 0;
           color: var(--ink-soft);
@@ -383,12 +368,7 @@ export default function EnvelopeIntro({
           color: var(--ink-muted);
           opacity: 0.92;
           max-width: 22em;
-          /* Scripts without a handwritten cursive form should still read
-             naturally in the user's system fallback. */
         }
-
-        /* Strikethrough "mundane" — pen-scribble line, slightly rotated
-           to feel like a real correction. */
         .crossed {
           position: relative;
           display: inline-block;
@@ -406,7 +386,6 @@ export default function EnvelopeIntro({
           border-radius: 1px;
           opacity: 0.85;
         }
-
         .hint {
           position: absolute;
           bottom: 16px;
@@ -430,7 +409,6 @@ export default function EnvelopeIntro({
           .env-overlay.closing,
           .env-arrival,
           .env-overlay.closing .env-arrival,
-          .envelope,
           .hint {
             animation: none !important;
           }
@@ -440,22 +418,10 @@ export default function EnvelopeIntro({
         }
 
         @media (max-width: 560px) {
-          .envelope {
-            aspect-ratio: 1.25 / 1;
-          }
-          .return-address {
-            top: 12px;
-            left: 14px;
-            font-size: 13px;
-            max-width: 48%;
-          }
+          .envelope { aspect-ratio: 1.25 / 1; }
+          .return-address { top: 12px; left: 14px; font-size: 13px; max-width: 48%; }
           .stamp-area { top: 10px; right: 10px; }
-          .cancellation {
-            left: -18px;
-            width: 100px;
-            height: 40px;
-            top: 8px;
-          }
+          .cancellation { left: -18px; width: 100px; height: 40px; top: 8px; }
           .middle { padding: 0 22px; gap: 10px; }
           .slogan.en { font-size: 17px; }
           .slogan.local { font-size: 14px; }

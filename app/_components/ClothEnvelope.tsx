@@ -1,0 +1,616 @@
+"use client";
+
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import * as THREE from "three";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useCallback
+} from "react";
+import { watercolorMapUrl } from "@/lib/map";
+import { SLOGAN_EN, SLOGAN_BY_LANG, RTL_LANGS } from "@/lib/slogan";
+
+interface Props {
+  city: string;
+  country: string;
+  lat: number | null;
+  lng: number | null;
+  language?: string;
+  /** 'visible' → arriving / idle; 'closing' → animate out */
+  state: "visible" | "closing";
+  onDismiss: () => void;
+  /** Fired once the canvas texture is built and the mesh is rendering. */
+  onReady?: () => void;
+}
+
+// ── shaders ───────────────────────────────────────────────────────
+// Simple hash + value-noise for wind. 2-layer + gust component.
+const VERTEX_SHADER = /* glsl */ `
+  uniform float uTime;
+  uniform float uGust;
+
+  varying vec2 vUv;
+  varying float vShade;
+
+  float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+  }
+  float vnoise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    float a = hash(i);
+    float b = hash(i + vec2(1.0, 0.0));
+    float c = hash(i + vec2(0.0, 1.0));
+    float d = hash(i + vec2(1.0, 1.0));
+    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y) * 2.0 - 1.0;
+  }
+
+  void main() {
+    vUv = uv;
+    vec3 pos = position;
+
+    float t = uTime * 0.28;
+
+    // Two octaves of value noise drifting with time.
+    float w = vnoise(vec2(pos.x * 1.0 + t, pos.y * 1.2)) * 0.55
+            + vnoise(vec2(pos.x * 2.3 - t * 1.1, pos.y * 2.6 + t)) * 0.25;
+
+    // A sharper oscillation that fades in during gusts.
+    float gust = sin(t * 2.6 + pos.x * 3.0 + pos.y * 1.7) * 0.55 * uGust;
+
+    // Edge-weighting: corners/edges flap more than the centre.
+    float edgeW =
+      (1.0 - cos(uv.x * 3.14159)) * 0.55 +
+      (1.0 - cos(uv.y * 3.14159)) * 0.45;
+    edgeW = edgeW * 0.55 + 0.22;
+
+    float z = (w + gust) * edgeW * 0.055;
+
+    pos.z += z;
+
+    vShade = z;
+
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+  }
+`;
+
+const FRAGMENT_SHADER = /* glsl */ `
+  uniform sampler2D uTex;
+  varying vec2 vUv;
+  varying float vShade;
+
+  void main() {
+    vec4 c = texture2D(uTex, vUv);
+    // Subtle Lambert-ish shading: areas that bent toward the "sun"
+    // brighten, areas that bent away darken. vShade is small (~±0.04),
+    // so the effect is gentle.
+    float shade = clamp(1.0 + vShade * 4.2, 0.82, 1.15);
+    gl_FragColor = vec4(c.rgb * shade, c.a);
+  }
+`;
+
+// ── canvas texture renderer ──────────────────────────────────────
+
+async function loadImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+async function svgToImage(svg: string): Promise<HTMLImageElement> {
+  const url = "data:image/svg+xml;utf8," + encodeURIComponent(svg);
+  return loadImage(url);
+}
+
+interface TextureOpts {
+  city: string;
+  country: string;
+  lat: number | null;
+  lng: number | null;
+  language?: string;
+}
+
+async function renderEnvelopeTexture({
+  city,
+  country,
+  lat,
+  lng,
+  language
+}: TextureOpts): Promise<HTMLCanvasElement> {
+  // Wait for Caveat/Fraunces to be ready; otherwise canvas falls back
+  // to system fonts and the handwriting look collapses.
+  if (typeof document !== "undefined" && "fonts" in document) {
+    try {
+      await document.fonts.load("48px Caveat");
+      await document.fonts.load("italic 48px Caveat");
+      await document.fonts.load("700 32px Fraunces");
+      await document.fonts.ready;
+    } catch {
+      /* ignore — we'll still render with fallbacks */
+    }
+  }
+
+  const W = 2040;
+  const H = Math.round(W / 1.55); // ≈ 1316
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("2d context unavailable");
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+
+  // 1 — base paper gradient
+  const baseGrad = ctx.createLinearGradient(0, 0, 0, H);
+  baseGrad.addColorStop(0, "#fdf6db");
+  baseGrad.addColorStop(1, "#f0e2b4");
+  ctx.fillStyle = baseGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // 2 — paper grain (multiply blend)
+  const grainSvg = `<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' seed='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.2  0 0 0 0 0.14  0 0 0 0 0.07  0 0 0 0.22 0'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>`;
+  const fibreSvg = `<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}'><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='0.006 0.22' numOctaves='2' seed='7' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.32  0 0 0 0 0.22  0 0 0 0 0.11  0 0 0 0.24 0'/></filter><rect width='100%' height='100%' filter='url(#f)'/></svg>`;
+  const broadSvg = `<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}'><filter id='b'><feTurbulence type='fractalNoise' baseFrequency='0.0025' numOctaves='2' seed='11' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.36  0 0 0 0 0.25  0 0 0 0 0.11  0 0 0 0.2 0'/></filter><rect width='100%' height='100%' filter='url(#b)'/></svg>`;
+
+  try {
+    const [grainImg, fibreImg, broadImg] = await Promise.all([
+      svgToImage(grainSvg),
+      svgToImage(fibreSvg),
+      svgToImage(broadSvg)
+    ]);
+    ctx.save();
+    ctx.globalCompositeOperation = "multiply";
+    ctx.drawImage(broadImg, 0, 0, W, H);
+    ctx.drawImage(fibreImg, 0, 0, W, H);
+    ctx.drawImage(grainImg, 0, 0, W, H);
+    ctx.restore();
+  } catch {
+    /* proceed without paper grain */
+  }
+
+  // 3 — soft light highlight (top-left)
+  const hl = ctx.createRadialGradient(W * 0.22, H * 0.18, 0, W * 0.22, H * 0.18, W * 0.7);
+  hl.addColorStop(0, "rgba(255, 248, 214, 0.55)");
+  hl.addColorStop(1, "rgba(255, 248, 214, 0)");
+  ctx.fillStyle = hl;
+  ctx.fillRect(0, 0, W, H);
+
+  // 4 — flap V-seam + soft shadow below it
+  const seamY = H * 0.58;
+  const flapGrad = ctx.createLinearGradient(0, 0, 0, seamY);
+  flapGrad.addColorStop(0, "rgba(80, 45, 15, 0.20)");
+  flapGrad.addColorStop(1, "rgba(80, 45, 15, 0)");
+  ctx.fillStyle = flapGrad;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(W / 2, seamY);
+  ctx.lineTo(W, 0);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.strokeStyle = "rgba(80, 45, 15, 0.32)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(W / 2, seamY);
+  ctx.lineTo(W, 0);
+  ctx.stroke();
+
+  // 5 — return address (top-left, handwriting)
+  ctx.font = "italic 56px Caveat, 'Brush Script MT', cursive";
+  ctx.fillStyle = "rgba(107, 50, 32, 0.85)";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  ctx.fillText(`From ${city}, ${country}`, 60, 44);
+
+  // 6 — stamp (top-right)
+  if (lat != null && lng != null) {
+    const sw = 320;
+    const sh = 400;
+    const sx = W - sw - 56;
+    const sy = 36;
+    await drawStamp(ctx, sx, sy, sw, sh, lat, lng, city, country);
+    drawCancellation(ctx, sx, sy, sw, sh);
+  }
+
+  // 7 — slogan (centred, with strikethrough correction)
+  drawSloganEN(ctx, W, H);
+
+  // 8 — local slogan (below)
+  const localSlogan = language ? SLOGAN_BY_LANG[language] : undefined;
+  if (localSlogan) {
+    ctx.font = "42px Caveat, 'Brush Script MT', cursive";
+    ctx.fillStyle = "rgba(107, 93, 69, 0.95)";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const rtl = language ? RTL_LANGS.has(language) : false;
+    ctx.direction = rtl ? "rtl" : "ltr";
+    // Wrap long lines
+    wrapCenteredText(ctx, localSlogan, W / 2, H * 0.72, W - 300, 56);
+    ctx.direction = "ltr";
+  }
+
+  // 9 — hint (bottom)
+  ctx.font = "italic 34px Caveat, cursive";
+  ctx.fillStyle = "rgba(120, 106, 82, 0.55)";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+  ctx.fillText("click to open", W / 2, H - 44);
+
+  return canvas;
+}
+
+function drawSloganEN(ctx: CanvasRenderingContext2D, W: number, H: number) {
+  const cy = H * 0.5;
+  ctx.font = "64px Caveat, 'Brush Script MT', cursive";
+  ctx.fillStyle = "rgba(58, 45, 30, 1)";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  // Draw line 1: "A slice of [mundane] ordinary life,"
+  const prefix = "A slice of ";
+  const struck = "mundane";
+  const between = " ";
+  const kept = "ordinary life,";
+  const prefixW = ctx.measureText(prefix).width;
+  const struckW = ctx.measureText(struck).width;
+  const betweenW = ctx.measureText(between).width;
+  const keptW = ctx.measureText(kept).width;
+  const totalW = prefixW + struckW + betweenW + keptW;
+  const startX = W / 2 - totalW / 2;
+  const lineY = cy - 38;
+
+  ctx.textAlign = "left";
+  ctx.fillStyle = "rgba(58, 45, 30, 1)";
+  ctx.fillText(prefix, startX, lineY);
+
+  // Struck-through "mundane"
+  const mx = startX + prefixW;
+  ctx.fillStyle = "rgba(156, 141, 114, 1)";
+  ctx.fillText(struck, mx, lineY);
+  ctx.strokeStyle = "rgba(107, 93, 69, 0.85)";
+  ctx.lineWidth = 2.6;
+  ctx.beginPath();
+  ctx.moveTo(mx - 6, lineY + 4);
+  ctx.lineTo(mx + struckW + 6, lineY - 6);
+  ctx.stroke();
+
+  ctx.fillStyle = "rgba(58, 45, 30, 1)";
+  ctx.fillText(between + kept, mx + struckW, lineY);
+
+  // Line 2: "from elsewhere — hourly."
+  ctx.textAlign = "center";
+  ctx.fillText("from elsewhere \u2014 hourly.", W / 2, cy + 38);
+}
+
+async function drawStamp(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  lat: number,
+  lng: number,
+  city: string,
+  country: string
+) {
+  // Paper
+  const grad = ctx.createLinearGradient(x, y, x, y + h);
+  grad.addColorStop(0, "#faf1d7");
+  grad.addColorStop(1, "#ebe0c4");
+  ctx.fillStyle = grad;
+  ctx.fillRect(x, y, w, h);
+
+  // Inner border
+  ctx.strokeStyle = "rgba(107, 50, 32, 0.35)";
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(x + 12, y + 12, w - 24, h - 24);
+
+  // Map (top 70% of stamp, square)
+  const mapPad = 22;
+  const mapX = x + mapPad;
+  const mapY = y + mapPad;
+  const mapW = w - mapPad * 2;
+  const mapH = mapW; // square
+
+  try {
+    const mapUrl = watercolorMapUrl(lat, lng, { size: 480, height: 720, zoom: 12 });
+    const mapImg = await loadImage(mapUrl);
+    // Crop to square: draw top portion (src is 2:3 portrait; we want square)
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(mapX, mapY, mapW, mapH);
+    ctx.clip();
+    // Draw the image scaled to mapW width; its height will be mapW * (720/480) = 1.5*mapW
+    // We want to show top portion = mapH/(1.5*mapW) fraction = 0.667 of source
+    ctx.drawImage(
+      mapImg,
+      0, 0, 480, 480,           // source: square top portion (0..480 y of 720)
+      mapX, mapY, mapW, mapH    // dest
+    );
+    // Sepia wash
+    ctx.fillStyle = "rgba(170, 130, 80, 0.32)";
+    ctx.fillRect(mapX, mapY, mapW, mapH);
+    ctx.restore();
+  } catch {
+    // map failed to load — just leave the paper
+  }
+
+  // Labels
+  ctx.fillStyle = "rgba(107, 50, 32, 1)";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  ctx.font = "700 22px Fraunces, serif";
+  ctx.fillText(city.toUpperCase(), x + w / 2, mapY + mapH + 18);
+  ctx.font = "500 17px Fraunces, serif";
+  ctx.fillStyle = "rgba(107, 50, 32, 0.75)";
+  ctx.fillText(country.toUpperCase(), x + w / 2, mapY + mapH + 48);
+}
+
+function drawCancellation(
+  ctx: CanvasRenderingContext2D,
+  sx: number,
+  sy: number,
+  sw: number,
+  sh: number
+) {
+  ctx.save();
+  // Position near stamp's upper-left; rotate -14°
+  const cx = sx - 20;
+  const cy = sy + 80;
+  ctx.translate(cx, cy);
+  ctx.rotate((-14 * Math.PI) / 180);
+  ctx.strokeStyle = "rgba(107, 50, 32, 0.38)";
+  ctx.lineWidth = 3;
+  ctx.lineCap = "round";
+
+  for (let i = 0; i < 3; i++) {
+    const y = i * 24;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    for (let x = 0; x < 380; x += 40) {
+      ctx.bezierCurveTo(x + 10, y - 8, x + 30, y + 8, x + 40, y);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function wrapCenteredText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  cx: number,
+  cy: number,
+  maxW: number,
+  lineHeight: number
+) {
+  const words = text.split(/\s+/);
+  const lines: string[] = [];
+  let cur = "";
+  for (const word of words) {
+    const test = cur ? cur + " " + word : word;
+    if (ctx.measureText(test).width > maxW && cur) {
+      lines.push(cur);
+      cur = word;
+    } else {
+      cur = test;
+    }
+  }
+  if (cur) lines.push(cur);
+
+  const total = lines.length * lineHeight;
+  const startY = cy - total / 2 + lineHeight / 2;
+  lines.forEach((line, i) => {
+    ctx.fillText(line, cx, startY + i * lineHeight);
+  });
+}
+
+// ── Three.js mesh with wind shader ───────────────────────────────
+
+function ClothMesh({
+  texture,
+  aspect,
+  state,
+  isMobile,
+  onDismiss
+}: {
+  texture: THREE.Texture;
+  aspect: number;
+  state: "visible" | "closing";
+  isMobile: boolean;
+  onDismiss: () => void;
+}) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const matRef = useRef<THREE.ShaderMaterial>(null);
+  const gustRef = useRef({ target: 0, value: 0, nextAt: 4 });
+  const closingRef = useRef({ t: 0, started: -1 });
+
+  const uniforms = useMemo(
+    () => ({
+      uTime: { value: 0 },
+      uGust: { value: 0 },
+      uTex: { value: texture }
+    }),
+    [texture]
+  );
+
+  const segs: [number, number] = isMobile ? [16, 10] : [34, 22];
+  const { viewport } = useThree();
+
+  // Size the plane to occupy ~84% of viewport width, maintaining aspect.
+  const planeW = Math.min(viewport.width * 0.84, 6);
+  const planeH = planeW / aspect;
+
+  useFrame((s, delta) => {
+    if (!matRef.current || !meshRef.current) return;
+    uniforms.uTime.value += delta;
+
+    // Gust scheduling
+    const now = uniforms.uTime.value;
+    if (now > gustRef.current.nextAt) {
+      gustRef.current.target = 1;
+      // Schedule next gust 10-22 seconds from now
+      gustRef.current.nextAt = now + 10 + Math.random() * 12;
+      // Ramp gust down after ~1.6s
+      window.setTimeout(() => {
+        gustRef.current.target = 0;
+      }, 1600);
+    }
+    gustRef.current.value +=
+      (gustRef.current.target - gustRef.current.value) * delta * 3.2;
+    uniforms.uGust.value = gustRef.current.value;
+
+    // Closing animation
+    if (state === "closing") {
+      if (closingRef.current.started < 0) closingRef.current.started = now;
+      const t = Math.min(1, (now - closingRef.current.started) / 0.55);
+      meshRef.current.position.y = t * 1.4;
+      meshRef.current.rotation.z = t * 0.12;
+      (meshRef.current.material as THREE.ShaderMaterial).transparent = true;
+      const op = 1 - t;
+      (meshRef.current.material as THREE.ShaderMaterial).opacity = op;
+    }
+  });
+
+  return (
+    <mesh
+      ref={meshRef}
+      onClick={(e) => {
+        e.stopPropagation();
+        onDismiss();
+      }}
+    >
+      <planeGeometry args={[planeW, planeH, segs[0], segs[1]]} />
+      <shaderMaterial
+        ref={matRef}
+        vertexShader={VERTEX_SHADER}
+        fragmentShader={FRAGMENT_SHADER}
+        uniforms={uniforms}
+        side={THREE.DoubleSide}
+        transparent
+      />
+    </mesh>
+  );
+}
+
+// ── root component ───────────────────────────────────────────────
+
+export default function ClothEnvelope({
+  city,
+  country,
+  lat,
+  lng,
+  language,
+  state,
+  onDismiss,
+  onReady
+}: Props) {
+  const [texture, setTexture] = useState<THREE.Texture | null>(null);
+  const [aspect, setAspect] = useState<number>(1.55);
+
+  useEffect(() => {
+    let cancelled = false;
+    let tex: THREE.Texture | null = null;
+    renderEnvelopeTexture({ city, country, lat, lng, language })
+      .then((canvas) => {
+        if (cancelled) return;
+        tex = new THREE.CanvasTexture(canvas);
+        tex.anisotropy = 4;
+        tex.generateMipmaps = true;
+        tex.minFilter = THREE.LinearMipmapLinearFilter;
+        tex.magFilter = THREE.LinearFilter;
+        tex.needsUpdate = true;
+        setTexture(tex);
+        setAspect(canvas.width / canvas.height);
+        // Defer one frame so the mesh has a chance to paint before we
+        // swap out the HTML fallback — avoids a blank-flash crossover.
+        window.requestAnimationFrame(() => {
+          if (!cancelled) onReady?.();
+        });
+      })
+      .catch(() => {
+        /* leave texture null → HTML fallback stays */
+      });
+    return () => {
+      cancelled = true;
+      if (tex) tex.dispose();
+    };
+  }, [city, country, lat, lng, language, onReady]);
+
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 720px)");
+    setIsMobile(mql.matches);
+    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+
+  const handleBackdropClick = useCallback(() => {
+    onDismiss();
+  }, [onDismiss]);
+
+  if (!texture) {
+    // Texture still rendering — render nothing; EnvelopeIntro
+    // displays the HTML fallback until we signal ready.
+    return null;
+  }
+
+  return (
+    <div
+      className={`cloth-root ${state === "closing" ? "closing" : ""}`}
+      onClick={handleBackdropClick}
+    >
+      <Canvas
+        orthographic
+        camera={{ zoom: 140, position: [0, 0, 10], near: 0.1, far: 100 }}
+        dpr={[1, 2]}
+        style={{ width: "100%", height: "100%", cursor: "pointer" }}
+        gl={{ antialias: true, alpha: true, preserveDrawingBuffer: false }}
+      >
+        <ambientLight intensity={0.88} />
+        <directionalLight position={[2, 3, 4]} intensity={0.35} />
+        <ClothMesh
+          texture={texture}
+          aspect={aspect}
+          state={state}
+          isMobile={isMobile}
+          onDismiss={onDismiss}
+        />
+      </Canvas>
+
+      <style>{`
+        .cloth-root {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          animation: cloth-in 700ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+        }
+        .cloth-root.closing {
+          animation: cloth-out 550ms ease-in forwards;
+        }
+        @keyframes cloth-in {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
+        @keyframes cloth-out {
+          to { opacity: 0; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .cloth-root { animation: none; }
+          .cloth-root.closing { opacity: 0; transition: opacity 250ms linear; }
+        }
+      `}</style>
+    </div>
+  );
+}
