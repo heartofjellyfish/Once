@@ -54,6 +54,12 @@ export default function EnvelopeIntro({
   function dismiss() {
     if (phase !== "visible") return;
     setPhase("closing");
+    // Gate the page's staged reveal until the envelope is out of the way
+    // — globals.css pauses .staged / .reveal / ink-in until body has
+    // .story-ready, so the title isn't typing behind the envelope.
+    if (typeof document !== "undefined") {
+      document.body.classList.add("story-ready");
+    }
     window.setTimeout(() => setPhase("hidden"), 650);
   }
 

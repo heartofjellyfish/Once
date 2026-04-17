@@ -7,11 +7,11 @@ interface Props {
   delay: number;
   /** Total ms from first frame to arriving at final position. */
   duration?: number;
-  /** 0-1. How zoomed in during the "staring" phase. */
+  /** How zoomed in during the "staring" phase. */
   scale?: number;
   /** 0-1. Fraction of duration spent staring at center (held still). */
   stare?: number;
-  /** Fraction of duration spent fading in at the start. */
+  /** 0-1. Fraction of duration spent fading in at the start. */
   fadeIn?: number;
   children: React.ReactNode;
   className?: string;
@@ -23,9 +23,10 @@ interface Props {
  * then flies to its real layout position. Measures position on mount so
  * the fly-out vector is correct regardless of responsive grid.
  *
- * Uses only transform/opacity/filter — doesn't disturb layout. Plays
- * above everything else during the animation (z-index 3), then drops
- * back to default.
+ * Only holds z-index while actively animating. After the animation ends,
+ * it drops back to normal flow so a later stage entering at z-index 120
+ * paints cleanly on top of it (prevents "note appears behind polaroid"
+ * after polaroid has already settled).
  *
  * Respects prefers-reduced-motion: renders plain, no animation.
  */
@@ -33,9 +34,7 @@ export default function StagedCenter({
   delay,
   duration = 2500,
   scale = 1.18,
-  // Fraction of duration spent holding at center (the 凝视 beat).
-  stare = 0.30,
-  // Fraction spent fading in at the start.
+  stare = 0.3,
   fadeIn = 0.15,
   children,
   className,
@@ -43,6 +42,7 @@ export default function StagedCenter({
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [measured, setMeasured] = useState(false);
+  const [settled, setSettled] = useState(false);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [reduced, setReduced] = useState(false);
 
@@ -65,38 +65,50 @@ export default function StagedCenter({
     setMeasured(true);
   }, []);
 
-  // Keyframe percentages (stable across elements; actual durations
-  // are driven by --stage-duration via animation-delay on the element).
-  // 0%     → at center (translated), scaled up, blurred, fully transparent
-  // fadeIn → fully visible at center, deblurred
-  // stare  → still held at center
-  // 100%   → at final position, scale 1, transform 0
+  // Keyframe percentages baked into the emitted keyframe (CSS keyframe
+  // stops don't read custom properties).
   const fadeInPct = Math.round(fadeIn * 100);
   const stareEndPct = Math.round((fadeIn + stare) * 100);
+  const keyName = `staged-fly-${fadeInPct}-${stareEndPct}`;
 
-  const styleVars: React.CSSProperties = measured
-    ? reduced
-      ? {}
-      : ({
-          "--fly-x": `${offset.x.toFixed(1)}px`,
-          "--fly-y": `${offset.y.toFixed(1)}px`,
-          "--stage-duration": `${duration}ms`,
-          "--stage-delay": `${delay}ms`,
-          "--stage-scale": String(scale),
-          animationName: `staged-fly-${fadeInPct}-${stareEndPct}`
-        } as React.CSSProperties)
-    : { opacity: 0 }; // hide before measurement so no flash at final spot
+  const shouldAnimate = measured && !reduced && !settled;
+
+  const styleVars: React.CSSProperties = shouldAnimate
+    ? ({
+        "--fly-x": `${offset.x.toFixed(1)}px`,
+        "--fly-y": `${offset.y.toFixed(1)}px`,
+        "--stage-duration": `${duration}ms`,
+        "--stage-delay": `${delay}ms`,
+        "--stage-scale": String(scale),
+        animationName: keyName
+      } as React.CSSProperties)
+    : measured
+    ? {} // reduced-motion or settled → plain
+    : { opacity: 0 }; // pre-measurement → hide
+
+  const classes = [
+    "staged",
+    shouldAnimate ? "playing" : "",
+    settled ? "settled" : "",
+    className ?? ""
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div
       ref={ref}
-      className={`staged ${measured && !reduced ? "playing" : ""} ${className ?? ""}`}
+      className={classes}
       style={{ ...style, ...styleVars }}
+      onAnimationEnd={(e) => {
+        // Only react to the stage-fly animation, not inner children's.
+        if ((e as React.AnimationEvent<HTMLDivElement>).animationName === keyName) {
+          setSettled(true);
+        }
+      }}
     >
       {children}
 
-      {/* Each instance emits its own keyframe with the chosen fadeIn/stare
-          splits baked into the % stops (CSS keyframes can't read vars). */}
       <style>{`
         .staged {
           display: block;
@@ -106,15 +118,29 @@ export default function StagedCenter({
           opacity: 0;
           animation-duration: var(--stage-duration, 2500ms);
           animation-delay: var(--stage-delay, 0ms);
-          /* Gentle S-curve: quick settle-in at center, then a leisurely
-             deceleration as it lands in place. */
           animation-timing-function: cubic-bezier(0.4, 0.08, 0.2, 1);
           animation-fill-mode: forwards;
           will-change: transform, opacity, filter;
+          /* High z + positioning + isolation ensures a stacking context
+             at the top of its ancestors' context, so this block paints
+             above everything already-settled on the page. */
           z-index: 120;
           position: relative;
+          isolation: isolate;
         }
-        @keyframes staged-fly-${fadeInPct}-${stareEndPct} {
+        .staged.settled {
+          /* Animation fully over: drop the high z-index so the next stage
+             paints above us. Visually identical to the animation's final
+             frame (translate(0,0) scale(1), filter/opacity normal). */
+          animation: none;
+          opacity: 1;
+          transform: none;
+          filter: none;
+          z-index: auto;
+          position: static;
+          isolation: auto;
+        }
+        @keyframes ${keyName} {
           0% {
             opacity: 0;
             transform: translate(var(--fly-x, 0), var(--fly-y, 0))

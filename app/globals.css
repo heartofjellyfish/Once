@@ -141,3 +141,16 @@ summary:focus-visible {
 .skip-link:focus {
   top: 8px;
 }
+
+/* Pause every story-reveal animation until the envelope is dismissed.
+   EnvelopeIntro's dismiss() adds .story-ready to <body>. Until then,
+   the staged reveal, ink-in typing, backdrop, and any fade-in classes
+   stay frozen at their 0% frame so the user can't see the page typing
+   itself out through the envelope's blur. Specificity of 0,3,1+ wins
+   against the component-local rules (0,2,0). */
+body:not(.story-ready) .staged,
+body:not(.story-ready) .reveal,
+body:not(.story-ready) .stage-backdrop,
+body:not(.story-ready) .pencil-text .ch {
+  animation-play-state: paused !important;
+}

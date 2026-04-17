@@ -168,7 +168,6 @@ export default async function Page() {
             <aside
               className="note"
               aria-label="Today's prices and place"
-              style={{ "--note-tilt": `${noteTilt}deg` } as React.CSSProperties}
             >
               <StagedCenter
                 delay={dNote}
@@ -176,7 +175,10 @@ export default async function Page() {
                 scale={1.18}
                 stare={0.38}
               >
-                <div className="paper">
+                <div
+                  className="paper"
+                  style={{ "--note-tilt": `${noteTilt}deg` } as React.CSSProperties}
+                >
                   <div className="topline">
                     <span className="city">{s.city}</span>
                     <span className="sep" aria-hidden="true">·</span>
@@ -279,6 +281,9 @@ export default async function Page() {
 
       <style>{`
         main {
+          /* No opacity / transform / filter here: those would make <main>
+             a stacking context that traps the staged elements' z-index,
+             which is why the backdrop was covering the whole page. */
           width: 100%;
           max-width: 1120px;
           padding: clamp(28px, 4vh, 56px) clamp(16px, 3vw, 40px);
@@ -286,12 +291,6 @@ export default async function Page() {
           flex-direction: column;
           gap: clamp(22px, 3vh, 36px);
           min-height: 100svh;
-          opacity: 0;
-          animation: enter 900ms cubic-bezier(0.22, 0.61, 0.36, 1) 80ms forwards;
-        }
-        @keyframes enter {
-          from { opacity: 0; transform: translateY(6px); }
-          to   { opacity: 1; transform: translateY(0); }
         }
 
         /* Staged reveal — each element waits for --reveal-delay (ms) set
@@ -314,7 +313,6 @@ export default async function Page() {
         }
 
         @media (prefers-reduced-motion: reduce) {
-          main { opacity: 1; animation: none; transform: none; }
           .reveal {
             opacity: 1 !important;
             animation: none !important;
@@ -399,12 +397,13 @@ export default async function Page() {
 
         /* ── handwritten note (replaces wooden sign) ──────────────── */
         .note {
-          --note-tilt: 1deg;
-          transform: rotate(var(--note-tilt));
-          transform-origin: top center;
+          /* No transform here — it would create a stacking context that
+             traps .staged.playing's z-index below the backdrop. The tilt
+             lives on .paper (inside .staged) instead. */
           width: 100%;
         }
         .note .paper {
+          --note-tilt: 1deg;
           position: relative;
           padding: 18px 18px 14px;
           background: #f1e7cb;
@@ -415,6 +414,8 @@ export default async function Page() {
             0 1px 0 rgba(32, 23, 8, 0.06),
             0 14px 26px -16px rgba(42, 23, 8, 0.3),
             inset 0 0 0 0.5px rgba(34, 27, 18, 0.1);
+          transform: rotate(var(--note-tilt, 0deg));
+          transform-origin: top center;
         }
 
         .note .topline {
