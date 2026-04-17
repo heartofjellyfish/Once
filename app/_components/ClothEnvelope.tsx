@@ -55,9 +55,10 @@ const VERTEX_SHADER = /* glsl */ `
     vUv = uv;
     vec3 pos = position;
 
-    float t = uTime * 0.35;
+    float t = uTime * 0.3;
 
-    // ── Z bending (cloth) — corners flap more than centre ──
+    // ── Z bending (paper's own ripple) — noise-driven, user said this
+    // part felt OK, preserved. Corners flap more than centre. ──
     float w = vnoise(vec2(pos.x * 1.0 + t, pos.y * 1.2)) * 0.55
             + vnoise(vec2(pos.x * 2.3 - t * 1.1, pos.y * 2.6 + t)) * 0.25;
     float gustWave = sin(t * 2.6 + pos.x * 3.0 + pos.y * 1.7) * 0.55 * uGust;
@@ -69,21 +70,24 @@ const VERTEX_SHADER = /* glsl */ `
     pos.z += z;
     vShade = z;
 
-    // ── rigid-body rotation: dominant sin so motion is unambiguous,
-    // modulated by noise for organic variation. ──
-    float rotSin = sin(t * 0.7) * 0.08;
-    float rotNoise = vnoise(vec2(t * 0.5, 7.0)) * 0.04;
-    float rotAngle = rotSin + rotNoise + uGust * 0.06;
+    // ── Rigid-body drift (漂流) — two layered sins only. No noise here
+    // because noise-driven rigid motion produces sudden jerks; a pair
+    // of slow sins with different frequencies draws a smooth Lissajous-
+    // like path, which is exactly the feel of something carried by a
+    // lazy current. ──
+    float rotAngle =
+        sin(t * 0.30) * 0.060
+      + sin(t * 0.17 + 1.5) * 0.030
+      + uGust * 0.05;
     float cr = cos(rotAngle), sr = sin(rotAngle);
     mat2 rot = mat2(cr, -sr, sr, cr);
     pos.xy = rot * pos.xy;
 
-    // ── rigid-body drift: dominant sin + noise. ──
-    pos.x += sin(t * 0.6 + 1.3) * 0.18
-           + vnoise(vec2(t * 0.4, 13.0)) * 0.08;
-    pos.y += cos(t * 0.82) * 0.12
-           + vnoise(vec2(t * 0.45, 23.0)) * 0.06
-           + uGust * 0.06;
+    pos.x += sin(t * 0.28) * 0.14
+           + sin(t * 0.15 + 2.0) * 0.07;
+    pos.y += sin(t * 0.35 + 1.0) * 0.08
+           + sin(t * 0.20 + 3.1) * 0.05
+           + uGust * 0.04;
 
     gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
   }
@@ -96,11 +100,87 @@ const FRAGMENT_SHADER = /* glsl */ `
 
   void main() {
     vec4 c = texture2D(uTex, vUv);
-    // Paper is matte — very small brightness swing. Previously we had
-    // 5.5×/± 22% which read like sheet metal, not paper. Motion now
-    // comes mostly from rigid-body rotation + drift, not shading.
+
+    // Matte paper shade — very small swing (±6 %).
     float shade = clamp(1.0 + vShade * 1.8, 0.94, 1.06);
-    gl_FragColor = vec4(c.rgb * shade, c.a);
+
+    // Edge rim for paper thickness: the outermost ~1.8 % of UV fades
+    // to a slightly darker value, reading as the side of a sheet that
+    // has depth (not a tin foil edge).
+    float edgeX = min(vUv.x, 1.0 - vUv.x);
+    float edgeY = min(vUv.y, 1.0 - vUv.y);
+    float edge = min(edgeX, edgeY);
+    float rim = smoothstep(0.0, 0.018, edge);
+    float rimShade = mix(0.72, 1.0, rim);
+
+    gl_FragColor = vec4(c.rgb * shade * rimShade, c.a);
+  }
+`;
+
+// ── water shaders ────────────────────────────────────────────────
+const WATER_VERTEX = /* glsl */ `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+// Fragment-only water: depth gradient + ripple tint + sin-interference
+// caustics + tiny sparkle spots. Cheap, works on mobile.
+const WATER_FRAGMENT = /* glsl */ `
+  uniform float uTime;
+  varying vec2 vUv;
+
+  float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+  }
+  float vnoise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    float a = hash(i);
+    float b = hash(i + vec2(1.0, 0.0));
+    float c = hash(i + vec2(0.0, 1.0));
+    float d = hash(i + vec2(1.0, 1.0));
+    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+  }
+
+  void main() {
+    vec2 uv = vUv;
+    float t = uTime * 0.22;
+
+    // Pool blue: deeper at bottom, sky reflection at top.
+    vec3 deep    = vec3(0.13, 0.39, 0.63);  // #216599
+    vec3 mid     = vec3(0.30, 0.62, 0.82);  // #4C9ED1
+    vec3 shallow = vec3(0.58, 0.84, 0.93);  // #94D6ED
+    vec3 base = mix(deep, mid, smoothstep(0.0, 0.45, uv.y));
+    base = mix(base, shallow, smoothstep(0.6, 1.0, uv.y));
+
+    // Ripple hue variation — small shifts in the blue as light plays
+    // through the moving surface.
+    float r = vnoise(uv * 5.0 + vec2(t * 0.5, t * 0.3));
+    r += vnoise(uv * 11.0 - vec2(t * 0.7, t * 0.45)) * 0.5;
+    r = (r - 0.7) * 0.22;
+
+    // Sin-interference caustics — the classic pool-floor light net.
+    vec2 c = uv * 8.0;
+    float caustic =
+        sin(c.x + t * 1.2)
+      + sin(c.y + t * 1.5)
+      + sin((c.x + c.y) * 0.6 + t * 0.9);
+    caustic = smoothstep(1.4, 2.5, caustic) * 0.32;
+
+    // Tiny sparkle spots from afternoon sun catching the peaks.
+    float sp = vnoise(uv * 50.0 + t * 2.0);
+    sp = smoothstep(0.84, 0.95, sp) * 0.55;
+
+    vec3 color = base
+      + vec3(caustic * 0.9, caustic * 1.0, caustic * 1.05)
+      + vec3(sp)
+      + vec3(r * 0.28);
+
+    gl_FragColor = vec4(color, 1.0);
   }
 `;
 
@@ -482,6 +562,37 @@ function wrapCenteredText(
   });
 }
 
+// ── water plane ──────────────────────────────────────────────────
+
+function Water() {
+  const matRef = useRef<THREE.ShaderMaterial>(null);
+  const { viewport } = useThree();
+
+  const uniforms = useMemo(() => ({ uTime: { value: 0 } }), []);
+
+  useFrame((_, delta) => {
+    const u = matRef.current?.uniforms ?? uniforms;
+    u.uTime.value += delta;
+  });
+
+  // Plane sits behind the envelope and is generously oversized so it
+  // covers the viewport no matter how the cloth drifts.
+  const w = viewport.width * 2.2;
+  const h = viewport.height * 2.2;
+
+  return (
+    <mesh position={[0, 0, -2]}>
+      <planeGeometry args={[w, h, 1, 1]} />
+      <shaderMaterial
+        ref={matRef}
+        vertexShader={WATER_VERTEX}
+        fragmentShader={WATER_FRAGMENT}
+        uniforms={uniforms}
+      />
+    </mesh>
+  );
+}
+
 // ── Three.js mesh with wind shader ───────────────────────────────
 
 function ClothMesh({
@@ -514,9 +625,9 @@ function ClothMesh({
   const segs: [number, number] = isMobile ? [16, 10] : [34, 22];
   const { viewport } = useThree();
 
-  // Plane occupies ~72% of viewport width so gusts can drift it without
-  // clipping the viewport edges.
-  const planeW = viewport.width * 0.72;
+  // Smaller envelope so the pool shows around it. Drift stays inside
+  // the viewport.
+  const planeW = Math.min(viewport.width * 0.5, 2.4);
   const planeH = planeW / aspect;
 
   useFrame((_s, delta) => {
@@ -647,6 +758,7 @@ export default function ClothEnvelope({
       >
         <ambientLight intensity={0.88} />
         <directionalLight position={[2, 3, 4]} intensity={0.35} />
+        <Water />
         <ClothMesh
           texture={texture}
           aspect={aspect}
@@ -665,28 +777,7 @@ export default function ClothEnvelope({
           justify-content: center;
           animation: cloth-in 700ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
         }
-        /* Soft drop shadow so the envelope reads as paper sitting on a
-           surface, not a flat tin sheet floating in mid-air. Static
-           (doesn't track the cloth sway), but the eye reads it as
-           thickness + weight. */
-        .cloth-root::before {
-          content: "";
-          position: absolute;
-          left: 50%;
-          top: 58%;
-          width: 56%;
-          height: 22%;
-          transform: translateX(-50%);
-          background: radial-gradient(
-            ellipse,
-            rgba(20, 12, 4, 0.42) 0%,
-            rgba(20, 12, 4, 0.18) 45%,
-            rgba(20, 12, 4, 0) 75%
-          );
-          filter: blur(22px);
-          pointer-events: none;
-          z-index: -1;
-        }
+        /* Water covers the canvas now — no CSS drop shadow needed. */
         .cloth-root.closing {
           animation: cloth-out 550ms ease-in forwards;
         }

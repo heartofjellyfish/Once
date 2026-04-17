@@ -202,7 +202,10 @@ export default function EnvelopeIntro({
       ) : null}
 
       <style>{`
-        /* ── backdrop: heavy blur over the real content ─────────────── */
+        /* ── backdrop: summer-afternoon pool. Solid pool-blue gradient
+           so there's something to look at while Three.js loads, and so
+           users with reduced-motion or no-WebGL still get a pool feel.
+           Once cloth is ready, the Three.js water plane covers this.  */
         .env-overlay {
           position: fixed;
           inset: 0;
@@ -211,9 +214,9 @@ export default function EnvelopeIntro({
           align-items: center;
           justify-content: center;
           padding: 24px;
-          background: rgba(40, 28, 12, 0.36);
-          backdrop-filter: blur(26px) saturate(0.85) brightness(0.92);
-          -webkit-backdrop-filter: blur(26px) saturate(0.85) brightness(0.92);
+          background:
+            radial-gradient(ellipse 70% 50% at 30% 20%, rgba(255, 255, 255, 0.18), transparent 55%),
+            linear-gradient(180deg, #94d6ed 0%, #4c9ed1 50%, #216599 100%);
           animation: env-overlay-in 600ms ease-out both;
         }
         .env-overlay.closing {
