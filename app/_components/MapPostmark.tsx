@@ -73,17 +73,19 @@ export default function MapPostmark({
           width: var(--w);
           height: var(--h);
           padding: 3px;
-          background: #fbf4e2;
           text-decoration: none;
           color: inherit;
-          background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.8' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.25  0 0 0 0 0.17  0 0 0 0 0.09  0 0 0 0.14 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E"),
-            linear-gradient(168deg, #fdf7e6 0%, #f2e8cf 100%);
+          /* Same paper tone as the Polaroid so the two objects read as
+             being from the same pile. */
+          background: #f7f0dc;
+          background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.8' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.22  0 0 0 0 0.15  0 0 0 0 0.07  0 0 0 0.12 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E"),
+            linear-gradient(168deg, #f9f2de 0%, #ebe0c4 100%);
           background-blend-mode: multiply, normal;
           border-radius: 2px;
           box-shadow:
-            0 1px 0 rgba(107, 50, 32, 0.1),
-            0 6px 12px -4px rgba(42, 23, 8, 0.28),
-            inset 0 0 0 0.5px rgba(107, 50, 32, 0.25);
+            0 1px 0 rgba(32, 23, 8, 0.05),
+            0 10px 20px -12px rgba(42, 23, 8, 0.22),
+            inset 0 0 0 0.5px rgba(107, 50, 32, 0.18);
           transform: rotate(-3.5deg);
           transition: transform 420ms cubic-bezier(0.2, 0.8, 0.25, 1);
         }
@@ -110,7 +112,10 @@ export default function MapPostmark({
           aspect-ratio: 1 / 1;
           object-fit: cover;
           object-position: center top;
-          filter: sepia(0.1) saturate(0.9) contrast(1.02) brightness(0.97);
+          /* Push the watercolor into the page's earthtone palette. Stronger
+             than the photo filter because the map has cool blues/greens
+             baked in that need more warming to blend. */
+          filter: sepia(0.55) saturate(0.65) contrast(0.98) brightness(0.98);
           border-radius: 1px;
         }
 
