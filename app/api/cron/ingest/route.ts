@@ -25,8 +25,25 @@ export async function GET(req: Request) {
   }
 
   if (!dbAvailable()) {
+    // Show what DB-looking env vars DO exist so we can see what Vercel
+    // actually injected (names only, never values).
+    const dbKeys = Object.keys(process.env).filter((k) =>
+      /(POSTGRES|DATABASE|NEON|DB_URL)/i.test(k)
+    );
     return NextResponse.json(
-      { ok: false, error: "DATABASE_URL not set" },
+      {
+        ok: false,
+        error: "No database URL env var visible to this route",
+        checked: [
+          "DATABASE_URL",
+          "DATABASE_URL_UNPOOLED",
+          "POSTGRES_URL",
+          "POSTGRES_URL_NON_POOLING",
+          "POSTGRES_PRISMA_URL",
+          "NEON_DATABASE_URL"
+        ],
+        db_like_env_keys_found: dbKeys
+      },
       { status: 500 }
     );
   }

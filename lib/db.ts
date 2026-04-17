@@ -15,12 +15,15 @@ import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 
 let _sql: NeonQueryFunction<false, false> | null = null;
 
-/** Prefer DATABASE_URL; fall back to Vercel Postgres's auto-injected names. */
+/** Prefer DATABASE_URL; fall back to every common Vercel / Neon name. */
 function dbUrl(): string | undefined {
   return (
     process.env.DATABASE_URL ||
+    process.env.DATABASE_URL_UNPOOLED ||
     process.env.POSTGRES_URL ||
-    process.env.POSTGRES_PRISMA_URL
+    process.env.POSTGRES_URL_NON_POOLING ||
+    process.env.POSTGRES_PRISMA_URL ||
+    process.env.NEON_DATABASE_URL
   );
 }
 
