@@ -43,6 +43,11 @@ interface QueueRow {
   eggs_price_local: number | null;
   milk_price_usd: number | null;
   eggs_price_usd: number | null;
+  score_specificity: number | null;
+  score_resonance: number | null;
+  score_register: number | null;
+  rank: number | null;
+  city_id: string | null;
   // Joined from stories (approved tab only)
   story_selected_hour: number | null;
   story_published_at: string | null;
@@ -101,13 +106,18 @@ export default async function QueuePage({
       q.eggs_price_local::float8 as eggs_price_local,
       q.milk_price_usd::float8   as milk_price_usd,
       q.eggs_price_usd::float8   as eggs_price_usd,
+      q.score_specificity, q.score_resonance, q.score_register,
+      q.rank, q.city_id,
       s.selected_hour::int8 as story_selected_hour,
       s.published_at::text as story_published_at
     from moderation_queue q
     left join stories s on s.id = q.published_as_id
     where q.status = ${tab}
-    order by coalesce(q.reviewed_at, q.created_at) desc
-    limit 80
+    order by
+      case when q.status = 'pending' then q.city_id end nulls last,
+      case when q.status = 'pending' then q.rank end asc nulls last,
+      coalesce(q.reviewed_at, q.created_at) desc
+    limit 200
   `) as unknown as QueueRow[];
 
   const nowHour = currentHour();
@@ -162,6 +172,9 @@ export default async function QueuePage({
           >
             <header>
               <div className="loc">
+                {tab === "pending" && r.rank != null ? (
+                  <span className="rank">#{r.rank}</span>
+                ) : null}
                 {[r.city, r.region, r.country].filter(Boolean).join(" · ") || "—"}
                 {tab === "approved" && isPinnedNow ? (
                   <span className="pin-tag">PINNED NOW</span>
@@ -171,8 +184,13 @@ export default async function QueuePage({
                 ) : null}
               </div>
               <div className="meta">
-                {r.timezone ?? "—"}
-                {r.local_hour != null ? ` · local_hour ${r.local_hour}` : ""}
+                {r.score_specificity != null && r.score_resonance != null && r.score_register != null ? (
+                  <span className="scores" title="specificity · resonance · register">
+                    s{r.score_specificity}·r{r.score_resonance}·g{r.score_register}
+                  </span>
+                ) : null}
+                {r.timezone ? ` · ${r.timezone}` : ""}
+                {r.local_hour != null ? ` · ${String(r.local_hour).padStart(2, "0")}:00` : ""}
                 {r.ai_model ? ` · ${r.ai_model}` : ""}
               </div>
             </header>
@@ -454,6 +472,25 @@ export default async function QueuePage({
           border-radius: 2px;
           background: var(--ink);
           color: var(--bg);
+        }
+        .rank {
+          font-family: var(--mono);
+          font-size: 10px;
+          padding: 2px 6px;
+          border-radius: 2px;
+          background: var(--hairline);
+          color: var(--ink-muted);
+          letter-spacing: 0;
+          font-variant-numeric: tabular-nums;
+        }
+        .scores {
+          font-family: var(--mono);
+          font-size: 11px;
+          color: var(--ink-muted);
+          padding: 1px 5px;
+          border: 1px solid var(--hairline);
+          border-radius: 2px;
+          letter-spacing: 0;
         }
         .pin-tag.stale {
           background: var(--hairline);
