@@ -22,8 +22,11 @@ import { resolveCity, type ResolvedCity } from "./cityResolver";
 import { resolveHeroImage } from "./ogImage";
 import { fetchWeatherLabel } from "./weather";
 import { assertBudget, recordSpend, type UsageBreakdown } from "./budget";
+import { ONCE_HEADER } from "./prompts";
 
-const MODEL = "gpt-4o-mini";
+// Rewrite is the sentence readers actually read — spend on it. Prefilter
+// and scoring stay on mini; this one gets the better model.
+const MODEL = process.env.REWRITE_MODEL || "gpt-4o";
 
 // ---------------------------------------------------------------- //
 // Translation: produce { original_text, english_text } where        //
@@ -32,11 +35,9 @@ const MODEL = "gpt-4o-mini";
 // (empty when the city is anglophone).                              //
 // ---------------------------------------------------------------- //
 
-const REWRITE_SYSTEM = `You render a small news moment in "Once"'s voice for a specific city.
+const REWRITE_SYSTEM = `${ONCE_HEADER}
 
-VOICE: calm, specific, slightly understated. One to two sentences. No exclamation marks. No headlines, no dramatic phrasing. Keep concrete proper nouns (streets, neighbourhoods, people) from the source when they exist; do not invent new ones.
-
-LENGTH: 20-40 words.
+YOUR JOB: rewrite the given source (headline + body) as one Once moment.
 
 LANGUAGE HANDLING — follow exactly:
 - original_text MUST be written in the city's local_language.
@@ -87,7 +88,7 @@ async function rewriteInVoice(
     .filter(Boolean)
     .join("\n");
 
-  await assertBudget(0.002);
+  await assertBudget(0.02); // gpt-4o rewrite ~ 1-2¢ per call
 
   const resp = await client().chat.completions.create({
     model: MODEL,

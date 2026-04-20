@@ -5,48 +5,48 @@ import {
   recordSpend,
   type UsageBreakdown
 } from "./budget";
+import { ONCE_HEADER } from "./prompts";
 
 /**
- * AI-assisted curation.
+ * AI-assisted curation for the /admin/ingest paste-a-URL flow.
  *
  * Given raw source text (plus optional hints), ask gpt-4o-mini to:
- *   1. Decide whether the moment fits Once's aesthetic.
+ *   1. Decide whether the moment fits Once.
  *   2. If yes, render it in the location's local language in Once's voice.
  *   3. Produce all the fields a Story needs, except photo_url.
  *
- * The system prompt and JSON schema are invariant per call, so OpenAI's
- * automatic prompt caching kicks in after the first call — free.
+ * Uses the shared ONCE_HEADER so rule changes move every stage together.
  */
 
 const MODEL = "gpt-4o-mini";
 
-const SYSTEM_PROMPT = `You are the curator for "Once", a quiet web application that shows ONE small moment from somewhere in the world at a time.
+const SYSTEM_PROMPT = `${ONCE_HEADER}
 
-Your job: given raw source text, decide whether it fits Once's aesthetic and, if so, re-render it in the LOCATION'S LOCAL LANGUAGE in Once's calm voice.
-
-ONCE'S AESTHETIC — small, local, specific, slightly understated.
-GOOD: a bakery ran out of bread; a bus was twelve minutes late; a cat fell asleep in the shop's till; the funicular stopped for twenty minutes because of a jammed umbrella; someone rowboating down a flooded street; a vendor still selling umbrellas in a typhoon.
-BAD: politics, elections, protests, policy; war, violence, crime; celebrity/influencer news; stocks, crypto, interest rates, inflation data; pure disaster/casualty coverage ("dozens dead in earthquake", "city declares emergency").
-WEATHER EVENTS: Reject when the FOCUS is scale or casualties. PASS when the hook is a specific human scene *within* the weather — "someone rows an inflatable boat through the flooded road" is Once; "flood kills 30" is not.
-VOICE: calm, specific, slightly understated. One to two sentences. No exclamation marks. Mention street or neighbourhood names the locals would use.
+YOUR JOB: the editor has pasted raw source text. Decide whether it's a
+Once moment; if so, rewrite it in the city's local language in Once's
+voice, and fill in the other fields.
 
 WHAT TO OUTPUT:
-- passed_filter: true if the content has a specific human/place/object hook in Once's register. When in doubt, PASS — a more thorough evaluation follows.
-- rationale: ONE short sentence explaining your decision (for the editor to read).
-- If passed_filter=false, you may leave other fields blank / 0 / "" — they will be discarded.
+- passed_filter: true if the content has a specific human/place/object
+  hook consistent with the SPIRIT and RULES above. When in doubt, PASS
+  — a more thorough evaluation follows downstream.
+- rationale: ONE short sentence explaining your decision (for the editor).
+- If passed_filter=false: other fields can be blank / 0 / "" — discarded.
 - If passed_filter=true:
   - city, region, country: the precise location.
-  - timezone: the IANA timezone for that city (e.g. "Europe/Lisbon", "Asia/Tokyo", "America/Mexico_City").
-  - local_hour (0-23): the hour of day the moment occurred. Infer from phrasing — "this morning" ≈ 9, "before noon" ≈ 11, "this afternoon" ≈ 14–15, "this evening" ≈ 18. If an explicit clock time is given, use it. If truly unclear, use 12.
-  - lat, lng: the approximate latitude and longitude of the city in degrees (-90..90 / -180..180). Two decimals is enough precision.
-  - original_language: ISO 639-1 code of the location's local language (e.g. "pt" for Portugal, "ja" for Japan, "en" for Ireland).
-  - original_text: 1–2 calm sentences, IN THE LOCAL LANGUAGE, in Once's voice. This is the most important field. Never leave it in English when the location speaks another language.
-  - english_text: faithful English translation of original_text. If original_language is "en", set english_text to "" (empty string).
+  - timezone: IANA (e.g. "Europe/Lisbon", "Asia/Tokyo", "America/Mexico_City").
+  - local_hour (0-23): infer from phrasing ("this morning"≈9, "afternoon"≈14).
+    12 if truly unknown.
+  - lat, lng: approximate city centre, 2 decimals is enough.
+  - original_language: ISO 639-1 (e.g. "pt", "ja", "en").
+  - original_text: 1–2 calm sentences IN THE LOCAL LANGUAGE, in Once's
+    voice. Follow every rule above. Keep proper nouns if present in the
+    source; never invent them. NEVER in English when the city isn't.
+  - english_text: faithful English translation. "" if original is "en".
   - currency_code (ISO 4217) and currency_symbol.
-  - milk_price_local, eggs_price_local: approximate retail prices (1 litre milk, 12 eggs) in local currency today. Use 0 if you genuinely don't know.
-  - milk_price_usd, eggs_price_usd: the USD equivalents. Use 0 if you don't know.
-
-Be conservative on passed_filter. When in doubt, filter out. Once would rather show fewer, quieter moments than too many.`;
+  - milk_price_local, eggs_price_local: current approximate retail
+    (1 litre milk, 12 eggs). 0 if you genuinely don't know.
+  - milk_price_usd, eggs_price_usd: USD equivalents. 0 if unknown.`;
 
 /** JSON Schema for Structured Outputs. Every field required; null allowed via union. */
 const OUTPUT_SCHEMA = {

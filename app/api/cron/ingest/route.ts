@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { runIngest } from "@/lib/pipeline";
+import { runIngest, runBatchIngest } from "@/lib/pipeline";
 import { dbAvailable } from "@/lib/db";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+// Batch run can take several minutes across all cities; ask for the max.
+export const maxDuration = 300;
 
 /**
  * Protected cron endpoint. Triggered on a schedule by Vercel Cron
@@ -51,8 +52,17 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const cityId = url.searchParams.get("city") ?? undefined;
-    const result = await runIngest({ cityId });
-    return NextResponse.json({ ok: true, ...result });
+
+    // If ?city= is given, single-city run (manual trigger for admin UI
+    // "run ingest" button). Otherwise run the full batch across all
+    // active cities — this is what the daily cron invokes.
+    if (cityId) {
+      const result = await runIngest({ cityId });
+      return NextResponse.json({ ok: true, ...result });
+    }
+
+    const batch = await runBatchIngest();
+    return NextResponse.json({ ok: true, batch: true, ...batch });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[cron/ingest] error:", msg);
