@@ -99,8 +99,32 @@ alter table moderation_queue add column if not exists score_specificity smallint
 alter table moderation_queue add column if not exists score_resonance   smallint;
 alter table moderation_queue add column if not exists score_register    smallint;
 
+-- rank within a single ingest cycle (1 = winner, 2 = runner-up, ...).
+-- Lets the review UI group by city and order inside each group.
+alter table moderation_queue add column if not exists rank              smallint default 1;
+-- city_id for grouping in /admin/review (mirrors the cities row).
+alter table moderation_queue add column if not exists city_id           text;
+
 create index if not exists queue_status_created_idx
   on moderation_queue (status, created_at desc);
+create index if not exists queue_pending_city_rank_idx
+  on moderation_queue (city_id, rank, created_at desc)
+  where status = 'pending';
+
+-- Dedup: every candidate URL we've processed in the last 30 days.
+-- Pipeline consults this before running prefilter on a fresh entry.
+-- Content-hash dedups the rare case of the same piece re-posted at a
+-- different URL (e.g. AMP, syndication).
+create table if not exists seen_urls (
+  url_hash       text primary key,             -- sha256(source_url)
+  content_hash   text,                         -- sha256(title + snippet[:200])
+  source_host    text,
+  first_seen_at  timestamptz not null default now()
+);
+
+create index if not exists seen_urls_content_idx on seen_urls (content_hash)
+  where content_hash is not null;
+create index if not exists seen_urls_first_seen_idx on seen_urls (first_seen_at);
 
 -- Budget ledger. One row per AI call. Used both for an audit trail and
 -- for the hard weekly cutoff: sum(cost_usd) in the last 7 days must stay
