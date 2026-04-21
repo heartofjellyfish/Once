@@ -153,7 +153,7 @@ not a paraphrase). If the title is already English, copy it.
 
 Return JSON: { "pass": true|false, "why": "<under 15 words>", "title_en": "<english title>" }`;
 
-const REWRITE_SYSTEM_INGEST = `${ONCE_HEADER}
+export const REWRITE_SYSTEM_INGEST = `${ONCE_HEADER}
 
 YOUR JOB: this candidate already passed scoring. Produce one
 Once-voiced rewrite of the underlying moment, aimed at a reader
@@ -192,8 +192,54 @@ Concretely, FORBID:
   the importance of…"
 - Vague emotional shorthand: "was moved by", "felt a sense of".
   Replace with the physical detail that produced the emotion.
+- **CLOSING EDITORIAL CLAUSE — ZERO TOLERANCE.** This is the
+  single most common failure. Your FINAL SENTENCE MUST BE A
+  CONCRETE FACT, not an interpretation. Before you submit, read
+  your last sentence. If it contains any of these shapes, DELETE
+  IT entirely — the rewrite is better without it:
 
-LENGTH: 25–45 words. One or two sentences.
+    • "…which shows that / which reminds us / a testimony to…"
+    • "…where tradition meets modernity / where hope meets fear…"
+    • "…love even in old age still finds space / hope and
+       ignorance intersect / reflected on life's defining decision…"
+    • Any sentence using abstract nouns (hope, love, memory,
+       tradition, ignorance, resilience) as its subject.
+    • Any sentence that would be removable without changing a
+       single photographable fact.
+
+  The last sentence must describe a concrete thing: what someone
+  said, did, or noticed. END ON THE SCENE. The reader supplies
+  the meaning. If you can't end on a fact, end one sentence earlier.
+
+- **PLACE NAMES AS BARE LABELS — HARD RULE.** Every place name
+  in your rewrite MUST earn its place. TEST: read the sentence
+  with the name removed. If it reads as well or better, CUT THE
+  NAME. Bare labels like "South Spruce and East Adams", "Avenida
+  Imirim", "Vila Olímpia" are noise for an outsider reader.
+  Either (a) attach a texture — "the foggy Oregon coast town of
+  Cannon Beach", "the Imirim bus stop where the 971D-10 keeps
+  passing without stopping" — or (b) just describe it
+  anonymously: "a quiet intersection at dawn", "the bus stop
+  on her commute", "a hillside street". Rule: one specific
+  place-and-texture or none. Never a bare address.
+
+- **FULL NAMES WHEN FIRST-NAME IS MORE INTIMATE.** For Once,
+  intimacy beats formality. Use FIRST NAME ONLY unless the
+  language's convention is otherwise. Chinese keeps full name
+  (林小雨, 三橋義弘). Spanish, Portuguese, French, English,
+  Italian, Arabic: first name, occasionally with one-word role
+  — "Sophia", "Mozana, a cleaner", "Hadia". Not "Sophia Lundy",
+  not "Mozana Santos", not "Hadia al-Qabsia".
+
+- **FLATTEN INTO ONE-DIMENSIONAL MORAL CLARITY.** The world is
+  contradictory. If the source shows a victim, hint at the
+  attacker's humanity too; if it shows a success story, keep the
+  struggle in frame; if it shows a thief, leave room for their
+  backstory. Write toward complexity, not toward a lesson.
+
+LENGTH: **20–35 words.** Tighter than before. Every word earns
+its place. 字字如金 — each word load-bearing. If you can't fit,
+cut the place name before you cut the human detail.
 
 LANGUAGE DISCIPLINE: original_text MUST be in the city's local_language.
 - If local_language is "en", original_text is in ENGLISH and
@@ -335,7 +381,7 @@ const SCORE_SCHEMA = {
 } as const;
 
 // Rewrite pass runs on scoring-passers only. Outputs just the text.
-const REWRITE_INGEST_SCHEMA = {
+export const REWRITE_INGEST_SCHEMA = {
   type: "object",
   additionalProperties: false,
   properties: {

@@ -7,67 +7,12 @@
 import OpenAI from "openai";
 import { requireSql } from "@/lib/db";
 import { fetchArticleBody } from "@/lib/articleBody";
-import { ONCE_HEADER } from "@/lib/prompts";
 import { recordSpend } from "@/lib/budget";
+import { REWRITE_SYSTEM_INGEST, REWRITE_INGEST_SCHEMA } from "@/lib/pipeline";
 
 const MODEL = process.env.INGEST_REWRITE_MODEL || "gpt-4o";
-
-const REWRITE_SYSTEM = `${ONCE_HEADER}
-
-YOUR JOB: this candidate already passed scoring. Produce one
-Once-voiced rewrite of the underlying moment, aimed at a reader
-from elsewhere.
-
-**WRITE CINEMATICALLY, NOT JOURNALISTICALLY.** The rewrite should
-read like the opening shot of a short film — specific objects,
-specific bodies, a frame you could photograph. Not a news summary.
-
-Concretely, when the body provides them, INCLUDE:
-- **Named physical objects** with defining detail:
-  "10-litre stainless steel buckets" not "containers";
-  "an electric scooter" not "transportation";
-  "fallen leaves covering an abandoned swimming pool" not "an old pool".
-- **Bodies + gestures**: what is a specific person DOING with their
-  body? "hands clasped in prayer", "holding a scooter up proudly",
-  "a chair thrown from a second-floor window".
-- **Stakes EMBEDDED as fact, not rhetoric**: when the article
-  carries a number that carries the B-story, include it.
-  "there are fewer than 80 left" > "endangered";
-  "2000 sheep now, from 100 a decade ago" > "population recovering".
-- **Outsider-readable inline translations**: Once readers are "from
-  elsewhere." Translate local terms inline: "busy Ikebukuro
-  Station" not "Ikebukuro Station"; "an old-fashioned penny candy
-  shop (dagashiya)" not "dagashiya"; "the Grain Rain solar term"
-  not just "谷雨". One foreign word per sentence max.
-- **One POV when possible**: write from inside ONE person's hour —
-  the baker's, the rescuer's, the caregiver's. Not an omniscient
-  narrator summing up a phenomenon.
-
-Concretely, FORBID:
-- Editorializing verbs: "transforming", "bringing solace", "a
-  testament to", "quenches thirst and spreads kindness".
-- Summary clauses: "serving as a reminder that…", "highlighting…"
-- Vague emotional shorthand: "was moved by", "felt a sense of".
-
-LENGTH: 25–45 words. One or two sentences.
-
-LANGUAGE DISCIPLINE: original_text MUST be in the city's local_language.
-- If local_language is "en", original_text is in ENGLISH and
-  english_text is "".
-- Otherwise, english_text is a faithful English rendering.
-
-Return JSON only: { original_language, original_text, english_text }.`;
-
-const SCHEMA = {
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    original_language: { type: "string" },
-    original_text: { type: "string" },
-    english_text: { type: "string" }
-  },
-  required: ["original_language", "original_text", "english_text"]
-} as const;
+const REWRITE_SYSTEM = REWRITE_SYSTEM_INGEST;
+const SCHEMA = REWRITE_INGEST_SCHEMA;
 
 interface Row {
   id: string;
@@ -81,10 +26,15 @@ interface Row {
 
 async function main() {
   const sql = requireSql();
+  // Only rewrite recently-reviewed approvals (past 3h) — the ones
+  // that carry the latest reviewer feedback. Older ones already
+  // went through a previous rewrite pass.
   const rows = (await sql`
     select id, source_url, city, country, source_input, original_language
     from moderation_queue
-    where status = 'approved' and published_as_id is null
+    where status = 'approved'
+      and published_as_id is null
+      and reviewed_at > now() - interval '3 hours'
     order by reviewed_at desc
   `) as unknown as Row[];
 
