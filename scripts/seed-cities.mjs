@@ -84,7 +84,7 @@ const cities = [
     location_summary: "China's capital, ~21 million people; hutong alleys braided with ministries",
     // Sixth Tone: "small voices, big times" — Once's natural register
     // in English. Covers China broadly but often Beijing-anchored.
-    rss_feeds: ["https://www.sixthtone.com/rss/news"]
+    rss_feeds: ["https://www.sixthtone.com/rss", "https://www.whatsonweibo.com/feed/"]
   },
   {
     id: "tianjin",
@@ -98,7 +98,7 @@ const cities = [
     location_summary: "a major port city in northern China, ~15 million people",
     // No strong soft-news English feed; relies on compose + Sixth Tone
     // crossover. Can be improved later.
-    rss_feeds: ["https://www.sixthtone.com/rss/news"]
+    rss_feeds: ["https://www.sixthtone.com/rss", "https://www.whatsonweibo.com/feed/"]
   },
   {
     id: "shanghai",
@@ -111,7 +111,7 @@ const cities = [
     original_language: "zh",
     location_summary: "China's eastern port city, ~25 million people; lane houses beside skyscrapers",
     // Sixth Tone again — pending a dedicated Shanghai feed.
-    rss_feeds: ["https://www.sixthtone.com/rss/news"]
+    rss_feeds: ["https://www.sixthtone.com/rss", "https://www.whatsonweibo.com/feed/"]
   },
 
   // ─── Southeast Asia ───────────────────────────────────────────
@@ -140,10 +140,9 @@ const cities = [
     currency_code: "INR", currency_symbol: "₹",
     original_language: "hi",
     location_summary: "India's Arabian Sea metropolis, ~21 million people; chawl life next to high-rises",
-    // Mid-Day Mumbai: hyperlocal city pages, dabbawalas, monsoon
-    // vignettes. Hindustan Times Mumbai as a second.
+    // Hindustan Times Mumbai — most reliable Mumbai-specific English RSS
+    // currently working. Prefilter strips politics heavily.
     rss_feeds: [
-      "https://www.mid-day.com/rss/mumbai",
       "https://www.hindustantimes.com/feeds/rss/cities/mumbai-news/rssfeed.xml"
     ]
   },
@@ -211,7 +210,7 @@ const cities = [
     currency_code: "EUR", currency_symbol: "€",
     original_language: "sl",
     location_summary: "Slovenia's small river-side capital in the Alps foothills, ~285k people",
-    rss_feeds: ["https://sloveniatimes.com/rss"]
+    rss_feeds: ["https://sloveniatimes.com/feed"]
   },
   {
     id: "kyiv",
@@ -223,9 +222,9 @@ const cities = [
     currency_code: "UAH", currency_symbol: "₴",
     original_language: "uk",
     location_summary: "Ukraine's capital on the Dnipro, ~3 million people",
-    // The Kyiv Independent: English, strong local reporting. War
-    // context is constant; the pipeline's sideways rule handles it.
-    rss_feeds: ["https://kyivindependent.com/rss/"]
+    // New Voice of Ukraine (english.nv.ua): English, broad Ukrainian
+    // coverage. Kyiv Independent doesn't publish RSS; NV does.
+    rss_feeds: ["https://english.nv.ua/rss/all.xml"]
   },
   {
     id: "reykjavik",
@@ -252,12 +251,9 @@ const cities = [
     currency_code: "USD", currency_symbol: "$",
     original_language: "en",
     location_summary: "the east-coast metropolis at the mouth of the Hudson, ~8 million people",
-    // Hell Gate: independent, hyperlocal, human-scale. Gothamist as
-    // a broader second.
-    rss_feeds: [
-      "https://hellgatenyc.com/rss",
-      "https://gothamist.com/feed"
-    ]
+    // Gothamist — hyperlocal, human-scale. Hell Gate's public RSS
+    // is currently 404.
+    rss_feeds: ["https://gothamist.com/feed"]
   },
   {
     id: "new-orleans",
@@ -269,11 +265,9 @@ const cities = [
     currency_code: "USD", currency_symbol: "$",
     original_language: "en",
     location_summary: "a Gulf Coast port city in the Mississippi delta, ~380k people",
-    // NOLA.com's feed covers climate, culture, and street-level
-    // stories; Antigravity is the alternative culture paper.
-    rss_feeds: [
-      "https://www.nola.com/search/?f=rss&t=article&l=25&s=start_time&sd=desc"
-    ]
+    // Antigravity Magazine: culture/music paper, human-scale NOLA.
+    // NOLA.com's RSS is unreliable (rate-limited).
+    rss_feeds: ["https://www.antigravitymagazine.com/feed/"]
   },
 
   // ─── Latin America ────────────────────────────────────────────
@@ -325,12 +319,9 @@ const cities = [
     currency_code: "NGN", currency_symbol: "₦",
     original_language: "en",
     location_summary: "Nigeria's commercial megacity on the Gulf of Guinea, ~15+ million people",
-    // Pulse Nigeria + The Guardian Nigeria: English, dense local news.
-    // Prefilter will trim politics.
-    rss_feeds: [
-      "https://www.pulse.ng/rss",
-      "https://guardian.ng/feed/"
-    ]
+    // Premium Times Nigeria — English, dense local news. Prefilter
+    // will trim politics. Pulse + Guardian Nigeria both block bots.
+    rss_feeds: ["https://www.premiumtimesng.com/feed"]
   },
   {
     id: "nairobi",
@@ -342,12 +333,9 @@ const cities = [
     currency_code: "KES", currency_symbol: "KSh",
     original_language: "en",
     location_summary: "Kenya's highland capital, ~4.4 million people; matatu routes and acacia skylines",
-    // Nation + The Star Kenya: English feeds, nation-level but city
-    // stories surface regularly.
-    rss_feeds: [
-      "https://nation.africa/kenya/rss",
-      "https://www.the-star.co.ke/rss"
-    ]
+    // The Standard Kenya: English, reliable RSS. Nation/The Star's
+    // RSS endpoints are dead or bot-gated.
+    rss_feeds: ["https://www.standardmedia.co.ke/rss/headlines.php"]
   },
   {
     id: "cape-town",
@@ -374,9 +362,11 @@ const cities = [
     currency_code: "AUD", currency_symbol: "A$",
     original_language: "en",
     location_summary: "Australia's southern metropolis on Port Phillip Bay, ~5 million people",
-    // The Age (Victoria) + ABC Local Melbourne as backup.
+    // ABC Melbourne + The Age Victoria. ABC's hyperlocal feed is the
+    // stronger register match; The Age is a broader second.
     rss_feeds: [
-      "https://www.theage.com.au/rss/victoria.xml"
+      "https://www.abc.net.au/news/feed/51120/rss.xml",
+      "https://www.theage.com.au/rss/national/victoria.xml"
     ]
   }
 ];

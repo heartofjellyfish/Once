@@ -36,21 +36,21 @@ const SEED_CITIES = [
     timezone: "Asia/Shanghai", lat: 39.90, lng: 116.41,
     currency_code: "CNY", currency_symbol: "¥", original_language: "zh",
     location_summary: "China's capital, ~21 million people; hutong alleys braided with ministries",
-    rss_feeds: ["https://www.sixthtone.com/rss/news"]
+    rss_feeds: ["https://www.sixthtone.com/rss", "https://www.whatsonweibo.com/feed/"]
   },
   {
     id: "tianjin", name: "天津", country: "China", region: "Tianjin",
     timezone: "Asia/Shanghai", lat: 39.13, lng: 117.20,
     currency_code: "CNY", currency_symbol: "¥", original_language: "zh",
     location_summary: "a major port city in northern China, ~15 million people",
-    rss_feeds: ["https://www.sixthtone.com/rss/news"]
+    rss_feeds: ["https://www.sixthtone.com/rss", "https://www.whatsonweibo.com/feed/"]
   },
   {
     id: "shanghai", name: "上海", country: "China", region: "Shanghai",
     timezone: "Asia/Shanghai", lat: 31.23, lng: 121.47,
     currency_code: "CNY", currency_symbol: "¥", original_language: "zh",
     location_summary: "China's eastern port city, ~25 million people; lane houses beside skyscrapers",
-    rss_feeds: ["https://www.sixthtone.com/rss/news"]
+    rss_feeds: ["https://www.sixthtone.com/rss", "https://www.whatsonweibo.com/feed/"]
   },
   // ─── Southeast Asia ─────────────────────────────────────────
   {
@@ -67,7 +67,6 @@ const SEED_CITIES = [
     currency_code: "INR", currency_symbol: "₹", original_language: "hi",
     location_summary: "India's Arabian Sea metropolis, ~21 million people; chawl life next to high-rises",
     rss_feeds: [
-      "https://www.mid-day.com/rss/mumbai",
       "https://www.hindustantimes.com/feeds/rss/cities/mumbai-news/rssfeed.xml"
     ]
   },
@@ -106,14 +105,14 @@ const SEED_CITIES = [
     timezone: "Europe/Ljubljana", lat: 46.05, lng: 14.51,
     currency_code: "EUR", currency_symbol: "€", original_language: "sl",
     location_summary: "Slovenia's small river-side capital in the Alps foothills, ~285k people",
-    rss_feeds: ["https://sloveniatimes.com/rss"]
+    rss_feeds: ["https://sloveniatimes.com/feed"]
   },
   {
     id: "kyiv", name: "Київ", country: "Ukraine", region: "Kyiv",
     timezone: "Europe/Kyiv", lat: 50.45, lng: 30.52,
     currency_code: "UAH", currency_symbol: "₴", original_language: "uk",
     location_summary: "Ukraine's capital on the Dnipro, ~3 million people",
-    rss_feeds: ["https://kyivindependent.com/rss/"]
+    rss_feeds: ["https://english.nv.ua/rss/all.xml"]
   },
   {
     id: "reykjavik", name: "Reykjavík", country: "Iceland", region: "Höfuðborgarsvæðið",
@@ -128,17 +127,14 @@ const SEED_CITIES = [
     timezone: "America/New_York", lat: 40.71, lng: -74.01,
     currency_code: "USD", currency_symbol: "$", original_language: "en",
     location_summary: "the east-coast metropolis at the mouth of the Hudson, ~8 million people",
-    rss_feeds: [
-      "https://hellgatenyc.com/rss",
-      "https://gothamist.com/feed"
-    ]
+    rss_feeds: ["https://gothamist.com/feed"]
   },
   {
     id: "new-orleans", name: "New Orleans", country: "United States", region: "Louisiana",
     timezone: "America/Chicago", lat: 29.95, lng: -90.07,
     currency_code: "USD", currency_symbol: "$", original_language: "en",
     location_summary: "a Gulf Coast port city in the Mississippi delta, ~380k people",
-    rss_feeds: ["https://www.nola.com/search/?f=rss&t=article&l=25&s=start_time&sd=desc"]
+    rss_feeds: ["https://www.antigravitymagazine.com/feed/"]
   },
   // ─── Latin America ──────────────────────────────────────────
   {
@@ -168,20 +164,14 @@ const SEED_CITIES = [
     timezone: "Africa/Lagos", lat: 6.45, lng: 3.39,
     currency_code: "NGN", currency_symbol: "₦", original_language: "en",
     location_summary: "Nigeria's commercial megacity on the Gulf of Guinea, ~15+ million people",
-    rss_feeds: [
-      "https://www.pulse.ng/rss",
-      "https://guardian.ng/feed/"
-    ]
+    rss_feeds: ["https://www.premiumtimesng.com/feed"]
   },
   {
     id: "nairobi", name: "Nairobi", country: "Kenya", region: "Nairobi",
     timezone: "Africa/Nairobi", lat: -1.29, lng: 36.82,
     currency_code: "KES", currency_symbol: "KSh", original_language: "en",
     location_summary: "Kenya's highland capital, ~4.4 million people; matatu routes and acacia skylines",
-    rss_feeds: [
-      "https://nation.africa/kenya/rss",
-      "https://www.the-star.co.ke/rss"
-    ]
+    rss_feeds: ["https://www.standardmedia.co.ke/rss/headlines.php"]
   },
   {
     id: "cape-town", name: "Cape Town", country: "South Africa", region: "Western Cape",
@@ -196,7 +186,10 @@ const SEED_CITIES = [
     timezone: "Australia/Melbourne", lat: -37.81, lng: 144.96,
     currency_code: "AUD", currency_symbol: "A$", original_language: "en",
     location_summary: "Australia's southern metropolis on Port Phillip Bay, ~5 million people",
-    rss_feeds: ["https://www.theage.com.au/rss/victoria.xml"]
+    rss_feeds: [
+      "https://www.abc.net.au/news/feed/51120/rss.xml",
+      "https://www.theage.com.au/rss/national/victoria.xml"
+    ]
   }
 ] as const;
 
