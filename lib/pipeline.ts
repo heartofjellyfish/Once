@@ -80,12 +80,25 @@ stage catches them. False negatives are expensive — we never see them
 again. When unsure, PASS.
 
 **CITY-MATCH REJECT**: The user provides a target city. Some feeds
-are global (Rest of World, Hakai, Atlas Obscura); others are local.
-Reject if the article is *clearly* about a different country or
-region than the target city / country (e.g. a Rest of World piece
-about Brazil when the target is Lagos → reject; a piece about
-Iran when the target is Tehran → pass; a piece with no clear
-location marker → pass, let scoring decide).
+are global (Rest of World, Hakai, Atlas Obscura) or regional (The
+Diplomat Central Asia, Global Voices, Religion News Service); others
+are local. The rule is REGIONAL, not national:
+
+- REJECT when the article is clearly about a different **region**
+  than the target city — e.g. a Rest of World piece about Brazil
+  when the target is Lagos (Africa vs. S.America); a Mongabay piece
+  about Indonesia when the target is Lima (SE Asia vs. S.America);
+  a Religion Unplugged piece about American churches when the
+  target is Cairo (N.America vs. MENA).
+- PASS when the article is about a neighbouring or same-region
+  country. A piece about Kyrgyzstan village life is fine for
+  Almaty (both Central Asia). A Tunisian sports story is fine for
+  Marrakech. A Brazilian piece is fine for São Paulo even if it's
+  about a different Brazilian city.
+- PASS anything with no clear location marker — let scoring decide.
+
+Use the city's country / continent / cultural region as the match,
+not the city itself. When in doubt, PASS.
 
 IMPORTANT — do NOT apply the Once writing rules (photograph test,
 no amplifiers, proper-noun care) at this stage. Those rules govern

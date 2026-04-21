@@ -417,6 +417,258 @@ const cities = [
     // ABC Melbourne only. The Age is paywalled and its RSS is
     // teaser-only editorial bait, not suitable for Once.
     rss_feeds: ["https://www.abc.net.au/news/feed/51120/rss.xml"]
+  },
+
+  // ─── Central Asia ───────────────────────────────────────────
+  {
+    id: "almaty",
+    name: "Almaty",
+    country: "Kazakhstan",
+    region: "Almaty",
+    timezone: "Asia/Almaty",
+    lat: 43.24, lng: 76.95,
+    currency_code: "KZT", currency_symbol: "₸",
+    original_language: "kk",
+    location_summary: "Kazakhstan's largest city under the Tian Shan mountains, ~2 million people",
+    // Times of Central Asia + Astana Times: regional Eng-language
+    // coverage. Diplomat CA: long-form geopolitics + culture.
+    rss_feeds: [
+      "https://timesca.com/feed",
+      "https://astanatimes.com/feed/",
+      "https://thediplomat.com/category/central-asia/feed/"
+    ]
+  },
+
+  // ─── Caribbean ──────────────────────────────────────────────
+  {
+    id: "havana",
+    name: "La Habana",
+    country: "Cuba",
+    region: "La Habana",
+    timezone: "America/Havana",
+    lat: 23.13, lng: -82.38,
+    currency_code: "CUP", currency_symbol: "$",
+    original_language: "es",
+    location_summary: "Cuba's capital on the Caribbean coast, ~2.1 million people; vintage cars and crumbling colonnades",
+    rss_feeds: [
+      "https://oncubanews.com/feed/",
+      "https://roadsandkingdoms.com/feed/"
+    ]
+  },
+  {
+    id: "kingston",
+    name: "Kingston",
+    country: "Jamaica",
+    region: "Surrey",
+    timezone: "America/Jamaica",
+    lat: 17.97, lng: -76.79,
+    currency_code: "JMD", currency_symbol: "J$",
+    original_language: "en",
+    location_summary: "Jamaica's capital on the south coast, ~1 million people; reggae city in a hill bowl",
+    // Jamaica Observer is 100% cricket / EPL / national sports.
+    // Deactivated until a more human-interest Jamaican feed is
+    // found (Loop Jamaica's RSS is currently 301 looping).
+    rss_feeds: [],
+    is_active: false
+  },
+  {
+    id: "port-au-prince",
+    name: "Pòtoprens",
+    country: "Haiti",
+    region: "Ouest",
+    timezone: "America/Port-au-Prince",
+    lat: 18.59, lng: -72.31,
+    currency_code: "HTG", currency_symbol: "G",
+    original_language: "ht",
+    location_summary: "Haiti's capital on a Caribbean bay, ~1 million people; Kreyòl life under pressure",
+    // AyiboPost: independent French/Kreyòl with English versions.
+    // Global Voices Caribbean as backup.
+    rss_feeds: [
+      "https://ayibopost.com/feed/",
+      "https://globalvoices.org/feed/"
+    ]
+  },
+
+  // ─── Andes / Western South America ──────────────────────────
+  {
+    id: "lima",
+    name: "Lima",
+    country: "Peru",
+    region: "Lima",
+    timezone: "America/Lima",
+    lat: -12.05, lng: -77.04,
+    currency_code: "PEN", currency_symbol: "S/",
+    original_language: "es",
+    location_summary: "Peru's coastal capital under permanent garúa fog, ~10 million people",
+    rss_feeds: [
+      "https://www.peruviantimes.com/feed/",
+      "https://news.mongabay.com/feed/"
+    ]
+  },
+
+  // ─── Brazil / Lusophone Atlantic ────────────────────────────
+  {
+    id: "sao-paulo",
+    name: "São Paulo",
+    country: "Brazil",
+    region: "São Paulo",
+    timezone: "America/Sao_Paulo",
+    lat: -23.55, lng: -46.63,
+    currency_code: "BRL", currency_symbol: "R$",
+    original_language: "pt",
+    location_summary: "Brazil's largest city, ~22 million people; concrete forest under perpetual rain",
+    // Folha cotidiano (city beat) + Piauí (long-form, Granta-style).
+    rss_feeds: [
+      "https://feeds.folha.uol.com.br/cotidiano/rss091.xml",
+      "https://piaui.folha.uol.com.br/feed/"
+    ]
+  },
+
+  // ─── Maghreb ────────────────────────────────────────────────
+  {
+    id: "tunis",
+    name: "تونس",
+    country: "Tunisia",
+    region: "Tunis",
+    timezone: "Africa/Tunis",
+    lat: 36.81, lng: 10.18,
+    currency_code: "TND", currency_symbol: "د.ت",
+    original_language: "ar",
+    location_summary: "Tunisia's Mediterranean capital, ~1 million people; medina kasbah braided with French boulevards",
+    // Inkyfada (Eng + Fr long-form independent journalism) +
+    // Nawaat (independent activist/journalism, post-2011 voice).
+    // Morocco World News dropped — its feed is almost entirely
+    // Moroccan politics/sports, irrelevant to Tunis.
+    rss_feeds: [
+      "https://inkyfada.com/en/feed/",
+      "https://nawaat.org/feed/"
+    ]
+  },
+
+  // ─── North Africa / Middle East (non-paywall) ───────────────
+  {
+    id: "cairo",
+    name: "القاهرة",
+    country: "Egypt",
+    region: "Cairo",
+    timezone: "Africa/Cairo",
+    lat: 30.05, lng: 31.24,
+    currency_code: "EGP", currency_symbol: "ج.م",
+    original_language: "ar",
+    location_summary: "Egypt's capital on the Nile, ~22 million people; Coptic and Muslim quarters under perpetual dust",
+    // Mada Masr (Eng + Ar, last serious independent) +
+    // Religion Unplugged (Coptic / Islamic community life)
+    rss_feeds: [
+      "https://www.madamasr.com/en/feed/",
+      "https://religionunplugged.com/news?format=rss"
+    ]
+  },
+
+  // ─── Pacific ────────────────────────────────────────────────
+  {
+    id: "honolulu",
+    name: "Honolulu",
+    country: "United States",
+    region: "Hawaii",
+    timezone: "Pacific/Honolulu",
+    lat: 21.31, lng: -157.86,
+    currency_code: "USD", currency_symbol: "$",
+    original_language: "en",
+    location_summary: "Hawaii's capital on Oʻahu, ~350k people; Pacific crossroads under volcanic ridge",
+    // Honolulu Civil Beat (independent local) + RNZ Pacific (regional).
+    rss_feeds: [
+      "https://www.civilbeat.org/feed/",
+      "https://www.rnz.co.nz/rss/pacific.xml"
+    ]
+  },
+
+  // ─── Arctic Circle ──────────────────────────────────────────
+  {
+    id: "tromso",
+    name: "Tromsø",
+    country: "Norway",
+    region: "Troms og Finnmark",
+    timezone: "Europe/Oslo",
+    lat: 69.65, lng: 18.96,
+    currency_code: "NOK", currency_symbol: "kr",
+    original_language: "no",
+    location_summary: "Norway's Arctic Circle city, ~78k people; polar nights and Sami country",
+    // Both Arctic Today and Barents Observer return invalid XML
+    // when parsed by rss-parser. Deactivated until a working feed
+    // is found — a manual compose lives on as the interim path.
+    rss_feeds: [],
+    is_active: false
+  },
+
+  // ─── South Asia (non-Mumbai) ────────────────────────────────
+  {
+    id: "kathmandu",
+    name: "काठमाडौं",
+    country: "Nepal",
+    region: "Bagmati",
+    timezone: "Asia/Kathmandu",
+    lat: 27.72, lng: 85.32,
+    currency_code: "NPR", currency_symbol: "रू",
+    original_language: "ne",
+    location_summary: "Nepal's capital in the Himalayan foothills, ~1.5 million people; Hindu-Buddhist old city",
+    // Himal Southasian (regional long-form) + Mongabay (mountains
+    // + ecology) + Religion Unplugged (Tibetan Buddhist /
+    // Hindu communities).
+    rss_feeds: [
+      "https://www.himalmag.com/feed/",
+      "https://news.mongabay.com/feed/",
+      "https://religionunplugged.com/news?format=rss"
+    ]
+  },
+
+  // ─── Indonesia / Java ───────────────────────────────────────
+  {
+    id: "yogyakarta",
+    name: "Yogyakarta",
+    country: "Indonesia",
+    region: "Daerah Istimewa Yogyakarta",
+    timezone: "Asia/Jakarta",
+    lat: -7.80, lng: 110.36,
+    currency_code: "IDR", currency_symbol: "Rp",
+    original_language: "id",
+    location_summary: "Java's cultural capital and sultanate, ~420k people; batik, Borobudur, students",
+    // Tempo Indonesia (independent, regional) + Coconuts Bali
+    // (Indonesia lifestyle/culture).
+    rss_feeds: [
+      "https://rss.tempo.co/nasional",
+      "https://coconuts.co/bali/feed/"
+    ]
+  },
+
+  // ─── US Pacific Northwest ───────────────────────────────────
+  {
+    id: "portland",
+    name: "Portland",
+    country: "United States",
+    region: "Oregon",
+    timezone: "America/Los_Angeles",
+    lat: 45.52, lng: -122.68,
+    currency_code: "USD", currency_symbol: "$",
+    original_language: "en",
+    location_summary: "Pacific Northwest city on the Willamette, ~650k people; rain, bridges, food carts",
+    rss_feeds: ["https://www.oregonlive.com/arc/outboundfeeds/rss/?outputType=xml"]
+  },
+
+  // ─── Quebec / Francophone North America ─────────────────────
+  {
+    id: "montreal",
+    name: "Montréal",
+    country: "Canada",
+    region: "Québec",
+    timezone: "America/Toronto",
+    lat: 45.50, lng: -73.57,
+    currency_code: "CAD", currency_symbol: "C$",
+    original_language: "fr",
+    location_summary: "Québec's island metropolis on the St. Lawrence, ~1.8 million people; bilingual Catholic-secular city",
+    rss_feeds: [
+      "https://montrealgazette.com/feed/",
+      "https://www.cbc.ca/webfeed/rss/rss-canada-montreal"
+    ]
   }
 ];
 
