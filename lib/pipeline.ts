@@ -722,6 +722,18 @@ async function writeQueue(args: {
     { lat: city.lat, lng: city.lng }
   );
 
+  // Skip if this URL is already sitting in the pending queue — avoids
+  // duplicates when seen_urls has been cleared (e.g. manual reruns)
+  // or when two runs overlap.
+  const existing = (await sql`
+    select id from moderation_queue
+    where status = 'pending' and source_url = ${entry.link}
+    limit 1
+  `) as unknown as { id: string }[];
+  if (existing.length > 0) {
+    return existing[0].id;
+  }
+
   const rows = (await sql`
     insert into moderation_queue (
       status, source_url, source_input, source_hint_city,
