@@ -22,8 +22,28 @@
  *     are fine and cheap (we just fall back to RSS)
  */
 
-import { Readability } from "@mozilla/readability";
-import { JSDOM } from "jsdom";
+// jsdom + Readability are ~15MB with native deps. Import them LAZILY
+// inside fetchArticleBody() rather than at module scope, so admin
+// routes and server actions that merely touch the pipeline module
+// (e.g. to enqueue a manual ingest) don't drag them into their
+// serverless bundle. Without this the admin routes 500 on Vercel.
+import type { JSDOM as JSDOMType } from "jsdom";
+import type { Readability as ReadabilityType } from "@mozilla/readability";
+
+let _lazy: {
+  JSDOM: typeof JSDOMType;
+  Readability: typeof ReadabilityType;
+} | null = null;
+
+async function lazyImports() {
+  if (_lazy) return _lazy;
+  const [{ JSDOM }, { Readability }] = await Promise.all([
+    import("jsdom"),
+    import("@mozilla/readability")
+  ]);
+  _lazy = { JSDOM, Readability };
+  return _lazy;
+}
 
 export interface ArticleBody {
   text: string | null;
@@ -122,7 +142,10 @@ function tryOgPlusArticle(doc: Document): string | null {
 }
 
 /** Readability.js — the same algorithm Firefox Reader View uses. */
-function tryReadability(doc: Document): string | null {
+function tryReadability(
+  doc: Document,
+  Readability: typeof ReadabilityType
+): string | null {
   try {
     const reader = new Readability(doc.cloneNode(true) as Document);
     const parsed = reader.parse();
@@ -153,7 +176,8 @@ export async function fetchArticleBody(url: string): Promise<ArticleBody> {
     };
   }
 
-  let dom: JSDOM;
+  const { JSDOM, Readability } = await lazyImports();
+  let dom: JSDOMType;
   try {
     dom = new JSDOM(html, { url });
   } catch (err) {
@@ -170,7 +194,7 @@ export async function fetchArticleBody(url: string): Promise<ArticleBody> {
   // Try strategies in priority order.
   const strategies: Array<[ArticleBody["source"], () => string | null]> = [
     ["jsonld", () => tryJsonLd(doc)],
-    ["readability", () => tryReadability(doc)],
+    ["readability", () => tryReadability(doc, Readability)],
     ["og", () => tryOgPlusArticle(doc)]
   ];
 
