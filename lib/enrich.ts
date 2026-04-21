@@ -39,6 +39,20 @@ const REWRITE_SYSTEM = `${ONCE_HEADER}
 
 YOUR JOB: rewrite the given source (headline + body) as one Once moment.
 
+**ZOOM IN — don't paraphrase the framing.** The article's headline
+is written to sell clicks; it may not be the Once moment. Scan the
+body for the quietest, most specific, most human scene inside it —
+often a minor character, an overheard detail, a one-line aside, a
+specific time-and-place anchor the editor almost cut. If that
+buried moment is more Once-shaped than the article's headline
+framing, write about THAT moment, not the headline.
+
+Example: a piece titled "China's Youth Turns Malls into Real-Life AR
+Battlegrounds" (surface: trend piece, commercial, no person) might
+contain a specific paragraph about one 14-year-old who meets a
+friend at the mall every Wednesday because both their parents work
+late. THAT is the Once moment, not the "trend" framing. Zoom in.
+
 LANGUAGE HANDLING — follow exactly:
 - original_text MUST be written in the city's local_language.
 - english_text MUST be written in English.

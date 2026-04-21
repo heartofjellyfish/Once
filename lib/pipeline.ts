@@ -12,6 +12,7 @@ import { fetchWeatherLabel } from "./weather";
 import { resolveHeroImage } from "./ogImage";
 import type { City } from "./types";
 import { ONCE_HEADER, SECURITY_NOTE } from "./prompts";
+import { fetchArticleBody } from "./articleBody";
 
 // Prefilter uses a lean security note — we DON'T want the full
 // photograph-test / amplifier rules injected here, or the model
@@ -98,20 +99,30 @@ REJECT only when the title clearly signals one of:
   • Catastrophe coverage focused on casualty counts / damage scale
     (a single-person incident, a bounded human scene during a weather
     event, or a local-organised response to one PASSES).
+  • **COMMERCIAL / EVENT-PROMO**: exhibition openings, festival
+    lineups, product launches, store openings, tourist attractions,
+    tourism statistics, anything whose publication date depends on a
+    ticketed event or buyable product existing. "New Totoro
+    carabiners", "TeamLab exhibit opens in Chiba", "Pokémon footbath
+    opens this spring", "Haikyu fan event", "Hitachi Nemophila 5.3
+    million in bloom" — reject all. If the title is fundamentally a
+    come-here-and-buy/see-this announcement, reject.
+  • **MEMOIR / REFLECTION / TIME-SPANNING**: "Reflects on",
+    "Looking back", "I remember when", "A childhood among…", "Growing
+    up in…", "How I learned to…". Once is about moments happening
+    now, not remembered lives.
 
-Examples that SHOULD PASS at prefilter (even if the register looks off):
-  • "Sanrio character defies physics in sumo collaboration" — specific, uncanny.
-  • "Japanese afternoon tea in a manor house outside Tokyo is something special" —
-    a specific place, specific ritual. Scorer will judge register.
-  • "New Totoro carabiner pouches" — SoraNews24-shaped curiosity; pass.
-  • "5.3 million Nemophila flowers in full bloom at Hitachi" — specific
-    place, specific number, specific moment; the scorer might still
-    reject for pastoral vagueness, but that's the scorer's job, not yours.
-  • "The 11-Headed Kannon at Kōgenji in Shiga" — one named object in one
-    named place; pass.
+Examples that SHOULD PASS at prefilter:
   • "Heavy rain floods Tianjin; one resident rows an inflatable boat" —
-    obvious pass.
-  • "61-year-old fisherman falls off boat, swims to safety" — obvious pass.
+    human scene within a weather event.
+  • "61-year-old fisherman falls off boat, swims to safety" — one
+    person, one bounded act.
+  • "How Saigon's free water coolers quench thirst and spread kindness" —
+    a social practice, humans at the centre.
+  • "How China's Deaf Delivery Riders Find a New Life in Gig Work" —
+    a group of workers, a systemic B-story (algorithm + disability).
+  • "Rescue Team Saves Injured Man from Ravine at Þingvallarvatn" —
+    bounded incident, named place, named actors.
 
 Examples that should REJECT at prefilter:
   • "McDonald's adds Hello Kitty drinks to menu" — pure promo.
@@ -132,6 +143,15 @@ potential to become a Once story, then — if it has potential — write
 the Once rewrite.
 
 CRITICAL — score the MOMENT, not the source prose.
+
+**LOOK PAST THE FRAMING.** A piece headlined as a trend piece, a
+product launch, or a generic scene can CONTAIN a buried Once
+moment (a minor character's specific act, an overheard remark,
+a concrete one-sentence anchor the editor almost cut). Scan the
+BODY. If you find a zoomable A+B moment inside, SCORE THE CANDIDATE
+ON THAT BURIED MOMENT, not on the article's headline framing.
+Don't refuse to see what's inside just because the outside is
+commercial.
 
 The source is often written in newspaper voice with amplifier words
 ("defies odds", "incredibly", "stunning", "must-see"). THAT IS FINE.
@@ -471,11 +491,33 @@ export async function runIngest(opts: { cityId?: string } = {}): Promise<IngestR
     return bs - as;
   });
 
-  // Scores rank; they don't gate. The editor sees top-5 per city no
-  // matter what — even low-scored ones are useful signal about the
-  // feed's register. Rewrite text is nice-to-have: cards show the
-  // source headline regardless.
-  const queueable = scored;
+  // Hard floor: min-of-three < 4 means the candidate is neither
+  // specific enough, nor resonant enough, nor calm enough to ever
+  // be worth the reviewer's time. Dropping them saves attention +
+  // avoids training the reviewer to expect garbage. If nothing
+  // clears the floor, we queue NOTHING for this city — empty queue
+  // is better than false positives.
+  const SCORE_FLOOR = 4;
+  const queueable = scored.filter(
+    (s) =>
+      Math.min(
+        s.full.score_specificity,
+        s.full.score_resonance,
+        s.full.score_register
+      ) >= SCORE_FLOOR
+  );
+
+  if (queueable.length === 0) {
+    return {
+      city_id: city.id,
+      city_name: city.name,
+      queued_id: null,
+      queued_ids: [],
+      reason: `scored ${scored.length}, none cleared min>=${SCORE_FLOOR}`,
+      entries_considered: rawEntries.length,
+      entries_prefilter_pass: prefiltered.length
+    };
+  }
 
   // 7. Weather (best effort).
   const weather = await fetchWeatherLabel(city.lat, city.lng);
@@ -672,6 +714,21 @@ async function runFullPass(
   entry: FeedEntry,
   city: City
 ): Promise<FullResult> {
+  // Try to recover the real article body so the scorer and rewrite
+  // have substance to work with. Falls back to RSS content/snippet
+  // if the site is paywalled or blocks scrapers.
+  const fetched = await fetchArticleBody(entry.link);
+  const rssBody =
+    entry.content && entry.content.length > entry.snippet.length
+      ? entry.content
+      : entry.snippet;
+
+  const bodyText = fetched.text && fetched.text.length > rssBody.length
+    ? fetched.text
+    : rssBody;
+  const bodySource = fetched.text ? fetched.source : "rss";
+  const paywalled = fetched.paywalled;
+
   const userContent = [
     `CITY: ${city.name}, ${city.country}`,
     `LOCAL LANGUAGE: ${city.original_language ?? "unknown"}`,
@@ -681,11 +738,10 @@ async function runFullPass(
     `SOURCE: ${entry.source_host}`,
     `URL: ${entry.link}`,
     `TITLE: ${entry.title}`,
+    `BODY_SOURCE: ${bodySource}${paywalled ? " (PAYWALLED — this is teaser only; downgrade scores accordingly)" : ""}`,
     "",
     `BODY:`,
-    entry.content && entry.content.length > entry.snippet.length
-      ? entry.content
-      : entry.snippet,
+    bodyText,
     `</article-content>`
   ].join("\n");
 

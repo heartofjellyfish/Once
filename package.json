@@ -13,8 +13,10 @@
     "db:cities": "node --env-file-if-exists=.env.local scripts/seed-cities.mjs"
   },
   "dependencies": {
+    "@mozilla/readability": "^0.6.0",
     "@neondatabase/serverless": "^1.0.2",
     "@react-three/fiber": "^9.6.0",
+    "jsdom": "^29.0.2",
     "next": "^15.0.3",
     "openai": "^6.34.0",
     "react": "^19.0.0",
@@ -24,6 +26,7 @@
     "three": "^0.184.0"
   },
   "devDependencies": {
+    "@types/jsdom": "^28.0.1",
     "@types/node": "^22.9.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
