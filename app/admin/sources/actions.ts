@@ -22,7 +22,10 @@ const SEED_CITIES = [
     timezone: "Asia/Seoul", lat: 37.57, lng: 126.98,
     currency_code: "KRW", currency_symbol: "₩", original_language: "ko",
     location_summary: "South Korea's capital on the Han River, ~10 million people",
-    rss_feeds: ["https://thesoulofseoul.net/feed/"]
+    rss_feeds: [
+      "https://thesoulofseoul.net/feed/",
+      "https://restofworld.org/feed/"
+    ]
   },
   {
     id: "taipei", name: "Taipei", country: "Taiwan", region: "Taipei",
@@ -36,21 +39,33 @@ const SEED_CITIES = [
     timezone: "Asia/Shanghai", lat: 39.90, lng: 116.41,
     currency_code: "CNY", currency_symbol: "¥", original_language: "zh",
     location_summary: "China's capital, ~21 million people; hutong alleys braided with ministries",
-    rss_feeds: ["https://www.sixthtone.com/rss", "https://www.whatsonweibo.com/feed/"]
+    rss_feeds: [
+      "https://www.sixthtone.com/rss",
+      "https://www.whatsonweibo.com/feed/",
+      "https://restofworld.org/feed/"
+    ]
   },
   {
     id: "tianjin", name: "天津", country: "China", region: "Tianjin",
     timezone: "Asia/Shanghai", lat: 39.13, lng: 117.20,
     currency_code: "CNY", currency_symbol: "¥", original_language: "zh",
     location_summary: "a major port city in northern China, ~15 million people",
-    rss_feeds: ["https://www.sixthtone.com/rss", "https://www.whatsonweibo.com/feed/"]
+    rss_feeds: [
+      "https://www.sixthtone.com/rss",
+      "https://www.whatsonweibo.com/feed/",
+      "https://restofworld.org/feed/"
+    ]
   },
   {
     id: "shanghai", name: "上海", country: "China", region: "Shanghai",
     timezone: "Asia/Shanghai", lat: 31.23, lng: 121.47,
     currency_code: "CNY", currency_symbol: "¥", original_language: "zh",
     location_summary: "China's eastern port city, ~25 million people; lane houses beside skyscrapers",
-    rss_feeds: ["https://www.sixthtone.com/rss", "https://www.whatsonweibo.com/feed/"]
+    rss_feeds: [
+      "https://www.sixthtone.com/rss",
+      "https://www.whatsonweibo.com/feed/",
+      "https://restofworld.org/feed/"
+    ]
   },
   // ─── Southeast Asia ─────────────────────────────────────────
   {
@@ -66,8 +81,7 @@ const SEED_CITIES = [
     timezone: "Asia/Kolkata", lat: 19.08, lng: 72.88,
     currency_code: "INR", currency_symbol: "₹", original_language: "hi",
     location_summary: "India's Arabian Sea metropolis, ~21 million people; chawl life next to high-rises",
-    rss_feeds: [],
-    is_active: false
+    rss_feeds: ["https://restofworld.org/feed/"]
   },
   // ─── Middle East & West Asia ────────────────────────────────
   {
@@ -75,14 +89,20 @@ const SEED_CITIES = [
     timezone: "Europe/Istanbul", lat: 41.01, lng: 28.97,
     currency_code: "TRY", currency_symbol: "₺", original_language: "tr",
     location_summary: "a transcontinental city straddling Europe and Asia, ~15 million people",
-    rss_feeds: ["https://www.dailysabah.com/rssFeed/26"]
+    rss_feeds: [
+      "https://www.dailysabah.com/rssFeed/26",
+      "https://restofworld.org/feed/"
+    ]
   },
   {
     id: "tehran", name: "Tehran", country: "Iran", region: "Tehran",
     timezone: "Asia/Tehran", lat: 35.69, lng: 51.39,
     currency_code: "IRR", currency_symbol: "﷼", original_language: "fa",
     location_summary: "Iran's capital in the foothills of the Alborz, ~9 million people",
-    rss_feeds: ["https://www.tehrantimes.com/rss"]
+    rss_feeds: [
+      "https://www.tehrantimes.com/rss",
+      "https://restofworld.org/feed/"
+    ]
   },
   // ─── Europe ─────────────────────────────────────────────────
   {
@@ -111,14 +131,20 @@ const SEED_CITIES = [
     timezone: "Europe/Kyiv", lat: 50.45, lng: 30.52,
     currency_code: "UAH", currency_symbol: "₴", original_language: "uk",
     location_summary: "Ukraine's capital on the Dnipro, ~3 million people",
-    rss_feeds: ["https://english.nv.ua/rss/all.xml"]
+    rss_feeds: [
+      "https://english.nv.ua/rss/all.xml",
+      "https://restofworld.org/feed/"
+    ]
   },
   {
     id: "reykjavik", name: "Reykjavík", country: "Iceland", region: "Höfuðborgarsvæðið",
     timezone: "Atlantic/Reykjavik", lat: 64.15, lng: -21.94,
     currency_code: "ISK", currency_symbol: "kr", original_language: "is",
     location_summary: "Iceland's capital on the North Atlantic, ~140k people; geologically restless",
-    rss_feeds: ["https://www.icelandreview.com/feed/"]
+    rss_feeds: [
+      "https://www.icelandreview.com/feed/",
+      "https://hakaimagazine.com/feed/"
+    ]
   },
   // ─── North America ──────────────────────────────────────────
   {
@@ -163,21 +189,30 @@ const SEED_CITIES = [
     timezone: "Africa/Lagos", lat: 6.45, lng: 3.39,
     currency_code: "NGN", currency_symbol: "₦", original_language: "en",
     location_summary: "Nigeria's commercial megacity on the Gulf of Guinea, ~15+ million people",
-    rss_feeds: ["https://www.premiumtimesng.com/feed"]
+    rss_feeds: [
+      "https://www.premiumtimesng.com/feed",
+      "https://restofworld.org/feed/"
+    ]
   },
   {
     id: "nairobi", name: "Nairobi", country: "Kenya", region: "Nairobi",
     timezone: "Africa/Nairobi", lat: -1.29, lng: 36.82,
     currency_code: "KES", currency_symbol: "KSh", original_language: "en",
     location_summary: "Kenya's highland capital, ~4.4 million people; matatu routes and acacia skylines",
-    rss_feeds: ["https://www.standardmedia.co.ke/rss/headlines.php"]
+    rss_feeds: [
+      "https://www.standardmedia.co.ke/rss/headlines.php",
+      "https://restofworld.org/feed/"
+    ]
   },
   {
     id: "cape-town", name: "Cape Town", country: "South Africa", region: "Western Cape",
     timezone: "Africa/Johannesburg", lat: -33.92, lng: 18.42,
     currency_code: "ZAR", currency_symbol: "R", original_language: "en",
     location_summary: "a port city below Table Mountain, ~4.6 million people",
-    rss_feeds: ["https://www.dailymaverick.co.za/dmrss/"]
+    rss_feeds: [
+      "https://www.dailymaverick.co.za/dmrss/",
+      "https://hakaimagazine.com/feed/"
+    ]
   },
   // ─── Oceania ────────────────────────────────────────────────
   {

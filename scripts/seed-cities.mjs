@@ -58,7 +58,12 @@ const cities = [
     original_language: "ko",
     location_summary: "South Korea's capital on the Han River, ~10 million people",
     // "The Soul of Seoul": hyperlocal cultural storytelling.
-    rss_feeds: ["https://thesoulofseoul.net/feed/"]
+    // Rest of World: global tech/power-meets-ordinary-life — prefilter
+    // rejects off-city pieces.
+    rss_feeds: [
+      "https://thesoulofseoul.net/feed/",
+      "https://restofworld.org/feed/"
+    ]
   },
   {
     id: "taipei",
@@ -84,7 +89,11 @@ const cities = [
     location_summary: "China's capital, ~21 million people; hutong alleys braided with ministries",
     // Sixth Tone: "small voices, big times" — Once's natural register
     // in English. Covers China broadly but often Beijing-anchored.
-    rss_feeds: ["https://www.sixthtone.com/rss", "https://www.whatsonweibo.com/feed/"]
+    rss_feeds: [
+      "https://www.sixthtone.com/rss",
+      "https://www.whatsonweibo.com/feed/",
+      "https://restofworld.org/feed/"
+    ]
   },
   {
     id: "tianjin",
@@ -97,8 +106,12 @@ const cities = [
     original_language: "zh",
     location_summary: "a major port city in northern China, ~15 million people",
     // No strong soft-news English feed; relies on compose + Sixth Tone
-    // crossover. Can be improved later.
-    rss_feeds: ["https://www.sixthtone.com/rss", "https://www.whatsonweibo.com/feed/"]
+    // crossover + RoW's China coverage. Can be improved later.
+    rss_feeds: [
+      "https://www.sixthtone.com/rss",
+      "https://www.whatsonweibo.com/feed/",
+      "https://restofworld.org/feed/"
+    ]
   },
   {
     id: "shanghai",
@@ -110,8 +123,12 @@ const cities = [
     currency_code: "CNY", currency_symbol: "¥",
     original_language: "zh",
     location_summary: "China's eastern port city, ~25 million people; lane houses beside skyscrapers",
-    // Sixth Tone again — pending a dedicated Shanghai feed.
-    rss_feeds: ["https://www.sixthtone.com/rss", "https://www.whatsonweibo.com/feed/"]
+    // Sixth Tone + What's On Weibo + RoW's China coverage.
+    rss_feeds: [
+      "https://www.sixthtone.com/rss",
+      "https://www.whatsonweibo.com/feed/",
+      "https://restofworld.org/feed/"
+    ]
   },
 
   // ─── Southeast Asia ───────────────────────────────────────────
@@ -140,12 +157,10 @@ const cities = [
     currency_code: "INR", currency_symbol: "₹",
     original_language: "hi",
     location_summary: "India's Arabian Sea metropolis, ~21 million people; chawl life next to high-rises",
-    // No good open Mumbai feed identified yet — HT Mumbai is paywalled
-    // (RSS = teaser only, misleading hook sentences). Deactivated
-    // until a hyperlocal indie source is found (Homegrown, Mid-Day
-    // if they restore RSS, Scroll.in Mumbai section).
-    rss_feeds: [],
-    is_active: false
+    // Reactivated with Rest of World — RoW covers India's informal
+    // sector deeply (gig workers, chai stalls, migrations). Prefilter
+    // handles off-city pieces.
+    rss_feeds: ["https://restofworld.org/feed/"]
   },
 
   // ─── Middle East & West Asia ──────────────────────────────────
@@ -159,7 +174,10 @@ const cities = [
     currency_code: "TRY", currency_symbol: "₺",
     original_language: "tr",
     location_summary: "a transcontinental city straddling Europe and Asia, ~15 million people",
-    rss_feeds: ["https://www.dailysabah.com/rssFeed/26"]
+    rss_feeds: [
+      "https://www.dailysabah.com/rssFeed/26",
+      "https://restofworld.org/feed/"
+    ]
   },
   {
     id: "tehran",
@@ -173,7 +191,11 @@ const cities = [
     location_summary: "Iran's capital in the foothills of the Alborz, ~9 million people",
     // Tehran Times English — lifestyle / culture sections surface
     // plenty of bounded moments despite political top-of-page noise.
-    rss_feeds: ["https://www.tehrantimes.com/rss"]
+    // Rest of World — Iran's informal economy, workaround cultures.
+    rss_feeds: [
+      "https://www.tehrantimes.com/rss",
+      "https://restofworld.org/feed/"
+    ]
   },
 
   // ─── Europe ───────────────────────────────────────────────────
@@ -224,8 +246,12 @@ const cities = [
     original_language: "uk",
     location_summary: "Ukraine's capital on the Dnipro, ~3 million people",
     // New Voice of Ukraine (english.nv.ua): English, broad Ukrainian
-    // coverage. Kyiv Independent doesn't publish RSS; NV does.
-    rss_feeds: ["https://english.nv.ua/rss/all.xml"]
+    // coverage. + Rest of World for wartime-digital-ordinary-life
+    // stories (couriers, satellite terminals, refugee logistics).
+    rss_feeds: [
+      "https://english.nv.ua/rss/all.xml",
+      "https://restofworld.org/feed/"
+    ]
   },
   {
     id: "reykjavik",
@@ -238,7 +264,11 @@ const cities = [
     original_language: "is",
     location_summary: "Iceland's capital on the North Atlantic, ~140k people; geologically restless",
     // Iceland Review: English, understated, volcanoes and sheep.
-    rss_feeds: ["https://www.icelandreview.com/feed/"]
+    // Hakai: coastal culture + people — fits Reykjavik perfectly.
+    rss_feeds: [
+      "https://www.icelandreview.com/feed/",
+      "https://hakaimagazine.com/feed/"
+    ]
   },
 
   // ─── North America ────────────────────────────────────────────
@@ -321,8 +351,12 @@ const cities = [
     original_language: "en",
     location_summary: "Nigeria's commercial megacity on the Gulf of Guinea, ~15+ million people",
     // Premium Times Nigeria — English, dense local news. Prefilter
-    // will trim politics. Pulse + Guardian Nigeria both block bots.
-    rss_feeds: ["https://www.premiumtimesng.com/feed"]
+    // will trim politics. Rest of World covers Lagos tech scene
+    // and West African informal economy in depth.
+    rss_feeds: [
+      "https://www.premiumtimesng.com/feed",
+      "https://restofworld.org/feed/"
+    ]
   },
   {
     id: "nairobi",
@@ -334,9 +368,12 @@ const cities = [
     currency_code: "KES", currency_symbol: "KSh",
     original_language: "en",
     location_summary: "Kenya's highland capital, ~4.4 million people; matatu routes and acacia skylines",
-    // The Standard Kenya: English, reliable RSS. Nation/The Star's
-    // RSS endpoints are dead or bot-gated.
-    rss_feeds: ["https://www.standardmedia.co.ke/rss/headlines.php"]
+    // The Standard Kenya: English, reliable RSS. + Rest of World
+    // for East-African-tech-meets-ordinary-life stories.
+    rss_feeds: [
+      "https://www.standardmedia.co.ke/rss/headlines.php",
+      "https://restofworld.org/feed/"
+    ]
   },
   {
     id: "cape-town",
@@ -348,8 +385,12 @@ const cities = [
     currency_code: "ZAR", currency_symbol: "R",
     original_language: "en",
     location_summary: "a port city below Table Mountain, ~4.6 million people",
-    // Daily Maverick: long-form, considered, often has local vignettes.
-    rss_feeds: ["https://www.dailymaverick.co.za/dmrss/"]
+    // Daily Maverick: long-form local vignettes. Hakai Magazine:
+    // coastal-culture-and-people — matches Cape Town's maritime life.
+    rss_feeds: [
+      "https://www.dailymaverick.co.za/dmrss/",
+      "https://hakaimagazine.com/feed/"
+    ]
   },
 
   // ─── Oceania ──────────────────────────────────────────────────

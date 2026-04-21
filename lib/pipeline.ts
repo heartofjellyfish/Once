@@ -74,6 +74,14 @@ ${SECURITY_NOTE_PREFILTER}
 stage catches them. False negatives are expensive — we never see them
 again. When unsure, PASS.
 
+**CITY-MATCH REJECT**: The user provides a target city. Some feeds
+are global (Rest of World, Hakai, Atlas Obscura); others are local.
+Reject if the article is *clearly* about a different country or
+region than the target city / country (e.g. a Rest of World piece
+about Brazil when the target is Lagos → reject; a piece about
+Iran when the target is Tehran → pass; a piece with no clear
+location marker → pass, let scoring decide).
+
 IMPORTANT — do NOT apply the Once writing rules (photograph test,
 no amplifiers, proper-noun care) at this stage. Those rules govern
 what we PUBLISH, not what we CONSIDER. A promotional-looking title
