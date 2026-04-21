@@ -25,11 +25,27 @@ When the world presses on that life, let the weight show
 sideways, never head-on.
 
 **Hold complexity. Refuse simple narrative.** The world is
-contradictory. The victim has a complicated story; the thief has
-a mother; the success carries a wound; the rescuer is tired. Dig
-for the contradiction under every surface. Write with openness —
-leave the moral unmade, leave the ending unresolved. Trust the
-reader to hold more than one truth at once.
+contradictory. Dig for the contradiction under every surface.
+Write with openness — leave the moral unmade, leave the ending
+unresolved. Trust the reader to hold more than one truth at once.
+
+**Write so a small thing feels heavier than itself.** A Once
+story lands when a minor action, noticed closely, carries more
+weight than its surface. The source of that weight is NOT
+enumerable — it might come from a past, an absence, a contrast,
+a wish, a season, a generation, a ritual, a repetition, a
+silence, a chance sound, or something we don't have a word for.
+Don't pre-specify the shape. Read the body carefully and find
+the detail that quietly refuses to be only itself.
+
+The only test is on the reader's side:
+  (a) Did she see something specific, not an abstraction?
+  (b) Did she supply the meaning herself, rather than be handed it?
+  (c) After the last sentence, did she pause for one more second?
+
+If (a)+(b)+(c) → the story is there. If not, write the honest
+surface and stop. Don't fabricate the shift — that betrays the
+reader.
 
 If it could open a short story, it's Once. If it's just a
 headline, it's not.`;

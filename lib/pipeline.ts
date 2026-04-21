@@ -159,101 +159,126 @@ YOUR JOB: this candidate already passed scoring. Produce one
 Once-voiced rewrite of the underlying moment, aimed at a reader
 from elsewhere.
 
-**WRITE CINEMATICALLY, NOT JOURNALISTICALLY.** The rewrite should
-read like the opening shot of a short film — specific objects,
-specific bodies, a frame you could photograph. Not a news summary.
+## HOW TO READ THE BODY
 
-Concretely, when the body provides them, INCLUDE:
-- **Named physical objects** with defining detail:
-  "10-litre stainless steel buckets" not "containers";
-  "an electric scooter" not "transportation";
-  "fallen leaves covering an abandoned swimming pool" not "an old pool".
-- **Bodies + gestures**: what is a specific person DOING with their
-  body? "hands clasped in prayer", "holding a scooter up proudly",
-  "a chair thrown from a second-floor window".
-- **Stakes EMBEDDED as fact, not rhetoric**: when the article
-  carries a number that carries the B-story, include it.
-  "there are fewer than 80 left" > "endangered";
-  "2000 sheep now, from 100 a decade ago" > "population recovering".
-- **Outsider-readable inline translations**: Once readers are "from
-  elsewhere." Translate local terms inline: write "busy Ikebukuro
-  Station" not "Ikebukuro Station"; "an old-fashioned penny candy
-  shop (dagashiya)" not "dagashiya"; "the Grain Rain solar term"
-  not just "谷雨". One foreign word per sentence max.
-- **One POV when possible**: write from inside ONE person's hour —
-  the baker's, the rescuer's, the caregiver's. Not an omniscient
-  narrator summing up a phenomenon.
+Before you write, read the body carefully and find the detail
+that **refuses to be only itself** — the detail where a small
+action quietly weighs more than it should. This is the phenomenon
+you're hunting for; there is no fixed shape to it. The weight
+might transfer from anything the body carries: a past, an
+absence, a repetition, a silence, a contrast, a season, a ritual,
+a chance sound, a crossed line, or something that has no name
+yet. Don't pre-specify. Let the body tell you.
 
-Concretely, FORBID:
-- Editorializing verbs: "transforming", "bringing solace", "a
-  testament to", "quenches thirst and spreads kindness".
-  Show the scene instead; let the reader feel the verb.
-- Summary clauses: "serving as a reminder that…", "highlighting
-  the importance of…"
-- Vague emotional shorthand: "was moved by", "felt a sense of".
-  Replace with the physical detail that produced the emotion.
-- **CLOSING EDITORIAL CLAUSE — ZERO TOLERANCE.** This is the
-  single most common failure. Your FINAL SENTENCE MUST BE A
-  CONCRETE FACT, not an interpretation. Before you submit, read
-  your last sentence. If it contains any of these shapes, DELETE
-  IT entirely — the rewrite is better without it:
+Judge your draft by what the reader experiences, not by what
+category you matched:
 
-    • "…which shows that / which reminds us / a testimony to…"
-    • "…where tradition meets modernity / where hope meets fear…"
-    • "…love even in old age still finds space / hope and
-       ignorance intersect / reflected on life's defining decision…"
-    • Any sentence using abstract nouns (hope, love, memory,
-       tradition, ignorance, resilience) as its subject.
-    • Any sentence that would be removable without changing a
-       single photographable fact.
+  (a) Did she see something specific? (Not an abstract emotion
+      word. Not "sorrow" but the silent kitchen.)
+  (b) Did she supply the meaning? (She wasn't handed a lesson.)
+  (c) After the last sentence, did she pause for one more second?
 
-  The last sentence must describe a concrete thing: what someone
-  said, did, or noticed. END ON THE SCENE. The reader supplies
-  the meaning. If you can't end on a fact, end one sentence earlier.
+If your rewrite fails any of these, rewrite it. If the body
+genuinely doesn't provide a weight-carrying detail, write the
+honest surface (A+B) and stop — do NOT fabricate weight. Fake
+depth is worse than honest shallow.
 
-- **PLACE NAMES AS BARE LABELS — HARD RULE.** Every place name
-  in your rewrite MUST earn its place. TEST: read the sentence
-  with the name removed. If it reads as well or better, CUT THE
-  NAME. Bare labels like "South Spruce and East Adams", "Avenida
-  Imirim", "Vila Olímpia" are noise for an outsider reader.
-  Either (a) attach a texture — "the foggy Oregon coast town of
-  Cannon Beach", "the Imirim bus stop where the 971D-10 keeps
-  passing without stopping" — or (b) just describe it
-  anonymously: "a quiet intersection at dawn", "the bus stop
-  on her commute", "a hillside street". Rule: one specific
-  place-and-texture or none. Never a bare address.
+## HOW TO WRITE
 
-- **FULL NAMES WHEN FIRST-NAME IS MORE INTIMATE.** For Once,
-  intimacy beats formality. Use FIRST NAME ONLY unless the
-  language's convention is otherwise. Chinese keeps full name
-  (林小雨, 三橋義弘). Spanish, Portuguese, French, English,
-  Italian, Arabic: first name, occasionally with one-word role
-  — "Sophia", "Mozana, a cleaner", "Hadia". Not "Sophia Lundy",
-  not "Mozana Santos", not "Hadia al-Qabsia".
+Cinematically. The rewrite should read like the opening frame of
+a short film — specific objects, specific bodies, a frame you
+could photograph.
 
-- **FLATTEN INTO ONE-DIMENSIONAL MORAL CLARITY.** The deepest
-  rule of Once: the world is contradictory. Every story has more
-  than one truth at the same time. Reject:
-  * Victim-without-attacker-humanity framings.
-  * Success-without-struggle framings.
-  * Hero-without-fatigue framings.
-  * Thief-without-backstory framings.
-  * Catastrophe-without-ordinary-moments framings.
+Pull into the rewrite, when the body provides them:
+- Named physical objects with defining detail
+  ("10-litre stainless steel buckets" not "containers";
+   "fallen leaves covering an abandoned swimming pool" not "an old pool")
+- Specific bodies and gestures
+  ("hands clasped in prayer", "holding a scooter up proudly")
+- Stakes embedded as fact, not rhetoric
+  ("fewer than 80 left" > "endangered";
+   "2000 sheep now, from 100 a decade ago" > "recovering")
+- Inline translations for outsider readers
+  ("busy Ikebukuro Station" not "Ikebukuro Station";
+   "an old-fashioned penny candy shop (dagashiya)" not "dagashiya")
+- ONE complicating detail that refuses flat moral framing
+  when the body provides it
+  (the thief's age, the success's compromise, the caregiver's
+   own hour of doubt)
 
-  Instead, scan the body for the detail that **complicates** the
-  surface — the thief's age (17, working night shifts), the
-  success's compromise (she learned the trade from a cousin who
-  died), the caregiver's own doubt (he walked the park for an
-  hour before going home), the rescuer's bureaucratic delay.
-  Include at least ONE complicating micro-detail in your rewrite
-  when the body provides it.
+## HARD FORBIDS
 
-  Refuse moral closure. Leave the reader with a held tension,
-  not with a resolved lesson. Openness is the stance.
+**CLOSING EDITORIAL CLAUSE — ZERO TOLERANCE.** Your final
+sentence MUST be a concrete fact, not an interpretation. Before
+submitting, read your last sentence. If it uses abstract nouns
+(hope, love, memory, tradition, resilience, irony) as its
+subject, DELETE IT. If it would be removable without changing a
+single photographable fact, DELETE IT. End on the scene. The
+reader supplies the meaning.
 
-LENGTH: **20–35 words.** Tighter than before. Every word earns
-its place. 字字如金 — each word load-bearing. If you can't fit,
-cut the place name before you cut the human detail.
+**BARE PLACE NAMES.** Every place name must earn its place. Test:
+remove it. If the sentence reads as well or better, cut it. Either
+(a) attach texture — "the foggy Oregon coast town of Cannon Beach",
+"the Imirim bus stop where the 971D-10 keeps passing without
+stopping" — or (b) describe anonymously — "a quiet intersection
+at dawn". Never a bare address.
+
+**FULL NAMES where first name is more intimate.** Use first name
+only, unless the language's convention is otherwise. Chinese keeps
+full name (林小雨, 三橋義弘). Spanish, Portuguese, French, English,
+Italian, Arabic: first name, occasionally with a one-word role —
+"Sophia", "Mozana, a cleaner", "Hadia". NOT "Sophia Lundy",
+"Mozana Santos", "Hadia al-Qabsia".
+
+**EDITORIALIZING VERBS**: "transforming", "bringing solace", "a
+testament to", "interweaving", "quenching and spreading". Show
+the scene; let the reader feel the verb.
+
+**VAGUE EMOTIONAL SHORTHAND**: "was moved by", "felt a sense of".
+Replace with the physical detail that produced the feeling.
+
+**FLAT MORAL CLARITY**: victim-without-attacker-humanity,
+success-without-struggle, hero-without-fatigue. Refuse moral
+closure. Leave tension held.
+
+LENGTH: **20–35 words.** One or two sentences. 字字如金.
+If you can't fit everything, cut the place name before you
+cut the human detail.
+
+## CALIBRATION EXAMPLES (one shape each among infinitely many)
+
+These are NOT a checklist. They're samples to calibrate your
+ear. Any shape that satisfies the phenomenon + passes the
+reader's-side test counts the same, whether it fits a pattern
+below or not.
+
+  [absence] "The Rua da Bica bakery ran out of bread at 2 pm.
+   The baker said flour delivery was late because of roadwork."
+   — the baker's morning weighs more because of the city's
+   roadwork pressing on it.
+
+  [a routine suddenly heavier] "Mozana, a cleaner, waves at the
+   971D-10 bus again; the driver passes without stopping. She
+   now leaves home twenty minutes earlier than last month."
+   — the wave is routine, the 20-minute adjustment is the weight.
+
+  [the kept object] "The 11-headed Kannon at Nagahama has stood
+   for twelve hundred years. A temple volunteer still polishes
+   the laughing face at the back of its skull each morning."
+   — the routine polishing carries the centuries.
+
+  [a bounded bystander kindness] "On a flight to Delhi,
+   Jennifer learned her friend had died. The Muslim couple beside
+   her, on their honeymoon, set down their menus and held her
+   hand until the meal service ended." — the honeymoon weighs
+   against the grief without being named.
+
+  [a named number bearing stakes] "In Háafell, the Icelandic goat
+   herd passed 2,000 head last spring. A decade ago, only 100
+   remained." — the 100-to-2000 gap IS the story.
+
+Anything that passes the reader-side test (a/b/c) counts,
+including shapes not illustrated here.
 
 LANGUAGE DISCIPLINE: original_text MUST be in the city's local_language.
 - If local_language is "en", original_text is in ENGLISH and
@@ -325,21 +350,30 @@ The rubric is anchored to specific phenomena, not just vibes.
     10 = photographable scene with sensory detail, a real person
          doing a real thing
 
-- resonance (1-10): does the surface fact carry a B-story — a
-  current underneath that gives it weight? This is the MOST
-  IMPORTANT axis for Once.
-    1  = no B-story at all; pure fact ("flowers are blooming",
-         "bars can open later")
-    3  = faint B-story, but you have to squint for it — CAP for
-         commercial pieces and for memoirs
-    5  = B-story present but thin ("61-year-old survives capsize"
-         — dignity and endurance are beneath, but the writer
-         doesn't develop them)
-    7  = B-story is clear; a reader feels it without being told
+- resonance (1-10): after reading a faithful rewrite of the
+  body's most specific moment, would the reader pause for a
+  second? This is the MOST IMPORTANT axis. Judge on the reader's
+  experience, NOT on whether the article checks any particular
+  shape.
+    1  = no pause; pure surface fact, nothing transfers
+         ("flowers are blooming", "bars can open later")
+    3  = faint pull but it dissolves immediately — CAP for
+         commercial pieces, memoirs, pure statistics
+    5  = a small pull; a reader could describe it at dinner and
+         get "huh", but wouldn't carry it home
+         ("61-year-old survives capsize" — dignity is there, but
+          neither a shift nor an echo develops)
+    7  = something quietly weighs more than itself when the body
+         is read attentively. The reader pauses.
          ("market stalls left a flower at the absent baker's empty
-         spot" — grief, continuity, community, all in one gesture)
-    9-10 = the B-story hits you. 24 hours later, the moment
-         still turns over in your head.
+          spot" — a routine absence, now a ritual)
+    9-10 = the moment turns over in the reader's head the next
+         day. Multiple sources of weight convene on one detail.
+
+  Judge the BODY, not just the headline. A surface-thin article
+  can still carry a detail in paragraph four that earns a 7 when
+  the rewrite zooms in on it. Conversely, a richly-framed article
+  whose actual content is a product launch scores low.
 
 - register (1-10): would a restrained rewrite land in Once's voice,
   or is the underlying situation un-salvageable?

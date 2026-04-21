@@ -6,27 +6,41 @@ Read this before touching any prompt, UI copy, or rubric that shapes what users 
 
 ## The principle (human version)
 
-> **Every Once story carries two stories at once: A (what visibly
-> happened) and B (the deeper current underneath — a tension, a
-> tenderness, a loss, a dignity). Both must be there.**
+> **A+B.** Every Once story carries two stories at once — A, what
+> visibly happened, and B, the deeper current underneath. Both
+> must be there. A without B is news; B without A is opinion.
 >
-> **When the world presses on that life, let the weight show
-> sideways, never head-on.**
+> **Sideways.** When the world presses on a life, let the weight
+> show sideways, never head-on.
 >
-> **Hold complexity. Refuse simple narrative. The world is
-> contradictory. The victim has a complicated story; the thief has
-> a mother; the success carries a wound; the rescuer is tired. Dig
-> for the contradiction under every surface. Trust the reader to
-> hold more than one truth at once.**
+> **Hold complexity.** The world is contradictory. Dig for what
+> complicates the surface. Leave the moral unmade, the ending
+> unresolved.
 >
-> **If it could open a short story, it's Once. If it's a headline, it's not.**
+> **A small thing feels heavier than itself.** The rewrite lands
+> when a minor action, noticed closely, quietly weighs more than
+> it should. The *source* of the weight is not enumerable — past,
+> absence, contrast, wish, season, repetition, silence, anything
+> the body carries. Don't pre-specify. Read and find.
+>
+> The only test is the reader's:
+>   (a) did she see something specific?
+>   (b) did she supply the meaning herself?
+>   (c) did she pause for a second after the last line?
+>
+> If (a)+(b)+(c) — the story is there. If not, write the honest
+> surface. **Never fabricate the shift.** Fake depth betrays the reader.
+>
+> **Short story, not headline.** If it could open a short story,
+> it's Once.
 
-Four lines, each doing different work:
+Five lines, each doing different work:
 
-1. **A + B** — the core filter. Surface fact + deeper current. A list of five flower fields in bloom is A without B. A memoir about growing up is B without A. Both are wrong. Once wants both braided — a bakery running out of bread (A) because flour delivery was held up by roadwork (B, a small tension between a person's morning and the city's construction priorities).
-2. **Sideways, not head-on** — when war, disaster, or policy looms, don't turn toward it. Find a bounded human moment *within* the event (the mother baking bread during sirens, the trucks carrying rubble, the child reading by candlelight) and describe only that moment.
-3. **Hold complexity** — this is the epistemological stance of Once. The world does not reduce. A thief has a backstory; a victim is not only a victim; a cultural success carries compromise. When the source body gives a complicating detail — the teenager's age, the cousin who died, the hour the caregiver spent walking the park — pull it into the frame. Refuse moral closure. Leave the tension held, not resolved. Openness is the register.
-4. **Judgement test** — novelist-first-line pass, headline-reject. The sharpest test you have.
+1. **A + B** — core filter. Surface fact + deeper current, braided. A list of five flower fields is A without B. A memoir is B without A.
+2. **Sideways, not head-on** — when war, disaster, or policy looms, find a bounded human moment *within* the event (the mother baking bread during sirens, the trucks carrying rubble) and describe only that moment.
+3. **Hold complexity** — the world does not reduce. A thief has a backstory, a victim is not only a victim, a cultural success carries compromise. Refuse moral closure. Leave tension held.
+4. **Heavy small things** — the deepest constraint. Weight transfers from anything the body carries; the source is open, unenumerable. The only test is on the reader's side. Any enumeration of "mechanisms" or "shapes" that makes a small thing weigh more is an approximation — illustrative, not exhaustive. When in doubt, trust the reader-side test.
+5. **Judgement test** — novelist-first-line pass, headline-reject.
 
 This principle is compiled into `lib/prompts.ts` and reused across every AI stage. Change it there and the whole pipeline moves together.
 
