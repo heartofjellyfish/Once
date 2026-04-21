@@ -136,6 +136,34 @@ Some feeds drift; this is what to expect and how to counter.
 
 ---
 
+## Source rule: no paywalled publications
+
+Paywalled newspapers (The Age, Hindustan Times, NYT, WSJ, The Times)
+broadcast a teaser-only RSS where each item is a single hook sentence
+crafted to sell a click. The "article content" we receive is editorial
+bait, not a summary. Our rewrite can only reshuffle the hook; it
+cannot recover the underlying story.
+
+This is a structural mismatch with Once: we need the first two
+paragraphs of the body, not the best-of image the sub-editor selected
+to provoke. Paywalled sources are **excluded** at the feed level.
+
+If a city has only paywalled coverage, deactivate it and wait for a
+better open source. Silence is better than hallucination.
+
+What counts as "paywalled":
+- The RSS item consistently comes back as one sentence (<300 chars)
+- Clicking the link asks you to subscribe before the second paragraph
+- The `content:encoded` in the feed is empty or teaser-only
+
+Acceptable feed register:
+- Full-article RSS (SoraNews24, Gothamist, Saigoneer, Atlas Lisboa)
+- Publicly funded broadcasters (ABC, BBC local)
+- Indie culture magazines (Antigravity, What's on Weibo, Iceland Review)
+- Blog RSS (Substack free tier, Ghost, WordPress defaults)
+
+---
+
 ## One-line reminder
 
 > **Keep the named noun, keep the small verb, drop everything else.**

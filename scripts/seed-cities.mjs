@@ -140,11 +140,12 @@ const cities = [
     currency_code: "INR", currency_symbol: "₹",
     original_language: "hi",
     location_summary: "India's Arabian Sea metropolis, ~21 million people; chawl life next to high-rises",
-    // Hindustan Times Mumbai — most reliable Mumbai-specific English RSS
-    // currently working. Prefilter strips politics heavily.
-    rss_feeds: [
-      "https://www.hindustantimes.com/feeds/rss/cities/mumbai-news/rssfeed.xml"
-    ]
+    // No good open Mumbai feed identified yet — HT Mumbai is paywalled
+    // (RSS = teaser only, misleading hook sentences). Deactivated
+    // until a hyperlocal indie source is found (Homegrown, Mid-Day
+    // if they restore RSS, Scroll.in Mumbai section).
+    rss_feeds: [],
+    is_active: false
   },
 
   // ─── Middle East & West Asia ──────────────────────────────────
@@ -362,12 +363,9 @@ const cities = [
     currency_code: "AUD", currency_symbol: "A$",
     original_language: "en",
     location_summary: "Australia's southern metropolis on Port Phillip Bay, ~5 million people",
-    // ABC Melbourne + The Age Victoria. ABC's hyperlocal feed is the
-    // stronger register match; The Age is a broader second.
-    rss_feeds: [
-      "https://www.abc.net.au/news/feed/51120/rss.xml",
-      "https://www.theage.com.au/rss/national/victoria.xml"
-    ]
+    // ABC Melbourne only. The Age is paywalled and its RSS is
+    // teaser-only editorial bait, not suitable for Once.
+    rss_feeds: ["https://www.abc.net.au/news/feed/51120/rss.xml"]
   }
 ];
 
@@ -385,7 +383,8 @@ for (const c of cities) {
       ${c.timezone}, ${c.lat}, ${c.lng},
       ${c.currency_code ?? null}, ${c.currency_symbol ?? null},
       ${c.original_language ?? null},
-      ${c.location_summary ?? null}, ${c.rss_feeds}, true
+      ${c.location_summary ?? null}, ${c.rss_feeds},
+      ${c.is_active === false ? false : true}
     )
     on conflict (id) do update set
       name              = excluded.name,

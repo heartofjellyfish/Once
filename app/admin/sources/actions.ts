@@ -66,9 +66,8 @@ const SEED_CITIES = [
     timezone: "Asia/Kolkata", lat: 19.08, lng: 72.88,
     currency_code: "INR", currency_symbol: "₹", original_language: "hi",
     location_summary: "India's Arabian Sea metropolis, ~21 million people; chawl life next to high-rises",
-    rss_feeds: [
-      "https://www.hindustantimes.com/feeds/rss/cities/mumbai-news/rssfeed.xml"
-    ]
+    rss_feeds: [],
+    is_active: false
   },
   // ─── Middle East & West Asia ────────────────────────────────
   {
@@ -186,10 +185,7 @@ const SEED_CITIES = [
     timezone: "Australia/Melbourne", lat: -37.81, lng: 144.96,
     currency_code: "AUD", currency_symbol: "A$", original_language: "en",
     location_summary: "Australia's southern metropolis on Port Phillip Bay, ~5 million people",
-    rss_feeds: [
-      "https://www.abc.net.au/news/feed/51120/rss.xml",
-      "https://www.theage.com.au/rss/national/victoria.xml"
-    ]
+    rss_feeds: ["https://www.abc.net.au/news/feed/51120/rss.xml"]
   }
 ] as const;
 
@@ -242,7 +238,8 @@ export async function seedCitiesAction(): Promise<void> {
         ${c.timezone}, ${c.lat}, ${c.lng},
         ${c.currency_code ?? null}, ${c.currency_symbol ?? null},
         ${c.original_language ?? null},
-        ${c.location_summary ?? null}, ${c.rss_feeds as unknown as string[]}, true
+        ${c.location_summary ?? null}, ${c.rss_feeds as unknown as string[]},
+        ${"is_active" in c && c.is_active === false ? false : true}
       )
       on conflict (id) do update set
         name              = excluded.name,
