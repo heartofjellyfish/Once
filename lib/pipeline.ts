@@ -131,38 +131,64 @@ Your rewrite will strip those. Judge whether there's a real, specific,
 bounded, memorable human moment underneath. If yes, score generously
 and rewrite; if not, score low.
 
-BE GENEROUS — aim for the middle of the scale, not the low end. A
-title with 2+ concrete nouns + a bounded event deserves 6+ on
-specificity even if the snippet is thin. Trust that the body (or a
-restrained rewrite) can carry detail you can't see here.
+BE CALIBRATED. Don't hover at 5-6 out of habit — use the full scale.
+The rubric is anchored to specific phenomena, not just vibes.
 
-- specificity (1-10): does the underlying moment have named anchors?
+**HARD FLOORS (apply BEFORE the rubric):**
+  • If NO human is present or implicit in the underlying moment
+    (no baker, no crew, no crowd, no person's hand, no congregation
+    — just objects, places, flora, statues, products, facts) —
+    specificity is CAPPED AT 4 and resonance is CAPPED AT 3. A
+    flower field with nobody in it, a statue with nobody visiting
+    it, a product announcement — all hit these caps.
+  • If the piece reads as commercial (product launch, event
+    promotion, tourist pitch, retail anniversary) — register is
+    CAPPED AT 3, regardless of how calmly it's written. Quirky /
+    cute framing does NOT earn commercial pieces a pass.
+  • If the piece is a first-person memoir / reflection / "how I
+    learned" essay — resonance is CAPPED AT 3, regardless of
+    specificity. Once is third-person observation, not self-reflection.
+
+**THEN SCORE:**
+
+- specificity (1-10): does the underlying moment have named anchors
+  around a human?
     1  = pure abstraction ("spring has come")
-    4  = some detail but generic ("a local shop closed early")
-    6  = ONE concrete anchor (named place OR named subject) + a verb.
-    8  = multiple named anchors (place + time + actor + object)
-    10 = photographable scene, sensory detail
+    4  = some detail but no human ("5 million flowers in bloom",
+         "a temple's 11-headed statue") — CAP for no-human pieces
+    6  = ONE concrete anchor (named place OR named person) + a verb
+         a human is doing
+    8  = multiple named anchors + a specific human action at a
+         specific time
+    10 = photographable scene with sensory detail, a real person
+         doing a real thing
 
-- resonance (1-10): would a reader describe this at dinner?
-    1  = forgotten in 5 minutes
-    4  = mildly interesting
-    6  = a shape, a hook, something memorable ("61-year-old fisherman
-         survives capsize" is here — specific person, specific act,
-         dignity)
-    8  = "oh, hey —" worthy
-    10 = stops you mid-task
+- resonance (1-10): does the surface fact carry a B-story — a
+  current underneath that gives it weight? This is the MOST
+  IMPORTANT axis for Once.
+    1  = no B-story at all; pure fact ("flowers are blooming",
+         "bars can open later")
+    3  = faint B-story, but you have to squint for it — CAP for
+         commercial pieces and for memoirs
+    5  = B-story present but thin ("61-year-old survives capsize"
+         — dignity and endurance are beneath, but the writer
+         doesn't develop them)
+    7  = B-story is clear; a reader feels it without being told
+         ("market stalls left a flower at the absent baker's empty
+         spot" — grief, continuity, community, all in one gesture)
+    9-10 = the B-story hits you. 24 hours later, the moment
+         still turns over in your head.
 
-- register (1-10): is the UNDERLYING SITUATION something Once could
-    write calmly? (NOT whether the source is written calmly — the
-    source might be sensational; your rewrite will fix that.)
-    1  = no salvageable register (pure politics, markets, gossip)
-    3  = casualty-focused disaster coverage, pure PR
-    6  = source has amplifier words but the facts underneath are
-         calm (e.g. "defies odds to swim to safety" → the underlying
-         moment is a quiet act of endurance; rewrite strips "defies
-         odds")
-    8  = source is already calm; minimal rewrite needed
-    10 = perfectly calibrated Once voice already
+- register (1-10): would a restrained rewrite land in Once's voice,
+  or is the underlying situation un-salvageable?
+    1  = pure politics, markets, gossip; cannot be rewritten
+    3  = casualty-focused disaster coverage; promotional/commercial
+         pieces (CAP)
+    5  = neutral-enough news brief; the source has amplifiers
+         ("defies odds", "stunning", "must-visit") but the facts
+         underneath are calm
+    7  = clean; minimal amplifier stripping needed
+    10 = already in Once's voice; no lift required
 
 **If at least one score is < 5, SKIP the rewrite entirely** — leave
 original_text and english_text as empty strings. A bad premise

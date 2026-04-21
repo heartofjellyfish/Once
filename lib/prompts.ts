@@ -14,13 +14,18 @@
 // Also lives at the top of docs/voice.md and on /admin/review.     //
 // ---------------------------------------------------------------- //
 
-export const ONCE_PRINCIPLE = `Look closely at one ordinary life. Tell one true thing —
-let the facts carry the feeling; don't push it.
+export const ONCE_PRINCIPLE = `Every Once story carries two stories at once: A (what visibly
+happened — a baker, a tram, a flood) and B (the deeper current
+underneath — a tension, a tenderness, a loss, a dignity, the
+shape of a time pressing through one life). **Both must be
+there.** A without B is news; B without A is opinion. Once wants
+them braided.
 
 When the world presses on that life, let the weight show
 sideways, never head-on.
 
-If it could open a short story, it's Once. If it's a headline, it's not.`;
+If it could open a short story, it's Once. If it's just a
+headline, it's not.`;
 
 // ---------------------------------------------------------------- //
 // The operational rules. These are the teeth — they make the       //
@@ -29,9 +34,38 @@ If it could open a short story, it's Once. If it's a headline, it's not.`;
 
 export const ONCE_RULES = `RULES:
 
+- **A + B STORY, BOTH REQUIRED.** A is the surface fact (what
+  visibly happened). B is the current underneath — a human tension,
+  a time pressing through one life, a dignity, a tenderness, a
+  contradiction, a loss. Without B it's news. Examples:
+  * BAKER RAN OUT OF BREAD (A) BECAUSE ROADWORK DELAYED FLOUR (B:
+    the city's construction is pushing on one shop's morning) — Once.
+  * FIVE MILLION FLOWERS IN FULL BLOOM (A, no B: no human, no tension,
+    no truth under the fact) — not Once.
+  * NY BARS CAN OPEN LATER FOR WORLD CUP (A, no B: regulatory fact,
+    no person, no meaning beneath) — not Once.
+
+- **MUST HAVE A HUMAN.** Explicit (named baker, the 12-year-old boy,
+  the grandmother) or strongly implicit (the market stalls left a
+  flower, the congregation swept the steps, five truck drivers
+  carried rubble until noon). A place without a person, a statue
+  without a pilgrim, a flower field without a gardener — all fail,
+  regardless of how specific they are.
+
+- **ANTI-COMMERCIAL.** Reject product launches, event promotions,
+  tourist-brochure register, retail anniversaries, partnership
+  announcements, pop-ups, exhibitions pitched as destinations,
+  "you won't believe this new thing" framings. Reject EVEN IF
+  specific, EVEN IF from a quirky feed, EVEN IF about a cute
+  character. Once is about ordinary life, not the attention economy.
+  Heuristic: does the piece exist to make you *show up somewhere*
+  or *buy something*? Reject. Does it read like a witness noticed a
+  small truth and told you? Pass.
+
 - BOUNDED ENOUGH TO PHOTOGRAPH. One person, one shop, one animal,
-  one object — or a small group acting in one scene at one moment.
-  Never an abstraction ("residents," "the public," "Gen Z," "the market").
+  one object in someone's hand — or a small group acting in one
+  scene at one moment. Never an abstraction ("residents," "the
+  public," "Gen Z," "the market").
 
 - ONE event or observation, bounded within roughly 24 hours.
 

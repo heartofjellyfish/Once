@@ -6,8 +6,10 @@ Read this before touching any prompt, UI copy, or rubric that shapes what users 
 
 ## The principle (human version)
 
-> **Look closely at one ordinary life. Tell one true thing —
-> let the facts carry the feeling; don't push it.**
+> **Look closely at one ordinary life. Every Once story carries two
+> stories at once: A (what visibly happened) and B (the deeper current
+> underneath — a tension, a tenderness, a loss, a dignity). Both must
+> be there. A without B is news; B without A is opinion.**
 >
 > **When the world presses on that life, let the weight show
 > sideways, never head-on.**
@@ -16,8 +18,8 @@ Read this before touching any prompt, UI copy, or rubric that shapes what users 
 
 Three lines, each doing different work:
 
-1. **Default mode** — attention, singular subject, truth, restraint. Any emotion (warmth, humour, sadness, small wonder) is allowed *as long as it arises from the facts*, not from pushed adjectives.
-2. **World-presses mode** — when a war, a disaster, a policy upheaval, a shock looms over the life you're writing, don't turn toward it. Find a bounded human moment *within* the event (the mother baking bread during sirens, the trucks carrying rubble, the child reading by candlelight) and describe only that moment.
+1. **The A+B test** — the core filter. Surface fact + deeper current. A list of five flower fields in bloom is A without B. A memoir about growing up is B without A. Both are wrong. Once wants both braided — a bakery running out of bread (A) because flour delivery was held up by roadwork (B, a small tension between a person's morning and the city's construction priorities).
+2. **World-presses mode** — when war, disaster, or policy looms over the life you're writing, don't turn toward it. Find a bounded human moment *within* the event (the mother baking bread during sirens, the trucks carrying rubble, the child reading by candlelight) and describe only that moment. Sideways, not head-on.
 3. **Judgement test** — novelist-first-line pass, headline-reject. The sharpest test you have.
 
 This principle is compiled into `lib/prompts.ts` and reused across every AI stage. Change it there and the whole pipeline moves together.
@@ -26,9 +28,13 @@ This principle is compiled into `lib/prompts.ts` and reused across every AI stag
 
 ## The operational rules
 
-### 1. Bounded enough to photograph
+### 1. Must have a human
 
-One person, one shop, one animal, one object — or a small group acting in one scene at one moment. Never an abstraction ("residents," "the public," "Gen Z," "the market"). If it couldn't fit in a photograph's frame, it's not Once.
+Every Once story has a **human presence** — explicit (named baker, the 12-year-old boy, the grandmother) or strongly implicit (the market stalls, the congregation, the five truck drivers clearing rubble). A place without a person is not Once. A statue without a pilgrim, a flower field without a gardener, a building without someone inside it — all fail. The human doesn't have to be the grammatical subject of the sentence, but they must be felt.
+
+### 2. Bounded enough to photograph
+
+One person, one shop, one animal, one object in someone's hand — or a small group acting in one scene at one moment. Never an abstraction ("residents," "the public," "Gen Z," "the market"). If it couldn't fit in a photograph's frame — with a person in it — it's not Once.
 
 ### 2. Keep proper nouns, never invent them
 
@@ -57,7 +63,13 @@ Forbidden shapes (not specific words — shapes):
 - "The best / the most / the never-before-seen..."
 - "Exciting news from..."
 
-### 7. The world-presses carve-out
+### 7. Anti-commercial
+
+Reject product launches, event promotions, tourist-brochure register, retail anniversaries, partnership announcements, pop-ups, exhibitions pitched as destinations, "you won't believe this new thing" framings — **even when they're specific, even when they're quirky, even when they're from a "fun" feed like SoraNews24**. Once is about ordinary life, not the attention economy. If the piece exists primarily to sell attention, clicks, or tickets, it's not Once.
+
+Heuristic: does the piece read like an editor wanted you to *show up somewhere* or *buy something*? Reject. Does it read like a witness noticed a small truth and told you? Pass.
+
+### 8. The world-presses carve-out
 
 When the source is a war / disaster / political event: do **NOT** summarise the event. Find the bounded human moment within it and describe only that moment. **NEVER** include casualty numbers or damage estimates.
 
