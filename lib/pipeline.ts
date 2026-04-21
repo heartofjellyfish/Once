@@ -35,7 +35,11 @@ const SECURITY_NOTE_PREFILTER = SECURITY_NOTE;
  */
 
 const PREFILTER_MODEL = process.env.INGEST_PREFILTER_MODEL || "gpt-4o-mini";
-const FULL_MODEL = process.env.INGEST_FULL_MODEL || "gpt-4o-mini";
+const SCORE_MODEL = process.env.INGEST_SCORE_MODEL || "gpt-4o-mini";
+// Rewrite is what the editor + readers actually see — spend on it.
+const REWRITE_MODEL_INGEST = process.env.INGEST_REWRITE_MODEL || "gpt-4o";
+// Kept for historical compat in writeQueue's ai_model column.
+const FULL_MODEL = REWRITE_MODEL_INGEST;
 
 // Threshold: any story with all three scores >= this is flagged as
 // ai_passed_filter=true. If nothing reaches it, the top-scored entries
@@ -136,6 +140,56 @@ not a paraphrase). If the title is already English, copy it.
 
 Return JSON: { "pass": true|false, "why": "<under 15 words>", "title_en": "<english title>" }`;
 
+const REWRITE_SYSTEM_INGEST = `${ONCE_HEADER}
+
+YOUR JOB: this candidate already passed scoring. Produce one
+Once-voiced rewrite of the underlying moment, aimed at a reader
+from elsewhere.
+
+**WRITE CINEMATICALLY, NOT JOURNALISTICALLY.** The rewrite should
+read like the opening shot of a short film — specific objects,
+specific bodies, a frame you could photograph. Not a news summary.
+
+Concretely, when the body provides them, INCLUDE:
+- **Named physical objects** with defining detail:
+  "10-litre stainless steel buckets" not "containers";
+  "an electric scooter" not "transportation";
+  "fallen leaves covering an abandoned swimming pool" not "an old pool".
+- **Bodies + gestures**: what is a specific person DOING with their
+  body? "hands clasped in prayer", "holding a scooter up proudly",
+  "a chair thrown from a second-floor window".
+- **Stakes EMBEDDED as fact, not rhetoric**: when the article
+  carries a number that carries the B-story, include it.
+  "there are fewer than 80 left" > "endangered";
+  "2000 sheep now, from 100 a decade ago" > "population recovering".
+- **Outsider-readable inline translations**: Once readers are "from
+  elsewhere." Translate local terms inline: write "busy Ikebukuro
+  Station" not "Ikebukuro Station"; "an old-fashioned penny candy
+  shop (dagashiya)" not "dagashiya"; "the Grain Rain solar term"
+  not just "谷雨". One foreign word per sentence max.
+- **One POV when possible**: write from inside ONE person's hour —
+  the baker's, the rescuer's, the caregiver's. Not an omniscient
+  narrator summing up a phenomenon.
+
+Concretely, FORBID:
+- Editorializing verbs: "transforming", "bringing solace", "a
+  testament to", "quenches thirst and spreads kindness".
+  Show the scene instead; let the reader feel the verb.
+- Summary clauses: "serving as a reminder that…", "highlighting
+  the importance of…"
+- Vague emotional shorthand: "was moved by", "felt a sense of".
+  Replace with the physical detail that produced the emotion.
+
+LENGTH: 25–45 words. One or two sentences.
+
+LANGUAGE DISCIPLINE: original_text MUST be in the city's local_language.
+- If local_language is "en", original_text is in ENGLISH and
+  english_text is "".
+- Otherwise, english_text is a faithful English rendering.
+- Never default to Chinese or any other language — match the city.
+
+Return JSON only: { original_language, original_text, english_text }.`;
+
 const FULL_SYSTEM = `${ONCE_HEADER}
 
 YOUR JOB: evaluate one candidate entry. Score the UNDERLYING MOMENT's
@@ -225,26 +279,20 @@ The rubric is anchored to specific phenomena, not just vibes.
     7  = clean; minimal amplifier stripping needed
     10 = already in Once's voice; no lift required
 
-**If at least one score is < 5, SKIP the rewrite entirely** — leave
-original_text and english_text as empty strings. A bad premise
-doesn't deserve a rewrite; it saves tokens and saves the editor
-from reading fiction built on top of a rejected premise.
+Return scores + one-sentence rationale + local_hour + approximate
+prices. **DO NOT produce a rewrite here** — a separate, more
+capable pass handles rewrites for candidates that clear the score
+floor. Your job ends at scoring.
 
-**If all three scores are >= 5, produce the rewrite**:
-- original_text: 1-2 sentences IN THE LOCAL LANGUAGE, applying every
-  rule above (20-40 words, no amplifiers, keep proper nouns from the
-  source, never invent). Substantial paraphrase — the source's voice
-  is NOT your voice.
-- english_text: faithful English rendering. Empty if original is "en".
-- local_hour (0-23): infer from phrasing; 12 if unknown.
+- score_specificity, score_resonance, score_register: integers 1-10
+- rationale: one sentence for the editor explaining YOUR VERDICT
+- local_hour (0-23): infer from phrasing; 12 if unknown
 - milk_price_local / eggs_price_local / milk_price_usd /
-  eggs_price_usd: approximate current prices. 0 if truly unknown.
-- rationale: one sentence for the editor, explaining YOUR VERDICT
-  (not the source).
+  eggs_price_usd: approximate current prices. 0 if unknown
 
-Always return valid JSON matching the schema, even when rejecting.`;
+Always return valid JSON matching the schema.`;
 
-const FULL_SCHEMA = {
+const SCORE_SCHEMA = {
   type: "object",
   additionalProperties: false,
   properties: {
@@ -253,9 +301,6 @@ const FULL_SCHEMA = {
     score_register: { type: "integer", minimum: 1, maximum: 10 },
     rationale: { type: "string" },
     passed: { type: "boolean" },
-    original_language: { type: "string" },
-    original_text: { type: "string" },
-    english_text: { type: "string" },
     local_hour: { type: "integer", minimum: 0, maximum: 23 },
     milk_price_local: { type: "number", minimum: 0 },
     eggs_price_local: { type: "number", minimum: 0 },
@@ -268,15 +313,24 @@ const FULL_SCHEMA = {
     "score_register",
     "rationale",
     "passed",
-    "original_language",
-    "original_text",
-    "english_text",
     "local_hour",
     "milk_price_local",
     "eggs_price_local",
     "milk_price_usd",
     "eggs_price_usd"
   ]
+} as const;
+
+// Rewrite pass runs on scoring-passers only. Outputs just the text.
+const REWRITE_INGEST_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    original_language: { type: "string" },
+    original_text: { type: "string" },
+    english_text: { type: "string" }
+  },
+  required: ["original_language", "original_text", "english_text"]
 } as const;
 
 const PREFILTER_SCHEMA = {
@@ -529,7 +583,7 @@ export async function runIngest(opts: { cityId?: string } = {}): Promise<IngestR
   // 7. Weather (best effort).
   const weather = await fetchWeatherLabel(city.lat, city.lng);
 
-  // 8. Write top-K to moderation_queue with rank 1..K.
+  // 8. Rewrite (gpt-4o) for each survivor, then write top-K to queue.
   const toQueue = queueable.slice(0, TOP_PER_CITY);
   const queuedIds: string[] = [];
   for (let i = 0; i < toQueue.length; i++) {
@@ -541,17 +595,25 @@ export async function runIngest(opts: { cityId?: string } = {}): Promise<IngestR
     );
     const clearedThreshold = minScore >= SCORE_THRESHOLD;
     try {
+      const body = s.full._bodyText ?? s.entry.snippet;
+      const rewrite = await runRewriteIngest(s.entry, city, body);
+      const enriched: FullResult = {
+        ...s.full,
+        original_language: rewrite.original_language || s.full.original_language,
+        original_text: rewrite.original_text,
+        english_text: rewrite.english_text
+      };
       const id = await writeQueue({
         city,
         entry: s.entry,
-        full: s.full,
+        full: enriched,
         passedFilter: clearedThreshold,
         weather,
         rank: i + 1
       });
       queuedIds.push(id);
     } catch (err) {
-      console.warn("[pipeline] writeQueue failed:", (err as Error).message);
+      console.warn("[pipeline] rewrite/writeQueue failed:", (err as Error).message);
     }
   }
 
@@ -715,15 +777,19 @@ interface FullResult {
   eggs_price_local: number;
   milk_price_usd: number;
   eggs_price_usd: number;
+  /** Internal — what body source fed the scoring pass. */
+  _bodyText?: string;
+  _bodySource?: string;
+  _paywalled?: boolean;
 }
 
 async function runFullPass(
   entry: FeedEntry,
   city: City
 ): Promise<FullResult> {
-  // Try to recover the real article body so the scorer and rewrite
-  // have substance to work with. Falls back to RSS content/snippet
-  // if the site is paywalled or blocks scrapers.
+  // Try to recover the real article body so the scorer and (later)
+  // rewrite pass have substance to work with. Falls back to RSS
+  // content/snippet if the site is paywalled or blocks scrapers.
   const fetched = await fetchArticleBody(entry.link);
   const rssBody =
     entry.content && entry.content.length > entry.snippet.length
@@ -745,17 +811,18 @@ async function runFullPass(
     `SOURCE: ${entry.source_host}`,
     `URL: ${entry.link}`,
     `TITLE: ${entry.title}`,
-    `BODY_SOURCE: ${bodySource}${paywalled ? " (PAYWALLED — this is teaser only; downgrade scores accordingly)" : ""}`,
+    `BODY_SOURCE: ${bodySource}${paywalled ? " (PAYWALLED — teaser only; downgrade scores accordingly)" : ""}`,
     "",
     `BODY:`,
     bodyText,
     `</article-content>`
   ].join("\n");
 
-  const resp = await client().chat.completions.create({
-    model: FULL_MODEL,
-    temperature: 0.5,
-    max_tokens: 900,
+  // ---------- SCORING PASS (cheap model) ----------
+  const scoreResp = await client().chat.completions.create({
+    model: SCORE_MODEL,
+    temperature: 0.4,
+    max_tokens: 400,
     messages: [
       { role: "system", content: FULL_SYSTEM },
       { role: "user", content: userContent }
@@ -763,23 +830,28 @@ async function runFullPass(
     response_format: {
       type: "json_schema",
       json_schema: {
-        name: "OnceFullEval",
+        name: "OnceScore",
         strict: true,
-        schema: FULL_SCHEMA
+        schema: SCORE_SCHEMA
       }
     }
   });
+  const scoreRaw = scoreResp.choices[0]?.message?.content ?? "{}";
+  const scored = JSON.parse(scoreRaw) as Omit<
+    FullResult,
+    "original_language" | "original_text" | "english_text" | "_bodyText" | "_bodySource" | "_paywalled"
+  >;
 
-  const raw = resp.choices[0]?.message?.content ?? "{}";
-  const out = JSON.parse(raw) as FullResult;
-
-  const usage: UsageBreakdown = {
-    model: FULL_MODEL,
-    promptTokens: resp.usage?.prompt_tokens ?? 0,
-    cachedTokens: resp.usage?.prompt_tokens_details?.cached_tokens ?? 0,
-    completionTokens: resp.usage?.completion_tokens ?? 0
-  };
-  await recordSpend(usage, "ingest_full", null);
+  await recordSpend(
+    {
+      model: SCORE_MODEL,
+      promptTokens: scoreResp.usage?.prompt_tokens ?? 0,
+      cachedTokens: scoreResp.usage?.prompt_tokens_details?.cached_tokens ?? 0,
+      completionTokens: scoreResp.usage?.completion_tokens ?? 0
+    },
+    "ingest_score",
+    null
+  );
 
   await logDecision({
     city_id: city.id,
@@ -787,13 +859,90 @@ async function runFullPass(
     source_title: entry.title,
     source_snippet: entry.snippet,
     stage: "score",
-    verdict: out.passed ? "pass" : "fail",
-    score_specificity: out.score_specificity,
-    score_resonance: out.score_resonance,
-    score_register: out.score_register,
-    rationale: out.rationale
+    verdict: scored.passed ? "pass" : "fail",
+    score_specificity: scored.score_specificity,
+    score_resonance: scored.score_resonance,
+    score_register: scored.score_register,
+    rationale: scored.rationale
   });
 
+  return {
+    ...scored,
+    original_language: city.original_language ?? "en",
+    original_text: "",
+    english_text: "",
+    _bodyText: bodyText,
+    _bodySource: bodySource,
+    _paywalled: paywalled
+  };
+}
+
+/**
+ * Rewrite pass. Separate API call, uses the more capable model
+ * (gpt-4o by default). Called only for candidates that cleared the
+ * score floor and are about to be queued.
+ */
+async function runRewriteIngest(
+  entry: FeedEntry,
+  city: City,
+  bodyText: string
+): Promise<{ original_language: string; original_text: string; english_text: string }> {
+  const userContent = [
+    `CITY: ${city.name}, ${city.country}`,
+    `LOCAL LANGUAGE: ${city.original_language ?? "en"}`,
+    "",
+    `<article-content>`,
+    `SOURCE: ${entry.source_host}`,
+    `URL: ${entry.link}`,
+    `TITLE: ${entry.title}`,
+    "",
+    `BODY:`,
+    bodyText,
+    `</article-content>`
+  ].join("\n");
+
+  const resp = await client().chat.completions.create({
+    model: REWRITE_MODEL_INGEST,
+    temperature: 0.55,
+    max_tokens: 700,
+    messages: [
+      { role: "system", content: REWRITE_SYSTEM_INGEST },
+      { role: "user", content: userContent }
+    ],
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "OnceRewriteIngest",
+        strict: true,
+        schema: REWRITE_INGEST_SCHEMA
+      }
+    }
+  });
+
+  const raw = resp.choices[0]?.message?.content ?? "{}";
+  const out = JSON.parse(raw) as {
+    original_language: string;
+    original_text: string;
+    english_text: string;
+  };
+
+  await recordSpend(
+    {
+      model: REWRITE_MODEL_INGEST,
+      promptTokens: resp.usage?.prompt_tokens ?? 0,
+      cachedTokens: resp.usage?.prompt_tokens_details?.cached_tokens ?? 0,
+      completionTokens: resp.usage?.completion_tokens ?? 0
+    },
+    "ingest_rewrite",
+    null
+  );
+
+  // Force english_text empty when the city is anglophone — the
+  // renderer uses that to decide whether to show the translation block.
+  if ((city.original_language ?? "en") === "en") {
+    out.english_text = "";
+    out.original_language = "en";
+  }
   return out;
 }
 
