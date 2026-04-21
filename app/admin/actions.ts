@@ -334,6 +334,37 @@ export async function unpinStoryAction(formData: FormData): Promise<void> {
   redirect("/admin?tab=approved");
 }
 
+/**
+ * MARK GOOD — record a positive training signal without publishing.
+ *
+ * Use when you want to teach the AI "this is Once-shape" but don't
+ * want the story on the homepage right now. Sets status='approved'
+ * (so it counts toward the gold set) but skips enrichAndPublish
+ * entirely, so no stories row is created.
+ *
+ * You can still publish later from the approved tab (when the
+ * approveAndPublish flow is wired there). For now the training
+ * signal alone is the point.
+ */
+export async function markGoodAction(formData: FormData): Promise<void> {
+  const queueId = String(formData.get("id") ?? "").trim();
+  const note = String(formData.get("note") ?? "").trim();
+  if (!queueId) throw new Error("id required");
+
+  const sql = requireSql();
+  await sql`
+    update moderation_queue
+    set status='approved',
+        reviewed_at=now(),
+        reviewer='editor-training',
+        rejected_reason=${note || null}
+    where id=${queueId}
+  `;
+
+  revalidatePath("/admin");
+  redirect("/admin?tab=pending&marked=good");
+}
+
 /** RESTORE a rejected item back to pending so it can be reviewed again. */
 export async function restorePendingAction(formData: FormData): Promise<void> {
   const queueId = String(formData.get("id") ?? "").trim();

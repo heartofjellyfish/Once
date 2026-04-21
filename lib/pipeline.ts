@@ -164,11 +164,15 @@ restrained rewrite) can carry detail you can't see here.
     8  = source is already calm; minimal rewrite needed
     10 = perfectly calibrated Once voice already
 
-ALWAYS PRODUCE THE REWRITE, regardless of scores. The editor reviews
-top-5 per source to learn each feed's register — low-scored entries
-are informative too. If the moment is genuinely Once-shaped, rewrite
-it in Once's voice; if it's thin, write the most honest possible
-retelling in Once's voice (don't invent detail that isn't there).
+**CRITICAL: ALWAYS PRODUCE THE REWRITE, without exception.** The editor
+uses your rewrite as training signal — for low-scored entries too.
+Empty rewrites are not allowed; they block the training loop.
+
+Even if the source is thin, a listicle, a memoir, or clearly not
+Once: **still write a faithful retelling in Once's voice**, at
+minimum 20 characters, in the city's local language. Don't invent
+detail that isn't there — but write something honest about what
+the source IS. The editor will decide whether to use it.
 
 Rewrite contract:
 - original_text: 1-2 sentences IN THE LOCAL LANGUAGE, applying every

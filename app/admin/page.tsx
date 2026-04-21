@@ -5,7 +5,8 @@ import {
   rejectAction,
   pinStoryAction,
   unpinStoryAction,
-  restorePendingAction
+  restorePendingAction,
+  markGoodAction
 } from "./actions";
 
 import { formatLocal, formatUsd } from "@/lib/format";
@@ -290,86 +291,108 @@ export default async function QueuePage({
               <pre>{r.source_input}</pre>
             </details>
 
-            <div className="actions">
-              {tab === "pending" ? (
-                <>
-                  <form action={approveAction}>
-                    <ApproveHidden row={r} />
-                    <button type="submit" className="primary">
-                      approve &amp; publish now
-                    </button>
-                  </form>
-
-                  <a className="secondary" href={`/admin/edit/${r.id}`}>
-                    edit…
-                  </a>
-
-                  <form action={rejectAction}>
-                    <input type="hidden" name="id" value={r.id} />
-                    <input
-                      type="text"
-                      name="reason"
-                      placeholder="reason (optional)"
-                      className="reason"
-                    />
-                    <button type="submit" className="danger">
-                      reject
-                    </button>
-                  </form>
-                </>
-              ) : null}
-
-              {tab === "approved" && r.published_as_id ? (
-                <>
-                  {isPinnedNow ? (
-                    <form action={unpinStoryAction}>
-                      <input
-                        type="hidden"
-                        name="story_id"
-                        value={r.published_as_id}
-                      />
-                      <button type="submit" className="secondary">
-                        unpin
-                      </button>
-                    </form>
-                  ) : (
-                    <form action={pinStoryAction}>
-                      <input
-                        type="hidden"
-                        name="story_id"
-                        value={r.published_as_id}
-                      />
-                      <button type="submit" className="primary pin">
-                        show on homepage now
-                      </button>
-                    </form>
-                  )}
-                  <a
-                    className="secondary"
-                    href={`/admin/story/${r.published_as_id}`}
-                  >
-                    edit story…
-                  </a>
-                  <a
-                    className="secondary"
-                    href="/"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    view site ↗
-                  </a>
-                </>
-              ) : null}
-
-              {tab === "rejected" ? (
-                <form action={restorePendingAction}>
+            {tab === "pending" ? (
+              <div className="actions">
+                <form action={markGoodAction} className="good-form">
                   <input type="hidden" name="id" value={r.id} />
-                  <button type="submit" className="secondary">
-                    restore to pending
+                  <input
+                    type="text"
+                    name="note"
+                    placeholder="note (optional)"
+                    className="reason"
+                  />
+                  <button type="submit" className="primary">
+                    ✓ mark good (training)
                   </button>
                 </form>
-              ) : null}
-            </div>
+
+                <form action={rejectAction} className="reject-form">
+                  <input type="hidden" name="id" value={r.id} />
+                  <input
+                    type="text"
+                    name="reason"
+                    placeholder="why not? (optional)"
+                    className="reason"
+                  />
+                  <button type="submit" className="danger">
+                    ✗ reject
+                  </button>
+                </form>
+
+                <details className="publish-slot">
+                  <summary>publish…</summary>
+                  <div className="publish-body">
+                    <form action={approveAction}>
+                      <ApproveHidden row={r} />
+                      <button type="submit" className="publish-btn">
+                        approve &amp; publish now
+                      </button>
+                    </form>
+                    <a className="secondary-sm" href={`/admin/edit/${r.id}`}>
+                      edit first…
+                    </a>
+                  </div>
+                </details>
+              </div>
+            ) : null}
+            {tab !== "pending" ? (
+              <div className="actions">
+                {tab === "approved" && r.published_as_id ? (
+                  <>
+                    {isPinnedNow ? (
+                      <form action={unpinStoryAction}>
+                        <input
+                          type="hidden"
+                          name="story_id"
+                          value={r.published_as_id}
+                        />
+                        <button type="submit" className="secondary">
+                          unpin
+                        </button>
+                      </form>
+                    ) : (
+                      <form action={pinStoryAction}>
+                        <input
+                          type="hidden"
+                          name="story_id"
+                          value={r.published_as_id}
+                        />
+                        <button type="submit" className="primary pin">
+                          show on homepage now
+                        </button>
+                      </form>
+                    )}
+                    <a
+                      className="secondary"
+                      href={`/admin/story/${r.published_as_id}`}
+                    >
+                      edit story…
+                    </a>
+                    <a
+                      className="secondary"
+                      href="/"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      view site ↗
+                    </a>
+                  </>
+                ) : null}
+
+                {tab === "approved" && !r.published_as_id ? (
+                  <span className="meta">training-only (not published)</span>
+                ) : null}
+
+                {tab === "rejected" ? (
+                  <form action={restorePendingAction}>
+                    <input type="hidden" name="id" value={r.id} />
+                    <button type="submit" className="secondary">
+                      restore to pending
+                    </button>
+                  </form>
+                ) : null}
+              </div>
+            ) : null}
           </article>
         );
       })}
@@ -643,6 +666,50 @@ export default async function QueuePage({
           flex-wrap: wrap;
         }
         .actions form { display: inline-flex; gap: 6px; align-items: center; }
+        .good-form button.primary { background: #3f5e28; border-color: #3f5e28; }
+        .good-form button.primary:hover { background: #3f5e28; opacity: 0.88; }
+        .publish-slot {
+          margin-left: auto;
+          font-family: var(--sans);
+          font-size: 11px;
+        }
+        .publish-slot summary {
+          cursor: pointer;
+          color: var(--ink-faint);
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          user-select: none;
+          padding: 6px 10px;
+          border: 1px dashed var(--hairline);
+          border-radius: 3px;
+          list-style: none;
+        }
+        .publish-slot[open] summary { color: var(--ink-muted); }
+        .publish-body {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          margin-top: 8px;
+        }
+        .publish-btn {
+          font-family: var(--sans);
+          font-size: 11px;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          padding: 6px 10px;
+          border-radius: 3px;
+          border: 1px solid var(--hairline);
+          background: transparent;
+          color: var(--ink-muted);
+          cursor: pointer;
+        }
+        .publish-btn:hover { color: var(--ink); background: var(--hairline); }
+        .secondary-sm {
+          font-size: 11px;
+          color: var(--ink-faint);
+          text-decoration: none;
+          border-bottom: 1px dotted var(--hairline);
+        }
 
         button, .secondary {
           font-family: var(--sans);
