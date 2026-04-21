@@ -14,6 +14,7 @@
  */
 
 import { watercolorMapUrl } from "./map";
+import { searchUnsplash } from "./unsplash";
 
 const FETCH_TIMEOUT_MS = 6000;
 const MAX_HTML_BYTES = 400_000; // ~400KB — plenty for <head>
@@ -226,18 +227,31 @@ export async function scrapeOgImage(sourceUrl: string): Promise<string | null> {
 
 /**
  * Top-level: always returns a URL. Preference order:
- *   1. Best OG / twitter image we could scrape.
- *   2. Stamen Watercolor map of the story's city (if lat/lng provided) —
- *      brand-coherent with the postmark stamp, free, and always works.
- *   3. Deterministic picsum placeholder keyed on seedKey — last resort.
+ *   1. Best OG / twitter image we could scrape from the source article.
+ *   2. Unsplash keyword search — if an `unsplashQuery` is supplied.
+ *      Bakeoff showed Unsplash has the most on-brand film/documentary
+ *      aesthetic among free image libraries.
+ *   3. Stamen Watercolor map of the story's city (if lat/lng provided) —
+ *      brand-coherent with the postmark stamp, always works.
+ *   4. Deterministic picsum placeholder keyed on seedKey — last resort.
  */
 export async function resolveHeroImage(
   sourceUrl: string,
   seedKey: string,
-  fallback?: { lat: number | null | undefined; lng: number | null | undefined }
+  fallback?: {
+    lat: number | null | undefined;
+    lng: number | null | undefined;
+    unsplashQuery?: string | null;
+  }
 ): Promise<string> {
   const scraped = await scrapeOgImage(sourceUrl);
   if (scraped) return scraped;
+
+  const query = fallback?.unsplashQuery?.trim();
+  if (query) {
+    const found = await searchUnsplash(query);
+    if (found) return found;
+  }
 
   if (
     fallback &&

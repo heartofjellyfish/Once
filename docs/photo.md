@@ -16,10 +16,13 @@ Every published story has **one hero image** rendered above the text, and **one 
 ## Current resolution chain (`lib/ogImage.ts` → `resolveHeroImage`)
 
 1. **OG scrape** — fetch the source article's `<head>` (capped at 400KB), pick the best `og:image` / `twitter:image` / `twitter:image:src` / `og:image:secure_url`. Size hints from `og:image:width|height` inform a score. Obvious logos rejected via `LOGO_PATTERNS` regex (`logo`, `favicon`, `og-default`, `site-icon`, `placeholder`, `default-image`, `apple-touch`).
-2. **Watercolor map fallback** — when OG fails or returns a logo-only result, generate a Stamen Watercolor static map centered on the story's lat/lng at zoom 12 via Stadia Maps (`lib/map.ts` → `watercolorMapUrl`). 720×480 for hero, smaller for stamp. On-brand with the envelope aesthetic.
-3. **Last-resort picsum** — `https://picsum.photos/seed/{slug}/1200/900`, deterministic per story. Only fires when both OG and lat/lng are missing, which is rare in practice.
+2. **Unsplash keyword search** (`lib/unsplash.ts`) — when OG fails. Query is built by `lib/photoKeywords.ts`: gpt-4o-mini pulls the single most photographable noun from the rewrite, appended to the city name (e.g. "Old Bazaar Skopje"). Bakeoff vs. Openverse / Pexels / Pixabay showed Unsplash has the most on-brand film/documentary aesthetic. License permits no-attribution use; crediting is a future upgrade.
+3. **Watercolor map fallback** — when Unsplash returns nothing or no keyword was extractable. Stamen Watercolor static map centered on the story's lat/lng at zoom 12 via Stadia Maps (`lib/map.ts` → `watercolorMapUrl`). 720×480 for hero, smaller for stamp. On-brand with the envelope aesthetic.
+4. **Last-resort picsum** — `https://picsum.photos/seed/{slug}/1200/900`, deterministic per story. Only fires when OG, Unsplash, and lat/lng all fail.
 
 Fallbacks never throw — `resolveHeroImage()` always returns a string URL.
+
+All hero images render through a unified CSS filter in `app/page.tsx` (`sepia(0.35) saturate(0.78) contrast(0.97) brightness(0.97)`) — pulls stocky OG images and naturalistic Unsplash photos into a shared warm palette.
 
 ## Security rules (non-negotiable)
 

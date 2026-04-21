@@ -10,6 +10,7 @@ import {
 } from "./budget";
 import { fetchWeatherLabel } from "./weather";
 import { resolveHeroImage } from "./ogImage";
+import { extractPhotoKeyword } from "./photoKeywords";
 import type { City } from "./types";
 import { ONCE_HEADER, SECURITY_NOTE } from "./prompts";
 import { fetchArticleBody } from "./articleBody";
@@ -1066,13 +1067,18 @@ async function writeQueue(args: {
   const { city, entry, full, passedFilter, weather, rank } = args;
   const sql = requireSql();
 
-  // Hero image — try OG scrape of the source article, fall back to a
-  // watercolor map of the city (on-brand with the postmark stamp), and
-  // only use the deterministic picsum placeholder as a last resort.
+  // Hero image. Try OG scrape of the source article first; if that
+  // fails, search Unsplash with a (visual-noun + city) keyword extracted
+  // from the rewrite; then watercolor map of the city; then picsum.
+  const rewriteForQuery =
+    full.english_text?.trim() || full.original_text?.trim() || "";
+  const unsplashQuery = rewriteForQuery
+    ? await extractPhotoKeyword(rewriteForQuery, city.name)
+    : city.name;
   const photoUrl = await resolveHeroImage(
     entry.link,
     `${city.id}-${entry.title}`,
-    { lat: city.lat, lng: city.lng }
+    { lat: city.lat, lng: city.lng, unsplashQuery }
   );
 
   // Skip if this URL is already sitting in the pending queue — avoids
