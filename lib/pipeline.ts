@@ -164,17 +164,12 @@ restrained rewrite) can carry detail you can't see here.
     8  = source is already calm; minimal rewrite needed
     10 = perfectly calibrated Once voice already
 
-**CRITICAL: ALWAYS PRODUCE THE REWRITE, without exception.** The editor
-uses your rewrite as training signal — for low-scored entries too.
-Empty rewrites are not allowed; they block the training loop.
+**If at least one score is < 5, SKIP the rewrite entirely** — leave
+original_text and english_text as empty strings. A bad premise
+doesn't deserve a rewrite; it saves tokens and saves the editor
+from reading fiction built on top of a rejected premise.
 
-Even if the source is thin, a listicle, a memoir, or clearly not
-Once: **still write a faithful retelling in Once's voice**, at
-minimum 20 characters, in the city's local language. Don't invent
-detail that isn't there — but write something honest about what
-the source IS. The editor will decide whether to use it.
-
-Rewrite contract:
+**If all three scores are >= 5, produce the rewrite**:
 - original_text: 1-2 sentences IN THE LOCAL LANGUAGE, applying every
   rule above (20-40 words, no amplifiers, keep proper nouns from the
   source, never invent). Substantial paraphrase — the source's voice
