@@ -32,8 +32,16 @@ const parser = new Parser({
   }
 });
 
-/** Time window — entries older than this get dropped. */
-export const ENTRY_WINDOW_HOURS = 24;
+/**
+ * Time window — entries older than this get dropped.
+ *
+ * 7 days fits low-volume literary feeds (Rest of World, Hakai, Atlas
+ * Obscura) that publish 1–3 pieces a week; daily papers still
+ * surface their freshest content because dedup + the top-5-per-city
+ * ranking push staler entries toward the back. Too-narrow window
+ * starves the slow feeds entirely.
+ */
+export const ENTRY_WINDOW_HOURS = 24 * 7;
 
 /**
  * Pick one active city for this cron cycle. Prefers cities that haven't
