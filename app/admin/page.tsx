@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ReviewActionForm } from "./_components/ReviewActions";
 import { requireSql, dbAvailable } from "@/lib/db";
 import {
   approveAction,
@@ -308,7 +309,7 @@ export default async function QueuePage({
 
             {tab === "pending" ? (
               <div className="actions">
-                <form action={markGoodAction} className="good-form">
+                <ReviewActionForm action={markGoodAction} className="good-form">
                   <input type="hidden" name="id" value={r.id} />
                   <input
                     type="text"
@@ -316,12 +317,12 @@ export default async function QueuePage({
                     placeholder="note (optional)"
                     className="reason"
                   />
-                  <button type="submit" className="primary">
-                    ✓ mark good (training)
+                  <button type="submit" className="good-btn">
+                    ✓ mark good
                   </button>
-                </form>
+                </ReviewActionForm>
 
-                <form action={rejectAction} className="reject-form">
+                <ReviewActionForm action={rejectAction} className="reject-form">
                   <input type="hidden" name="id" value={r.id} />
                   <input
                     type="text"
@@ -329,20 +330,20 @@ export default async function QueuePage({
                     placeholder="why not? (optional)"
                     className="reason"
                   />
-                  <button type="submit" className="danger">
+                  <button type="submit" className="reject-btn">
                     ✗ reject
                   </button>
-                </form>
+                </ReviewActionForm>
 
                 <details className="publish-slot">
                   <summary>publish…</summary>
                   <div className="publish-body">
-                    <form action={approveAction}>
+                    <ReviewActionForm action={approveAction}>
                       <ApproveHidden row={r} />
                       <button type="submit" className="publish-btn">
                         approve &amp; publish now
                       </button>
-                    </form>
+                    </ReviewActionForm>
                     <a className="secondary-sm" href={`/admin/edit/${r.id}`}>
                       edit first…
                     </a>
@@ -491,6 +492,22 @@ export default async function QueuePage({
           display: flex;
           flex-direction: column;
           gap: 12px;
+          transition: opacity 0.2s ease, transform 0.2s ease,
+                      max-height 0.2s ease, margin 0.2s ease,
+                      padding 0.2s ease;
+          max-height: 2000px;
+          overflow: hidden;
+        }
+        .card.exiting {
+          opacity: 0;
+          transform: scale(0.98);
+          max-height: 0;
+          margin-top: 0;
+          margin-bottom: 0;
+          padding-top: 0;
+          padding-bottom: 0;
+          border-width: 0;
+          pointer-events: none;
         }
         .card.flagged {
           border-color: rgba(200, 120, 0, 0.35);
@@ -702,8 +719,28 @@ export default async function QueuePage({
           flex-wrap: wrap;
         }
         .actions form { display: inline-flex; gap: 6px; align-items: center; }
-        .good-form button.primary { background: #3f5e28; border-color: #3f5e28; }
-        .good-form button.primary:hover { background: #3f5e28; opacity: 0.88; }
+
+        .good-btn, .reject-btn {
+          font-family: var(--sans);
+          font-size: 12px;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          padding: 8px 14px;
+          border-radius: 3px;
+          cursor: pointer;
+          border: 1px solid transparent;
+          color: #fffaf0;
+        }
+        .good-btn {
+          background: #3f5e28;
+          border-color: #3f5e28;
+        }
+        .good-btn:hover { opacity: 0.88; }
+        .reject-btn {
+          background: #8a3520;
+          border-color: #8a3520;
+        }
+        .reject-btn:hover { opacity: 0.88; }
         .publish-slot {
           margin-left: auto;
           font-family: var(--sans);
