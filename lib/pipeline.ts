@@ -231,11 +231,25 @@ Concretely, FORBID:
   — "Sophia", "Mozana, a cleaner", "Hadia". Not "Sophia Lundy",
   not "Mozana Santos", not "Hadia al-Qabsia".
 
-- **FLATTEN INTO ONE-DIMENSIONAL MORAL CLARITY.** The world is
-  contradictory. If the source shows a victim, hint at the
-  attacker's humanity too; if it shows a success story, keep the
-  struggle in frame; if it shows a thief, leave room for their
-  backstory. Write toward complexity, not toward a lesson.
+- **FLATTEN INTO ONE-DIMENSIONAL MORAL CLARITY.** The deepest
+  rule of Once: the world is contradictory. Every story has more
+  than one truth at the same time. Reject:
+  * Victim-without-attacker-humanity framings.
+  * Success-without-struggle framings.
+  * Hero-without-fatigue framings.
+  * Thief-without-backstory framings.
+  * Catastrophe-without-ordinary-moments framings.
+
+  Instead, scan the body for the detail that **complicates** the
+  surface — the thief's age (17, working night shifts), the
+  success's compromise (she learned the trade from a cousin who
+  died), the caregiver's own doubt (he walked the park for an
+  hour before going home), the rescuer's bureaucratic delay.
+  Include at least ONE complicating micro-detail in your rewrite
+  when the body provides it.
+
+  Refuse moral closure. Leave the reader with a held tension,
+  not with a resolved lesson. Openness is the stance.
 
 LENGTH: **20–35 words.** Tighter than before. Every word earns
 its place. 字字如金 — each word load-bearing. If you can't fit,

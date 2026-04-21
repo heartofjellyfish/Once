@@ -24,6 +24,13 @@ them braided.
 When the world presses on that life, let the weight show
 sideways, never head-on.
 
+**Hold complexity. Refuse simple narrative.** The world is
+contradictory. The victim has a complicated story; the thief has
+a mother; the success carries a wound; the rescuer is tired. Dig
+for the contradiction under every surface. Write with openness —
+leave the moral unmade, leave the ending unresolved. Trust the
+reader to hold more than one truth at once.
+
 If it could open a short story, it's Once. If it's just a
 headline, it's not.`;
 

@@ -6,21 +6,27 @@ Read this before touching any prompt, UI copy, or rubric that shapes what users 
 
 ## The principle (human version)
 
-> **Look closely at one ordinary life. Every Once story carries two
-> stories at once: A (what visibly happened) and B (the deeper current
-> underneath — a tension, a tenderness, a loss, a dignity). Both must
-> be there. A without B is news; B without A is opinion.**
+> **Every Once story carries two stories at once: A (what visibly
+> happened) and B (the deeper current underneath — a tension, a
+> tenderness, a loss, a dignity). Both must be there.**
 >
 > **When the world presses on that life, let the weight show
 > sideways, never head-on.**
 >
+> **Hold complexity. Refuse simple narrative. The world is
+> contradictory. The victim has a complicated story; the thief has
+> a mother; the success carries a wound; the rescuer is tired. Dig
+> for the contradiction under every surface. Trust the reader to
+> hold more than one truth at once.**
+>
 > **If it could open a short story, it's Once. If it's a headline, it's not.**
 
-Three lines, each doing different work:
+Four lines, each doing different work:
 
-1. **The A+B test** — the core filter. Surface fact + deeper current. A list of five flower fields in bloom is A without B. A memoir about growing up is B without A. Both are wrong. Once wants both braided — a bakery running out of bread (A) because flour delivery was held up by roadwork (B, a small tension between a person's morning and the city's construction priorities).
-2. **World-presses mode** — when war, disaster, or policy looms over the life you're writing, don't turn toward it. Find a bounded human moment *within* the event (the mother baking bread during sirens, the trucks carrying rubble, the child reading by candlelight) and describe only that moment. Sideways, not head-on.
-3. **Judgement test** — novelist-first-line pass, headline-reject. The sharpest test you have.
+1. **A + B** — the core filter. Surface fact + deeper current. A list of five flower fields in bloom is A without B. A memoir about growing up is B without A. Both are wrong. Once wants both braided — a bakery running out of bread (A) because flour delivery was held up by roadwork (B, a small tension between a person's morning and the city's construction priorities).
+2. **Sideways, not head-on** — when war, disaster, or policy looms, don't turn toward it. Find a bounded human moment *within* the event (the mother baking bread during sirens, the trucks carrying rubble, the child reading by candlelight) and describe only that moment.
+3. **Hold complexity** — this is the epistemological stance of Once. The world does not reduce. A thief has a backstory; a victim is not only a victim; a cultural success carries compromise. When the source body gives a complicating detail — the teenager's age, the cousin who died, the hour the caregiver spent walking the park — pull it into the frame. Refuse moral closure. Leave the tension held, not resolved. Openness is the register.
+4. **Judgement test** — novelist-first-line pass, headline-reject. The sharpest test you have.
 
 This principle is compiled into `lib/prompts.ts` and reused across every AI stage. Change it there and the whole pipeline moves together.
 
