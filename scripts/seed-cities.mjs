@@ -88,10 +88,14 @@ const cities = [
     original_language: "zh",
     location_summary: "China's capital, ~21 million people; hutong alleys braided with ministries",
     // Sixth Tone: "small voices, big times" — Once's natural register
-    // in English. Covers China broadly but often Beijing-anchored.
+    // in English. What's On Weibo: social-media-facing context.
+    // RADII: youth culture, urban life. That's Mags: Beijing expat
+    // lifestyle. Rest of World: global ordinary-life-meets-power.
     rss_feeds: [
       "https://www.sixthtone.com/rss",
       "https://www.whatsonweibo.com/feed/",
+      "https://radii.co/feed",
+      "https://www.thatsmags.com/rss",
       "https://restofworld.org/feed/"
     ]
   },
@@ -105,11 +109,14 @@ const cities = [
     currency_code: "CNY", currency_symbol: "¥",
     original_language: "zh",
     location_summary: "a major port city in northern China, ~15 million people",
-    // No strong soft-news English feed; relies on compose + Sixth Tone
-    // crossover + RoW's China coverage. Can be improved later.
+    // Same China stack as Beijing — RADII + That's Mags + Sixth Tone
+    // + What's On Weibo + RoW. City-match filter picks out
+    // Tianjin-specific pieces when they appear.
     rss_feeds: [
       "https://www.sixthtone.com/rss",
       "https://www.whatsonweibo.com/feed/",
+      "https://radii.co/feed",
+      "https://www.thatsmags.com/rss",
       "https://restofworld.org/feed/"
     ]
   },
@@ -123,10 +130,13 @@ const cities = [
     currency_code: "CNY", currency_symbol: "¥",
     original_language: "zh",
     location_summary: "China's eastern port city, ~25 million people; lane houses beside skyscrapers",
-    // Sixth Tone + What's On Weibo + RoW's China coverage.
+    // Same China stack as Beijing. That's Mags has a dedicated
+    // Shanghai strand that often anchors Shanghai-specific pieces.
     rss_feeds: [
       "https://www.sixthtone.com/rss",
       "https://www.whatsonweibo.com/feed/",
+      "https://radii.co/feed",
+      "https://www.thatsmags.com/rss",
       "https://restofworld.org/feed/"
     ]
   },

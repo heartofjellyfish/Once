@@ -42,6 +42,8 @@ const SEED_CITIES = [
     rss_feeds: [
       "https://www.sixthtone.com/rss",
       "https://www.whatsonweibo.com/feed/",
+      "https://radii.co/feed",
+      "https://www.thatsmags.com/rss",
       "https://restofworld.org/feed/"
     ]
   },
@@ -53,6 +55,8 @@ const SEED_CITIES = [
     rss_feeds: [
       "https://www.sixthtone.com/rss",
       "https://www.whatsonweibo.com/feed/",
+      "https://radii.co/feed",
+      "https://www.thatsmags.com/rss",
       "https://restofworld.org/feed/"
     ]
   },
@@ -64,6 +68,8 @@ const SEED_CITIES = [
     rss_feeds: [
       "https://www.sixthtone.com/rss",
       "https://www.whatsonweibo.com/feed/",
+      "https://radii.co/feed",
+      "https://www.thatsmags.com/rss",
       "https://restofworld.org/feed/"
     ]
   },

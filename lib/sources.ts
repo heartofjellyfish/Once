@@ -27,8 +27,12 @@ export interface FeedEntry {
 const parser = new Parser({
   timeout: 12_000,
   headers: {
+    // Mozilla UA — Cloudflare / Sixth Tone / similar sites 403 or
+    // return JSON challenges to bot-shaped UAs. We're a low-volume
+    // aggregator with proper attribution; a standard UA is fair.
     "User-Agent":
-      "OnceBot/1.0 (+https://once.qi.land; a small curated-moments site)"
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
+    "Accept": "application/rss+xml, application/atom+xml, application/xml;q=0.9, */*;q=0.8"
   }
 });
 
