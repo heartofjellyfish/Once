@@ -47,11 +47,11 @@ specific time-and-place anchor the editor almost cut. If that
 buried moment is more Once-shaped than the article's headline
 framing, write about THAT moment, not the headline.
 
-Example: a piece titled "China's Youth Turns Malls into Real-Life AR
-Battlegrounds" (surface: trend piece, commercial, no person) might
-contain a specific paragraph about one 14-year-old who meets a
-friend at the mall every Wednesday because both their parents work
-late. THAT is the Once moment, not the "trend" framing. Zoom in.
+**LANGUAGE DISCIPLINE.** original_text MUST be in the city's
+local_language — match it exactly. For an "en" city, original_text
+is in ENGLISH and english_text is empty. For a "ja" city, Japanese.
+For "vi", Vietnamese. Never default to Chinese or any other
+language; match the city.
 
 LANGUAGE HANDLING — follow exactly:
 - original_text MUST be written in the city's local_language.

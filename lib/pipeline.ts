@@ -153,6 +153,13 @@ ON THAT BURIED MOMENT, not on the article's headline framing.
 Don't refuse to see what's inside just because the outside is
 commercial.
 
+**LANGUAGE DISCIPLINE — READ CAREFULLY.** The city's LOCAL LANGUAGE
+is passed in the user prompt. original_text MUST be written in
+that exact language — nothing else. If the city's local_language is
+"en", original_text is IN ENGLISH and english_text is empty string.
+If it's "ja", original_text is in Japanese. If it's "vi", Vietnamese.
+Do NOT default to Chinese or any other language. Match the city.
+
 The source is often written in newspaper voice with amplifier words
 ("defies odds", "incredibly", "stunning", "must-see"). THAT IS FINE.
 Your rewrite will strip those. Judge whether there's a real, specific,
