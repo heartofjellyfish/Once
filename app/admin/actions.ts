@@ -398,5 +398,5 @@ export async function rejectAction(formData: FormData): Promise<void> {
   `;
 
   revalidatePath("/admin");
-  redirect("/admin");
+  redirect("/admin?tab=pending&rejected=1");
 }

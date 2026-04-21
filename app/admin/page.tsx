@@ -62,13 +62,22 @@ function parseTab(v: string | undefined): Tab {
 export default async function QueuePage({
   searchParams
 }: {
-  searchParams: Promise<{ err?: string; tab?: string; pinned?: string; patched?: string }>;
+  searchParams: Promise<{
+    err?: string;
+    tab?: string;
+    pinned?: string;
+    patched?: string;
+    rejected?: string;
+    marked?: string;
+  }>;
 }) {
   const sp = await searchParams;
   const errMsg = sp.err;
   const tab = parseTab(sp.tab);
   const pinnedFlash = sp.pinned === "1";
   const patchedFlash = sp.patched === "1";
+  const rejectedFlash = sp.rejected === "1";
+  const markedGoodFlash = sp.marked === "good";
 
   if (!dbAvailable()) {
     return <p className="empty">Database not available — see header notice.</p>;
@@ -132,13 +141,19 @@ export default async function QueuePage({
       {patchedFlash ? (
         <div className="ok">✓ Story updated.</div>
       ) : null}
+      {markedGoodFlash ? (
+        <div className="ok">✓ Marked as good (training signal recorded).</div>
+      ) : null}
+      {rejectedFlash ? (
+        <div className="no">✗ Rejected (reason recorded).</div>
+      ) : null}
 
       <nav className="tabs">
         {(["pending", "approved", "rejected"] as const).map((t) => (
           <Link
             key={t}
             href={`/admin?tab=${t}`}
-            className={`tab ${tab === t ? "active" : ""}`}
+            className={`tab tab-${t} ${tab === t ? "active" : ""}`}
           >
             {t} <span className="n">{counts[t]}</span>
           </Link>
@@ -398,7 +413,7 @@ export default async function QueuePage({
       })}
 
       <style>{`
-        .err, .ok {
+        .err, .ok, .no {
           padding: 10px 12px;
           border-radius: 4px;
           font-size: 13px;
@@ -411,6 +426,11 @@ export default async function QueuePage({
         .ok {
           background: rgba(109, 140, 72, 0.12);
           color: #3f5e28;
+          font-family: var(--mono);
+        }
+        .no {
+          background: rgba(168, 90, 60, 0.12);
+          color: #8a3520;
           font-family: var(--mono);
         }
         .empty {
@@ -447,6 +467,22 @@ export default async function QueuePage({
           font-size: 11px;
         }
         .tab.active .n { color: var(--ink-muted); }
+        .tab-approved { color: #6d8c48; }
+        .tab-approved:hover { color: #3f5e28; }
+        .tab-approved.active {
+          color: #3f5e28;
+          border-bottom-color: #3f5e28;
+        }
+        .tab-approved .n { color: rgba(63, 94, 40, 0.5); }
+        .tab-approved.active .n { color: rgba(63, 94, 40, 0.8); }
+        .tab-rejected { color: #b87a5c; }
+        .tab-rejected:hover { color: #8a3520; }
+        .tab-rejected.active {
+          color: #8a3520;
+          border-bottom-color: #8a3520;
+        }
+        .tab-rejected .n { color: rgba(138, 53, 32, 0.5); }
+        .tab-rejected.active .n { color: rgba(138, 53, 32, 0.8); }
 
         .card {
           border: 1px solid var(--hairline);
