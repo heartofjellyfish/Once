@@ -26,15 +26,15 @@ interface Row {
 
 async function main() {
   const sql = requireSql();
-  // Only rewrite recently-reviewed approvals (past 3h) — the ones
-  // that carry the latest reviewer feedback. Older ones already
-  // went through a previous rewrite pass.
+  // Rewrite all approved-not-yet-published rows. Widen the window
+  // when iterating the prompt so the full corpus gets the new version.
+  const windowHours = Number(process.env.REWRITE_WINDOW_HOURS || "3");
   const rows = (await sql`
     select id, source_url, city, country, source_input, original_language
     from moderation_queue
     where status = 'approved'
       and published_as_id is null
-      and reviewed_at > now() - interval '3 hours'
+      and reviewed_at > now() - make_interval(hours => ${windowHours})
     order by reviewed_at desc
   `) as unknown as Row[];
 

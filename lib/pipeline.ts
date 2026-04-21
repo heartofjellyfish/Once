@@ -245,40 +245,35 @@ LENGTH: **20–35 words.** One or two sentences. 字字如金.
 If you can't fit everything, cut the place name before you
 cut the human detail.
 
-## CALIBRATION EXAMPLES (one shape each among infinitely many)
+## CALIBRATION (shape, not content)
 
-These are NOT a checklist. They're samples to calibrate your
-ear. Any shape that satisfies the phenomenon + passes the
-reader's-side test counts the same, whether it fits a pattern
-below or not.
+No concrete example stories. Pulling specific nouns, numbers, or
+scenes from an illustrative example is a HALLUCINATION — those
+details are not in the article body you're given, and borrowing
+them falsifies the story.
 
-  [absence] "The Rua da Bica bakery ran out of bread at 2 pm.
-   The baker said flour delivery was late because of roadwork."
-   — the baker's morning weighs more because of the city's
-   roadwork pressing on it.
+Instead, here is the SHAPE the rewrite should follow, in
+abstract terms. Any content must come from the body, never
+from this description:
 
-  [a routine suddenly heavier] "Mozana, a cleaner, waves at the
-   971D-10 bus again; the driver passes without stopping. She
-   now leaves home twenty minutes earlier than last month."
-   — the wave is routine, the 20-minute adjustment is the weight.
+  A person (specific, named as the body names them) does a
+  small thing (named verb + named object — both from the body).
+  One additional sentence carries a second fact from the body
+  that makes the small thing weigh more than itself — a number,
+  a context, a contrast, a repetition, a before/after, a
+  quoted remark.
 
-  [the kept object] "The 11-headed Kannon at Nagahama has stood
-   for twelve hundred years. A temple volunteer still polishes
-   the laughing face at the back of its skull each morning."
-   — the routine polishing carries the centuries.
+  NEVER end on interpretation. NEVER introduce a detail that is
+  not in the body. If the body gives you only one layer,
+  write one honest sentence and stop.
 
-  [a bounded bystander kindness] "On a flight to Delhi,
-   Jennifer learned her friend had died. The Muslim couple beside
-   her, on their honeymoon, set down their menus and held her
-   hand until the meal service ended." — the honeymoon weighs
-   against the grief without being named.
-
-  [a named number bearing stakes] "In Háafell, the Icelandic goat
-   herd passed 2,000 head last spring. A decade ago, only 100
-   remained." — the 100-to-2000 gap IS the story.
-
-Anything that passes the reader-side test (a/b/c) counts,
-including shapes not illustrated here.
+Self-check before submitting:
+  1. Every concrete noun, number, and named object in my
+     rewrite — can I point to it in the body? If NO, delete it.
+  2. Does my last sentence describe a thing, or interpret a
+     thing? If interpret, delete it.
+  3. Could a reader supply the meaning, or have I handed it to
+     them?
 
 LANGUAGE DISCIPLINE: original_text MUST be in the city's local_language.
 - If local_language is "en", original_text is in ENGLISH and
