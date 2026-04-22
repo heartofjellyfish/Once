@@ -138,7 +138,10 @@ export default async function RunsPage({
     order by coalesce(c.last_ingest_at, 'epoch'::timestamptz) desc
   `) as unknown as StatsRow[];
 
-  // Recent AI decisions.
+  // Recent AI decisions — window by time so a daily batch run of 36
+  // cities doesn't flush out a single city's run by sheer volume.
+  // 6h window catches today's cron + any manual runs, with a hard row
+  // cap as a safety net.
   const decisions = (await sql`
     select
       id::text as id,
@@ -149,8 +152,9 @@ export default async function RunsPage({
       queue_id::text as queue_id,
       city_id
     from ai_decisions
+    where at > now() - interval '6 hours'
     order by at desc
-    limit 80
+    limit 1000
   `) as unknown as DecisionRow[];
 
   return (
