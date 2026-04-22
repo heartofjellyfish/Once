@@ -7,7 +7,8 @@ import {
   pinStoryAction,
   unpinStoryAction,
   restorePendingAction,
-  markGoodAction
+  markGoodAction,
+  rerollPhotoAction
 } from "./actions";
 
 import { formatLocal, formatUsd } from "@/lib/format";
@@ -306,6 +307,19 @@ export default async function QueuePage({
               <summary>original input</summary>
               <pre>{r.source_input}</pre>
             </details>
+
+            {tab === "pending" && r.photo_url ? (
+              <div className="photo-row">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={r.photo_url} alt="hero candidate" className="photo-thumb" />
+                <ReviewActionForm action={rerollPhotoAction}>
+                  <input type="hidden" name="id" value={r.id} />
+                  <button type="submit" className="secondary-sm">
+                    reroll photo
+                  </button>
+                </ReviewActionForm>
+              </div>
+            ) : null}
 
             {tab === "pending" ? (
               <div className="actions">
@@ -719,6 +733,20 @@ export default async function QueuePage({
           flex-wrap: wrap;
         }
         .actions form { display: inline-flex; gap: 6px; align-items: center; }
+        .photo-row {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+          margin: 10px 0;
+        }
+        .photo-thumb {
+          width: 160px;
+          height: 107px;
+          object-fit: cover;
+          border-radius: 3px;
+          border: 1px solid var(--hairline, #e4ddd2);
+          filter: sepia(0.35) saturate(0.78) contrast(0.97) brightness(0.97);
+        }
 
         .good-btn, .reject-btn {
           font-family: var(--sans);

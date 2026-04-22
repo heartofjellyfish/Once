@@ -7,6 +7,8 @@ import { curate } from "@/lib/curate";
 import { runIngest } from "@/lib/pipeline";
 import { enrichAndPublish } from "@/lib/enrich";
 import { currentHour } from "@/lib/stories";
+import { resolveHeroImage } from "@/lib/ogImage";
+import { extractPhotoKeyword } from "@/lib/photoKeywords";
 
 /** Slug helper for generated story IDs. ASCII-only, kebab. */
 function slug(input: string): string {
@@ -382,6 +384,52 @@ export async function restorePendingAction(formData: FormData): Promise<void> {
 }
 
 /** REJECT with a reason. */
+/**
+ * REROLL PHOTO — reviewer hit the "reroll photo" button on a pending
+ * card. Forces the fallback chain to skip OG (since the current OG
+ * photo is what they want gone) and tries Unsplash → watercolor → picsum.
+ */
+export async function rerollPhotoAction(formData: FormData): Promise<void> {
+  const queueId = String(formData.get("id") ?? "");
+  if (!queueId) throw new Error("id required");
+
+  const sql = requireSql();
+  const rows = (await sql`
+    select id, source_url, city, lat, lng, english_text, original_text
+    from moderation_queue where id = ${queueId} limit 1
+  `) as unknown as {
+    id: string;
+    source_url: string | null;
+    city: string | null;
+    lat: number | null;
+    lng: number | null;
+    english_text: string | null;
+    original_text: string | null;
+  }[];
+  if (rows.length === 0) throw new Error("queue row not found");
+  const q = rows[0];
+
+  const cityName = q.city ?? "";
+  const rewriteText = (q.english_text || q.original_text || "").trim();
+  const unsplashQuery = rewriteText
+    ? await extractPhotoKeyword(rewriteText, cityName)
+    : cityName;
+
+  const next = await resolveHeroImage(
+    q.source_url ?? "",
+    queueId,
+    {
+      lat: q.lat,
+      lng: q.lng,
+      unsplashQuery,
+      forceSkipOg: true
+    }
+  );
+
+  await sql`update moderation_queue set photo_url = ${next} where id = ${queueId}`;
+  revalidatePath("/admin");
+}
+
 export async function rejectAction(formData: FormData): Promise<void> {
   const queueId = String(formData.get("id") ?? "");
   const reason = String(formData.get("reason") ?? "no reason given").trim();
