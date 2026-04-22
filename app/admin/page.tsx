@@ -371,10 +371,12 @@ export default async function QueuePage({
                       </a>
                     </div>
                   ) : null}
-                  <ReviewActionForm action={rerollPhotoAction}>
+                  {/* Plain form — reroll updates the card, doesn't remove it.
+                      ReviewActionForm would fade the card out. */}
+                  <form action={rerollPhotoAction}>
                     <input type="hidden" name="id" value={r.id} />
                     <RerollButton hasPhoto={!!r.photo_url} />
-                  </ReviewActionForm>
+                  </form>
                 </div>
               </div>
             ) : null}
