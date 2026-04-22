@@ -23,7 +23,11 @@ function client(): OpenAI {
 
 const MODEL = process.env.INGEST_PREFILTER_MODEL || "gpt-4o-mini";
 
-const SYSTEM = `You extract ONE concrete visual noun (or 2-word phrase) from a short news vignette — the single thing a photographer would frame. Prefer physical objects, places, settings. Avoid abstract nouns (sorrow, hope), avoid people's names, avoid verbs. If nothing concrete, return the empty string. Return JSON: { "noun": string }.`;
+const SYSTEM = `You extract ONE concrete visual noun (or 2-word phrase) from a short news vignette — the single thing a photographer would frame. Prefer physical objects, places, settings. Avoid abstract nouns (sorrow, hope), avoid people's names, avoid verbs.
+
+**Always return the noun in ENGLISH**, regardless of the input language. The noun will be used to search a stock-photo library whose index is English-dominant — a Chinese or Arabic noun returns almost nothing.
+
+If nothing concrete, return the empty string. Return JSON: { "noun": string }.`;
 
 export async function extractPhotoKeyword(
   storyText: string,

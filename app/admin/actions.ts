@@ -461,8 +461,8 @@ export async function rerollPhotoAction(formData: FormData): Promise<void> {
     q.source_url ?? "",
     queueId,
     {
-      lat: q.lat,
-      lng: q.lng,
+      lat: q.lat != null ? Number(q.lat) : null,
+      lng: q.lng != null ? Number(q.lng) : null,
       unsplashQuery,
       forceSkipOg: true
     }
