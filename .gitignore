@@ -26,3 +26,4 @@ next-env.d.ts
 # vercel
 .vercel
 scripts/photo-bakeoff/out.html
+.claude/
