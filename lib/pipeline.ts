@@ -529,9 +529,86 @@ async function dedupEntries(entries: FeedEntry[]): Promise<FeedEntry[]> {
   return fresh.map((w) => w.entry);
 }
 
+// --- runs log --------------------------------------------------------
+
+/**
+ * Persist every ingest attempt into pipeline_runs, even ones that
+ * produce zero AI decisions (dedup'd-everything, no-entries, no-city).
+ * Without this, a "nothing new" run is invisible in the admin UI.
+ * Adds the city_name + queued_count + trigger columns on first call
+ * (they're not in the original schema).
+ */
+let _runsColumnsEnsured = false;
+async function ensureRunsColumns(): Promise<void> {
+  if (_runsColumnsEnsured) return;
+  const sql = requireSql();
+  await sql`alter table pipeline_runs add column if not exists city_name text`;
+  await sql`alter table pipeline_runs add column if not exists queued_count integer not null default 0`;
+  await sql`alter table pipeline_runs add column if not exists trigger text`;
+  _runsColumnsEnsured = true;
+}
+
+async function recordRun(
+  result: IngestResult,
+  trigger: "cron" | "manual",
+  errorMsg?: string
+): Promise<void> {
+  try {
+    await ensureRunsColumns();
+    const sql = requireSql();
+    await sql`
+      insert into pipeline_runs
+        (city_id, city_name, started_at, finished_at, status,
+         considered, prefilter_pass, result_summary,
+         queue_id, queued_count, trigger, error)
+      values
+        (${result.city_id}, ${result.city_name},
+         now(), now(),
+         ${errorMsg ? "failed" : "completed"},
+         ${result.entries_considered}, ${result.entries_prefilter_pass},
+         ${result.reason},
+         ${result.queued_id}, ${result.queued_ids.length},
+         ${trigger}, ${errorMsg ?? null})
+    `;
+  } catch (err) {
+    // Log but don't fail the ingest — the run still happened, the log
+    // is just bookkeeping.
+    console.warn("[pipeline] recordRun failed:", (err as Error).message);
+  }
+}
+
 // --- main entry point -----------------------------------------------
 
-export async function runIngest(opts: { cityId?: string } = {}): Promise<IngestResult> {
+export async function runIngest(
+  opts: { cityId?: string; trigger?: "cron" | "manual" } = {}
+): Promise<IngestResult> {
+  const trigger = opts.trigger ?? "manual";
+  try {
+    const result = await runIngestInner({ cityId: opts.cityId });
+    await recordRun(result, trigger);
+    return result;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    await recordRun(
+      {
+        city_id: opts.cityId ?? null,
+        city_name: null,
+        queued_id: null,
+        queued_ids: [],
+        reason: `error: ${msg}`,
+        entries_considered: 0,
+        entries_prefilter_pass: 0
+      },
+      trigger,
+      msg
+    );
+    throw err;
+  }
+}
+
+async function runIngestInner(
+  opts: { cityId?: string } = {}
+): Promise<IngestResult> {
   const sql = requireSql();
 
   // 1. Pick a city (or use the one specified).
@@ -763,7 +840,7 @@ export async function runBatchIngest(): Promise<{
   let totalQueued = 0;
   for (const r of rows) {
     try {
-      const result = await runIngest({ cityId: r.id });
+      const result = await runIngest({ cityId: r.id, trigger: "cron" });
       perCity.push(result);
       totalQueued += result.queued_ids.length;
     } catch (err) {

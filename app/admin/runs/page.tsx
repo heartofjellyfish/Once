@@ -49,57 +49,70 @@ function timeAgo(iso: string): string {
   return `${d}d ago`;
 }
 
-interface RunGroup {
+interface IngestRunRow {
+  id: string;
+  at: string;
   city_id: string | null;
-  earliestAt: number;
-  latestAt: number;
+  city_name: string | null;
+  reason: string | null;
+  entries_considered: number;
+  entries_prefilter_pass: number;
+  queued_count: number;
+  trigger: string | null;
+}
+
+interface RunGroup {
+  key: string;
+  city_id: string | null;
+  city_name: string | null;
+  at: number;
+  reason: string | null;
+  trigger: string | null;
   decisions: DecisionRow[];
-  stats: { considered: number; passed: number; selected: number };
+  stats: {
+    considered: number;
+    passed: number;
+    selected: number;
+    queued: number;
+  };
 }
 
 /**
- * Cluster consecutive decisions into "runs": same city + within 120 s
- * of the previous decision = same run. Cron triggers are atomic so a
- * run's decisions all land inside that window. Decisions are passed
- * in newest-first order; we preserve that so each group's first item
- * is the most recent within it.
+ * Build one group per ingest_runs row and attach decisions that fall
+ * within ±2 min of the run's timestamp for the same city. Runs with
+ * zero decisions (dedup'd-everything, no-entries) still appear — that's
+ * the whole reason ingest_runs exists alongside ai_decisions.
  */
-function groupByRun(decisions: DecisionRow[]): RunGroup[] {
+function buildRunGroups(
+  runs: IngestRunRow[],
+  decisions: DecisionRow[]
+): RunGroup[] {
   const WINDOW_MS = 120 * 1000;
-  const groups: RunGroup[] = [];
-  let cur: RunGroup | null = null;
-
-  for (const d of decisions) {
-    const t = new Date(d.at).getTime();
-    if (
-      !cur ||
-      cur.city_id !== d.city_id ||
-      Math.abs(cur.earliestAt - t) > WINDOW_MS
-    ) {
-      cur = {
-        city_id: d.city_id,
-        earliestAt: t,
-        latestAt: t,
-        decisions: [d],
-        stats: { considered: 0, passed: 0, selected: 0 }
-      };
-      groups.push(cur);
-    } else {
-      cur.decisions.push(d);
-      cur.earliestAt = Math.min(cur.earliestAt, t);
-      cur.latestAt = Math.max(cur.latestAt, t);
-    }
-  }
-
-  for (const g of groups) {
-    for (const d of g.decisions) {
-      if (d.stage === "prefilter") g.stats.considered++;
-      if (d.stage === "prefilter" && d.verdict === "pass") g.stats.passed++;
-      if (d.verdict === "selected") g.stats.selected++;
-    }
-  }
-
-  return groups;
+  return runs.map((r) => {
+    const rt = new Date(r.at).getTime();
+    const kept = decisions.filter(
+      (d) =>
+        d.city_id === r.city_id &&
+        Math.abs(new Date(d.at).getTime() - rt) <= WINDOW_MS
+    );
+    let selected = 0;
+    for (const d of kept) if (d.verdict === "selected") selected++;
+    return {
+      key: r.id,
+      city_id: r.city_id,
+      city_name: r.city_name,
+      at: rt,
+      reason: r.reason,
+      trigger: r.trigger,
+      decisions: kept,
+      stats: {
+        considered: r.entries_considered,
+        passed: r.entries_prefilter_pass,
+        selected,
+        queued: r.queued_count
+      }
+    };
+  });
 }
 
 export default async function RunsPage({
@@ -138,10 +151,9 @@ export default async function RunsPage({
     order by coalesce(c.last_ingest_at, 'epoch'::timestamptz) desc
   `) as unknown as StatsRow[];
 
-  // Recent AI decisions — window by time so a daily batch run of 36
-  // cities doesn't flush out a single city's run by sheer volume.
-  // 6h window catches today's cron + any manual runs, with a hard row
-  // cap as a safety net.
+  // Recent AI decisions + the runs that produced them. A run with zero
+  // decisions (everything dedup'd, no entries, no city available) still
+  // appears in ingest_runs, so we always see what actually happened.
   const decisions = (await sql`
     select
       id::text as id,
@@ -156,6 +168,23 @@ export default async function RunsPage({
     order by at desc
     limit 1000
   `) as unknown as DecisionRow[];
+
+  const runs = (await sql`
+    select
+      id::text as id,
+      started_at::text as at,
+      city_id,
+      city_name,
+      result_summary as reason,
+      considered as entries_considered,
+      prefilter_pass as entries_prefilter_pass,
+      queued_count,
+      trigger
+    from pipeline_runs
+    where started_at > now() - interval '6 hours'
+    order by started_at desc
+    limit 200
+  `.catch(() => [])) as unknown as IngestRunRow[];
 
   return (
     <>
@@ -221,29 +250,33 @@ export default async function RunsPage({
 
       <section className="log">
         <h3>Recent runs</h3>
-        {decisions.length === 0 ? (
-          <p className="empty">No pipeline runs yet. Hit "Run now" above.</p>
+        {runs.length === 0 ? (
+          <p className="empty">No pipeline runs in the last 6 hours. Hit "Run now" above.</p>
         ) : (
           <div className="run-groups">
-            {groupByRun(decisions).map((g, gi) => (
+            {buildRunGroups(runs, decisions).map((g, gi) => (
               <details
-                key={`${g.city_id}-${g.latestAt}`}
+                key={g.key}
                 className="run-group"
                 open={gi === 0}
               >
                 <summary>
-                  <span className="rg-time">{timeAgo(new Date(g.earliestAt).toISOString())}</span>
-                  <span className="rg-city">{g.city_id?.toUpperCase() ?? "—"}</span>
+                  <span className="rg-time">{timeAgo(new Date(g.at).toISOString())}</span>
+                  <span className="rg-city">
+                    {(g.city_name || g.city_id || "—").toUpperCase()}
+                    {g.trigger === "cron" ? <span className="rg-trigger"> cron</span> : null}
+                  </span>
                   <span className="rg-stats">
                     <b>{g.stats.considered}</b> considered ·{" "}
                     <b>{g.stats.passed}</b> passed ·{" "}
-                    <b className={g.stats.selected > 0 ? "sel" : ""}>
-                      {g.stats.selected}
+                    <b className={g.stats.queued > 0 ? "sel" : ""}>
+                      {g.stats.queued}
                     </b>{" "}
-                    selected
+                    queued
                   </span>
                   <span className="rg-caret" aria-hidden="true">›</span>
                 </summary>
+                {g.reason ? <div className="rg-reason">{g.reason}</div> : null}
                 <ul className="decisions">
                   {g.decisions.map((d) => (
                     <li key={d.id} className={`d d-${d.stage} v-${d.verdict}`}>
@@ -478,6 +511,20 @@ export default async function RunsPage({
         .rg-stats b.sel {
           color: var(--accent);
           font-weight: 600;
+        }
+        .rg-trigger {
+          font-size: 10px;
+          font-weight: 400;
+          letter-spacing: 0.08em;
+          color: var(--ink-faint);
+          margin-left: 6px;
+          text-transform: lowercase;
+        }
+        .rg-reason {
+          padding: 6px 14px 2px;
+          color: var(--ink-muted);
+          font-size: 12px;
+          font-style: italic;
         }
         .rg-caret {
           font-size: 18px;
