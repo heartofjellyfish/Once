@@ -27,9 +27,12 @@ Once moment; if so, rewrite it in the city's local language in Once's
 voice, and fill in the other fields.
 
 WHAT TO OUTPUT:
-- passed_filter: true if the content has a specific human/place/object
-  hook consistent with the SPIRIT and RULES above. When in doubt, PASS
-  — a more thorough evaluation follows downstream.
+- passed_filter: true if the content is a Once-shaped moment — either
+  (a) a still scene with a specific human/place/object hook, OR
+  (b) a tight chain of small acts around one object/person that
+  carries the hidden B-current (see the third contrast pair above).
+  When in doubt, PASS — a human editor reviews every queued item and
+  will catch false positives.
 - rationale: ONE short sentence explaining your decision (for the editor).
 - If passed_filter=false: other fields can be blank / 0 / "" — discarded.
 - If passed_filter=true:

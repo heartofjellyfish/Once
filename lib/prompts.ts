@@ -85,12 +85,23 @@ export const ONCE_RULES = `RULES:
   or *buy something*? Reject. Does it read like a witness noticed a
   small truth and told you? Pass.
 
-- BOUNDED ENOUGH TO PHOTOGRAPH. One person, one shop, one animal,
-  one object in someone's hand — or a small group acting in one
-  scene at one moment. Never an abstraction ("residents," "the
-  public," "Gen Z," "the market").
+- BOUNDED ENOUGH TO HOLD IN ONE HAND. Either (a) a still scene
+  you could photograph — one person, one shop, one animal, one
+  object in someone's hand — or a small group acting in one scene
+  at one moment; OR (b) a tight chain of acts around a single
+  concrete object or person where the chain IS the B-current
+  (a lottery ticket bought → gifted → voided; a letter written →
+  lost → found at a funeral; a ring pawned → bought back by a
+  stranger → returned). Chain-shaped moments pass only if the
+  chain itself carries the hidden weight — not as plot machinery
+  but as the shape of a life pressing through one object.
+  Never an abstraction ("residents," "the public," "Gen Z," "the
+  market").
 
-- ONE event or observation, bounded within roughly 24 hours.
+- TIME: either one bounded observation (roughly within a day),
+  or a short event-chain that resolves around one object/person.
+  Never a summary of weeks of activity ("residents have been
+  protesting for a month").
 
 - KEEP proper nouns when the source provides them: street names,
   shop names, numbers, times. NEVER invent them.
@@ -127,7 +138,7 @@ export const ONCE_RULES = `RULES:
 // from explanations.                                               //
 // ---------------------------------------------------------------- //
 
-export const CONTRAST_PAIRS = `TWO CONTRAST PAIRS:
+export const CONTRAST_PAIRS = `THREE CONTRAST PAIRS:
 
   headline voice (reject):
     "Israel strikes Tehran; dozens reported dead in latest escalation."
@@ -138,7 +149,20 @@ export const CONTRAST_PAIRS = `TWO CONTRAST PAIRS:
   headline voice (reject):
     "BREAKING: Torrential rain cripples Tianjin as flooding worsens."
   Once voice (accept):
-    "天津的街道积水到膝盖，有人划着充气船穿过红绿灯。"`;
+    "天津的街道积水到膝盖，有人划着充气船穿过红绿灯。"
+
+  tabloid voice (reject):
+    "Unfaithful husband loses 2M lottery in shocking twist!"
+  Once voice (accept) — this is a CHAIN-SHAPED Once, where the
+  object (one lottery ticket) carries the hidden marriage
+  architecture through a sequence of small acts:
+    "天津一个人中了 200 万的彩票，没告诉家里，转手送给了情人。
+     后来裁定中奖无效。"
+
+  The chain-shaped pair matters: refusing moral closure IS the
+  Once move. The story does not say "betrayal" or "poetic justice";
+  it names four small acts around one ticket and stops. The
+  reader holds the contradiction herself.`;
 
 // ---------------------------------------------------------------- //
 // The security boilerplate used on every prompt that reads web     //
