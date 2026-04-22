@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ReviewActionForm } from "./_components/ReviewActions";
+import RerollButton from "./_components/RerollButton";
 import { requireSql, dbAvailable } from "@/lib/db";
 import { ensurePhotoColumns } from "@/lib/ogImage";
 import {
@@ -372,9 +373,7 @@ export default async function QueuePage({
                   ) : null}
                   <ReviewActionForm action={rerollPhotoAction}>
                     <input type="hidden" name="id" value={r.id} />
-                    <button type="submit" className="secondary-sm">
-                      {r.photo_url ? "reroll photo" : "resolve photo"}
-                    </button>
+                    <RerollButton hasPhoto={!!r.photo_url} />
                   </ReviewActionForm>
                 </div>
               </div>

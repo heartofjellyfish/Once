@@ -20,7 +20,7 @@ import OpenAI from "openai";
 import { requireSql } from "./db";
 import { resolveCity, type ResolvedCity } from "./cityResolver";
 import { resolveHeroImage } from "./ogImage";
-import { extractPhotoKeyword } from "./photoKeywords";
+import { extractPhotoQueries } from "./photoKeywords";
 import { fetchWeatherLabel } from "./weather";
 import { assertBudget, recordSpend, type UsageBreakdown } from "./budget";
 import { ONCE_HEADER } from "./prompts";
@@ -224,9 +224,9 @@ export async function enrichAndPublish(input: EnrichInput): Promise<EnrichResult
   // 3. Enrich: weather + photo, in parallel.
   const seed = slug(city.name) + "-" + shortId();
   const rewriteForQuery = english_text?.trim() || original_text?.trim() || "";
-  const unsplashQuery = rewriteForQuery
-    ? await extractPhotoKeyword(rewriteForQuery, city.name)
-    : city.name;
+  const unsplashQueries = rewriteForQuery
+    ? await extractPhotoQueries(rewriteForQuery, city.name)
+    : [city.name, "street"];
   const [weather, photoResolved] = await Promise.all([
     fetchWeatherLabel(city.lat, city.lng),
     input.photoUrl?.trim()
@@ -234,7 +234,7 @@ export async function enrichAndPublish(input: EnrichInput): Promise<EnrichResult
       : resolveHeroImage(input.sourceUrl ?? "", seed, {
           lat: city.lat,
           lng: city.lng,
-          unsplashQuery
+          unsplashQueries
         })
   ]);
   const photoUrl = photoResolved.url;

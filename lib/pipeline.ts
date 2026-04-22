@@ -10,7 +10,7 @@ import {
 } from "./budget";
 import { fetchWeatherLabel } from "./weather";
 import { resolveHeroImage, ensurePhotoColumns } from "./ogImage";
-import { extractPhotoKeyword } from "./photoKeywords";
+import { extractPhotoQueries } from "./photoKeywords";
 import type { City } from "./types";
 import { ONCE_HEADER, SECURITY_NOTE } from "./prompts";
 import { fetchArticleBody } from "./articleBody";
@@ -1163,14 +1163,14 @@ async function writeQueue(args: {
   // from the rewrite; then watercolor map of the city; then picsum.
   const rewriteForQuery =
     full.english_text?.trim() || full.original_text?.trim() || "";
-  const unsplashQuery = rewriteForQuery
-    ? await extractPhotoKeyword(rewriteForQuery, city.name)
-    : city.name;
+  const unsplashQueries = rewriteForQuery
+    ? await extractPhotoQueries(rewriteForQuery, city.name)
+    : [city.name, "street"];
   await ensurePhotoColumns();
   const photo = await resolveHeroImage(
     entry.link,
     `${city.id}-${entry.title}`,
-    { lat: city.lat, lng: city.lng, unsplashQuery }
+    { lat: city.lat, lng: city.lng, unsplashQueries }
   );
   const photoUrl = photo.url;
 

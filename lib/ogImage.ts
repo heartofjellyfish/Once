@@ -297,13 +297,16 @@ export async function resolveHeroImage(
   fallback?: {
     lat: number | null | undefined;
     lng: number | null | undefined;
-    unsplashQuery?: string | null;
+    /** Ladder of Unsplash queries, most-specific first. */
+    unsplashQueries?: string[] | null;
     /** Skip OG entirely — used by the admin reroll button. */
     forceSkipOg?: boolean;
   }
 ): Promise<PhotoResult> {
   let cost = 0;
-  const query = fallback?.unsplashQuery?.trim() || null;
+  const queries = (fallback?.unsplashQueries || [])
+    .map((q) => q?.trim())
+    .filter((q): q is string => !!q);
 
   // Step 1: OG scrape — unless the source host is on the known-stocky
   // skip list (e.g. nippon.com) or the caller forced skip (admin reroll).
@@ -321,7 +324,7 @@ export async function resolveHeroImage(
       return {
         url: scraped,
         source: "og",
-        query,
+        query: queries[0] ?? null,
         attribution_url: sourceUrl || null,
         attribution_name: host,
         vision_score: verdict?.score ?? null,
@@ -331,13 +334,14 @@ export async function resolveHeroImage(
     }
   }
 
-  if (query) {
-    const found = await searchUnsplash(query);
+  // Try each query in the ladder, stop at the first Unsplash hit.
+  for (const q of queries) {
+    const found = await searchUnsplash(q);
     if (found) {
       return {
         url: found.url,
         source: "unsplash",
-        query,
+        query: q,
         attribution_url: found.attribution || null,
         attribution_name: found.author || "Unsplash",
         vision_score: null,
@@ -362,7 +366,7 @@ export async function resolveHeroImage(
     return {
       url: wc,
       source: "watercolor",
-      query,
+      query: queries[0] ?? null,
       attribution_url: "https://stadiamaps.com",
       attribution_name: "Stamen Watercolor · Stadia",
       vision_score: null,
@@ -374,7 +378,7 @@ export async function resolveHeroImage(
   return {
     url: placeholderImage(seedKey),
     source: "picsum",
-    query,
+    query: queries[0] ?? null,
     attribution_url: null,
     attribution_name: null,
     vision_score: null,

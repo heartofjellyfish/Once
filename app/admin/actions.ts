@@ -8,7 +8,7 @@ import { runIngest } from "@/lib/pipeline";
 import { enrichAndPublish } from "@/lib/enrich";
 import { currentHour } from "@/lib/stories";
 import { resolveHeroImage, ensurePhotoColumns } from "@/lib/ogImage";
-import { extractPhotoKeyword } from "@/lib/photoKeywords";
+import { extractPhotoQueries } from "@/lib/photoKeywords";
 
 /** Slug helper for generated story IDs. ASCII-only, kebab. */
 function slug(input: string): string {
@@ -105,13 +105,13 @@ export async function addAction(formData: FormData): Promise<void> {
       try {
         await ensurePhotoColumns();
         const rewriteText = (result.english_text || result.original_text || "").trim();
-        const unsplashQuery = rewriteText
-          ? await extractPhotoKeyword(rewriteText, result.city)
-          : result.city;
+        const unsplashQueries = rewriteText
+          ? await extractPhotoQueries(rewriteText, result.city)
+          : [result.city, "street"];
         const photo = await resolveHeroImage(
           sourceUrl || "",
           queueId,
-          { lat: result.lat, lng: result.lng, unsplashQuery }
+          { lat: result.lat, lng: result.lng, unsplashQueries }
         );
         await sql`
           update moderation_queue set
@@ -395,13 +395,13 @@ export async function restorePendingAction(formData: FormData): Promise<void> {
     if (q && !q.photo_url && q.city) {
       await ensurePhotoColumns();
       const rewriteText = (q.english_text || q.original_text || "").trim();
-      const unsplashQuery = rewriteText
-        ? await extractPhotoKeyword(rewriteText, q.city)
-        : q.city;
+      const unsplashQueries = rewriteText
+        ? await extractPhotoQueries(rewriteText, q.city)
+        : [q.city, "street"];
       const photo = await resolveHeroImage(q.source_url ?? "", queueId, {
-        lat: q.lat,
-        lng: q.lng,
-        unsplashQuery
+        lat: q.lat != null ? Number(q.lat) : null,
+        lng: q.lng != null ? Number(q.lng) : null,
+        unsplashQueries
       });
       await sql`
         update moderation_queue set
@@ -452,9 +452,9 @@ export async function rerollPhotoAction(formData: FormData): Promise<void> {
 
   const cityName = q.city ?? "";
   const rewriteText = (q.english_text || q.original_text || "").trim();
-  const unsplashQuery = rewriteText
-    ? await extractPhotoKeyword(rewriteText, cityName)
-    : cityName;
+  const unsplashQueries = rewriteText
+    ? await extractPhotoQueries(rewriteText, cityName)
+    : [cityName, "street"];
 
   await ensurePhotoColumns();
   const next = await resolveHeroImage(
@@ -463,7 +463,7 @@ export async function rerollPhotoAction(formData: FormData): Promise<void> {
     {
       lat: q.lat != null ? Number(q.lat) : null,
       lng: q.lng != null ? Number(q.lng) : null,
-      unsplashQuery,
+      unsplashQueries,
       forceSkipOg: true
     }
   );
