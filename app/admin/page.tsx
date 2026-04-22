@@ -851,6 +851,7 @@ export default async function QueuePage({
         }
         .src-og        { background: #e8d4c0; color: #5a3a1a; }
         .src-unsplash  { background: #d4e3d0; color: #2d4a2a; }
+        .src-pexels    { background: #c9dce0; color: #1f3a4a; }
         .src-watercolor{ background: #d4dde8; color: #2a3a5a; }
         .src-picsum    { background: #eadad4; color: #6a3a2a; }
         .photo-score {

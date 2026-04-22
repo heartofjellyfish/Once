@@ -15,6 +15,7 @@
 
 import { watercolorMapUrl } from "./map";
 import { searchUnsplash } from "./unsplash";
+import { searchPexels } from "./pexels";
 import { judgeOgImage, judgeUnsplashRelevance } from "./photoVision";
 import { requireSql } from "./db";
 
@@ -264,7 +265,7 @@ export async function scrapeOgImage(sourceUrl: string): Promise<string | null> {
 
 export interface PhotoResult {
   url: string;
-  source: "og" | "unsplash" | "watercolor" | "picsum";
+  source: "og" | "unsplash" | "pexels" | "watercolor" | "picsum";
   /** Unsplash query used (null if not reached). */
   query: string | null;
   /** Link to the source article or photographer page, when known. */
@@ -336,35 +337,44 @@ export async function resolveHeroImage(
     }
   }
 
-  // Try each query in the ladder; each hit gets a Haiku relevance
-  // check against the story text so Unsplash's low-precision matching
-  // (e.g. returning a ferris wheel because it tagged "Tianjin" but not
-  // "lottery") gets filtered out. First hit that's both returned AND
-  // judged relevant wins. Fall through to watercolor if every hit is
-  // either missing or judged irrelevant.
+  // Try each query against Unsplash first, then Pexels. Each hit gets
+  // a Haiku relevance check — Unsplash/Pexels often match on one
+  // keyword and return something off-topic (a ferris wheel for a
+  // lottery story). First hit that's both returned AND judged relevant
+  // wins. Combining two libraries also relaxes Unsplash's 50/hr free
+  // rate limit: Pexels adds 200/hr of headroom.
   const storyText = fallback?.storyText?.trim() || "";
-  for (const q of queries) {
-    const found = await searchUnsplash(q);
-    if (!found) continue;
+  const libs: Array<{
+    name: "unsplash" | "pexels";
+    search: typeof searchUnsplash;
+    credit: string;
+  }> = [
+    { name: "unsplash", search: searchUnsplash, credit: "Unsplash" },
+    { name: "pexels", search: searchPexels, credit: "Pexels" }
+  ];
 
-    let verdict: Awaited<ReturnType<typeof judgeUnsplashRelevance>> = null;
-    if (storyText) {
-      verdict = await judgeUnsplashRelevance(found.url, storyText);
-      if (verdict) cost += COST_VISION_JUDGE;
-    }
-    // If we can't judge (no ANTHROPIC_API_KEY, error), keep the hit —
-    // don't regress to "works worse without Anthropic key".
-    if (!verdict || verdict.keep) {
-      return {
-        url: found.url,
-        source: "unsplash",
-        query: q,
-        attribution_url: found.attribution || null,
-        attribution_name: found.author || "Unsplash",
-        vision_score: verdict?.score ?? null,
-        vision_reason: verdict?.reason ?? null,
-        cost_usd: cost
-      };
+  for (const q of queries) {
+    for (const lib of libs) {
+      const found = await lib.search(q);
+      if (!found) continue;
+
+      let verdict: Awaited<ReturnType<typeof judgeUnsplashRelevance>> = null;
+      if (storyText) {
+        verdict = await judgeUnsplashRelevance(found.url, storyText);
+        if (verdict) cost += COST_VISION_JUDGE;
+      }
+      if (!verdict || verdict.keep) {
+        return {
+          url: found.url,
+          source: lib.name,
+          query: q,
+          attribution_url: found.attribution || null,
+          attribution_name: found.author || lib.credit,
+          vision_score: verdict?.score ?? null,
+          vision_reason: verdict?.reason ?? null,
+          cost_usd: cost
+        };
+      }
     }
   }
 
