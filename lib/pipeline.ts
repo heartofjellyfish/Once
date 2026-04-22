@@ -719,22 +719,26 @@ async function runIngestInner(
     full: FullResult;
   }> = [];
 
+  const errors: string[] = [];
   for (const e of topN) {
     try {
       const full = await runFullPass(e, city);
       scored.push({ entry: e, full });
     } catch (err) {
-      console.warn("[pipeline] full pass failed:", (err as Error).message);
+      const msg = (err as Error).message;
+      console.warn("[pipeline] full pass failed:", msg);
+      errors.push(msg);
     }
   }
 
   if (scored.length === 0) {
+    const firstErr = errors[0] ?? "?";
     return {
       city_id: city.id,
       city_name: city.name,
       queued_id: null,
       queued_ids: [],
-      reason: "all full-pass evaluations errored",
+      reason: `all full-pass evaluations errored — first: ${firstErr.slice(0, 180)}`,
       entries_considered: rawEntries.length,
       entries_prefilter_pass: prefiltered.length
     };
