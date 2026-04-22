@@ -24,7 +24,11 @@ export async function searchUnsplash(
   perPage = 3
 ): Promise<UnsplashHit | null> {
   const key = process.env.UNSPLASH_ACCESS_KEY;
-  if (!key || !query) return null;
+  if (!key) {
+    console.warn("[unsplash] UNSPLASH_ACCESS_KEY is not set");
+    return null;
+  }
+  if (!query) return null;
 
   const url = `${UNSPLASH_SEARCH}?query=${encodeURIComponent(
     query
@@ -37,8 +41,14 @@ export async function searchUnsplash(
       signal: ac.signal,
       headers: { Authorization: `Client-ID ${key}` }
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.warn(
+        `[unsplash] "${query}" → http ${res.status} (rate-limit remaining: ${res.headers.get("x-ratelimit-remaining") ?? "?"})`
+      );
+      return null;
+    }
     const j = (await res.json()) as {
+      total?: number;
       results?: Array<{
         urls?: { regular?: string; full?: string };
         links?: { html?: string };
@@ -47,13 +57,19 @@ export async function searchUnsplash(
     };
     const first = j.results?.[0];
     const picked = first?.urls?.regular || first?.urls?.full;
-    if (!picked) return null;
+    if (!picked) {
+      console.info(
+        `[unsplash] "${query}" → total=${j.total ?? 0}, landscape results=${j.results?.length ?? 0}`
+      );
+      return null;
+    }
     return {
       url: picked,
       attribution: first?.links?.html || "",
       author: first?.user?.name || ""
     };
-  } catch {
+  } catch (err) {
+    console.warn(`[unsplash] "${query}" threw:`, (err as Error).message);
     return null;
   } finally {
     clearTimeout(t);
