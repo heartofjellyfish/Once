@@ -15,6 +15,23 @@
 
 import { watercolorMapUrl } from "./map";
 import { searchUnsplash } from "./unsplash";
+import { judgeOgImage } from "./photoVision";
+
+// Hosts whose OG images are consistently stocky / press-release / generic.
+// Compiled from reviewer experience (see docs/photo.md). For these
+// sources we skip OG entirely and jump to the Unsplash keyword search.
+const OG_SKIP_HOSTS = new Set<string>([
+  "nippon.com",
+  "www.nippon.com"
+]);
+
+function hostOf(url: string): string | null {
+  try {
+    return new URL(url).host.toLowerCase();
+  } catch {
+    return null;
+  }
+}
 
 const FETCH_TIMEOUT_MS = 6000;
 const MAX_HTML_BYTES = 400_000; // ~400KB — plenty for <head>
@@ -242,10 +259,28 @@ export async function resolveHeroImage(
     lat: number | null | undefined;
     lng: number | null | undefined;
     unsplashQuery?: string | null;
+    /** Skip OG entirely — used by the admin reroll button. */
+    forceSkipOg?: boolean;
   }
 ): Promise<string> {
-  const scraped = await scrapeOgImage(sourceUrl);
-  if (scraped) return scraped;
+  // Step 1: OG scrape — unless the source host is on the known-stocky
+  // skip list (e.g. nippon.com) or the caller forced skip (admin reroll),
+  // in which case jump straight to Unsplash.
+  const host = hostOf(sourceUrl);
+  const skipOg =
+    fallback?.forceSkipOg || (host ? OG_SKIP_HOSTS.has(host) : false);
+  const scraped = skipOg ? null : await scrapeOgImage(sourceUrl);
+
+  // Step 2: if we got an OG image, ask Haiku vision whether it's the
+  // kind of photo Once wants (documentary / ordinary-moment) or a
+  // stocky / press-release / logo one. If the judge passes, keep it.
+  // If the judge says no, fall through to Unsplash. If the judge is
+  // unreachable (no key, network error), keep the OG image — current
+  // behavior, don't regress.
+  if (scraped) {
+    const verdict = await judgeOgImage(scraped);
+    if (!verdict || verdict.keep) return scraped;
+  }
 
   const query = fallback?.unsplashQuery?.trim();
   if (query) {
