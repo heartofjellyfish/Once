@@ -1,5 +1,6 @@
 import { requireSql } from "@/lib/db";
 import { runIngestAction } from "../actions";
+import RunNowButton from "./RunNowButton";
 
 export const dynamic = "force-dynamic";
 
@@ -212,9 +213,7 @@ export default async function RunsPage({
               ))}
             </select>
           </label>
-          <button type="submit" className="primary">
-            Run now
-          </button>
+          <RunNowButton />
         </form>
 
         {ingestOk ? <div className="banner ok">✓ {ingestOk}</div> : null}
@@ -261,22 +260,24 @@ export default async function RunsPage({
                 open={gi === 0}
               >
                 <summary>
-                  <span className="rg-time">{timeAgo(new Date(g.at).toISOString())}</span>
-                  <span className="rg-city">
-                    {(g.city_name || g.city_id || "—").toUpperCase()}
-                    {g.trigger === "cron" ? <span className="rg-trigger"> cron</span> : null}
-                  </span>
-                  <span className="rg-stats">
-                    <b>{g.stats.considered}</b> considered ·{" "}
-                    <b>{g.stats.passed}</b> passed ·{" "}
-                    <b className={g.stats.queued > 0 ? "sel" : ""}>
-                      {g.stats.queued}
-                    </b>{" "}
-                    queued
-                  </span>
-                  <span className="rg-caret" aria-hidden="true">›</span>
+                  <div className="rg-line">
+                    <span className="rg-time">{timeAgo(new Date(g.at).toISOString())}</span>
+                    <span className="rg-city">
+                      {(g.city_name || g.city_id || "—").toUpperCase()}
+                      {g.trigger === "cron" ? <span className="rg-trigger"> cron</span> : null}
+                    </span>
+                    <span className="rg-stats">
+                      <b>{g.stats.considered}</b> considered ·{" "}
+                      <b>{g.stats.passed}</b> passed ·{" "}
+                      <b className={g.stats.queued > 0 ? "sel" : ""}>
+                        {g.stats.queued}
+                      </b>{" "}
+                      queued
+                    </span>
+                    <span className="rg-caret" aria-hidden="true">›</span>
+                  </div>
+                  {g.reason ? <div className="rg-reason">{g.reason}</div> : null}
                 </summary>
-                {g.reason ? <div className="rg-reason">{g.reason}</div> : null}
                 <ul className="decisions">
                   {g.decisions.map((d) => (
                     <li key={d.id} className={`d d-${d.stage} v-${d.verdict}`}>
@@ -512,6 +513,12 @@ export default async function RunsPage({
           color: var(--accent);
           font-weight: 600;
         }
+        .rg-line {
+          display: flex;
+          gap: 12px;
+          align-items: center;
+          flex: 1;
+        }
         .rg-trigger {
           font-size: 10px;
           font-weight: 400;
@@ -521,10 +528,12 @@ export default async function RunsPage({
           text-transform: lowercase;
         }
         .rg-reason {
-          padding: 6px 14px 2px;
+          padding: 4px 0 2px 82px;
           color: var(--ink-muted);
           font-size: 12px;
           font-style: italic;
+          text-transform: none;
+          letter-spacing: normal;
         }
         .rg-caret {
           font-size: 18px;
