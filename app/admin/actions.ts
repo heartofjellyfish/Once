@@ -97,6 +97,27 @@ export async function addAction(formData: FormData): Promise<void> {
             reviewer='ai'
         where id=${queueId}
       `;
+    } else {
+      // Resolve hero photo now so the reviewer sees a thumbnail on the
+      // pending card. curate.ts intentionally doesn't touch photos —
+      // we do it here so both RSS-ingest and manual paths end up with
+      // a photo_url on the queue row.
+      try {
+        const rewriteText = (result.english_text || result.original_text || "").trim();
+        const unsplashQuery = rewriteText
+          ? await extractPhotoKeyword(rewriteText, result.city)
+          : result.city;
+        const photoUrl = await resolveHeroImage(
+          sourceUrl || "",
+          queueId,
+          { lat: result.lat, lng: result.lng, unsplashQuery }
+        );
+        await sql`
+          update moderation_queue set photo_url = ${photoUrl} where id = ${queueId}
+        `;
+      } catch (err) {
+        console.warn("[addAction] photo resolve failed:", (err as Error).message);
+      }
     }
   } catch (err) {
     failureMsg = err instanceof Error ? err.message : String(err);

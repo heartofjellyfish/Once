@@ -308,14 +308,18 @@ export default async function QueuePage({
               <pre>{r.source_input}</pre>
             </details>
 
-            {tab === "pending" && r.photo_url ? (
+            {tab === "pending" ? (
               <div className="photo-row">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={r.photo_url} alt="hero candidate" className="photo-thumb" />
+                {r.photo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={r.photo_url} alt="hero candidate" className="photo-thumb" />
+                ) : (
+                  <div className="photo-thumb photo-thumb-empty">no photo yet</div>
+                )}
                 <ReviewActionForm action={rerollPhotoAction}>
                   <input type="hidden" name="id" value={r.id} />
                   <button type="submit" className="secondary-sm">
-                    reroll photo
+                    {r.photo_url ? "reroll photo" : "resolve photo"}
                   </button>
                 </ReviewActionForm>
               </div>
@@ -746,6 +750,21 @@ export default async function QueuePage({
           border-radius: 3px;
           border: 1px solid var(--hairline, #e4ddd2);
           filter: sepia(0.35) saturate(0.78) contrast(0.97) brightness(0.97);
+        }
+        .photo-thumb-empty {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          filter: none;
+          background: repeating-linear-gradient(
+            45deg,
+            var(--hairline, #e4ddd2) 0 8px,
+            transparent 8px 16px
+          );
+          color: var(--ink-faint);
+          font-size: 11px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
         }
 
         .good-btn, .reject-btn {
