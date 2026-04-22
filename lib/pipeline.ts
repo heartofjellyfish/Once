@@ -535,17 +535,36 @@ async function dedupEntries(entries: FeedEntry[]): Promise<FeedEntry[]> {
  * Persist every ingest attempt into pipeline_runs, even ones that
  * produce zero AI decisions (dedup'd-everything, no-entries, no-city).
  * Without this, a "nothing new" run is invisible in the admin UI.
- * Adds the city_name + queued_count + trigger columns on first call
- * (they're not in the original schema).
+ *
+ * The table lives in db/schema.sql but was never applied in
+ * production, so we create-if-not-exists here. Also add three columns
+ * (city_name, queued_count, trigger) that the original schema didn't
+ * include.
  */
-let _runsColumnsEnsured = false;
-async function ensureRunsColumns(): Promise<void> {
-  if (_runsColumnsEnsured) return;
+let _runsSchemaEnsured = false;
+async function ensureRunsSchema(): Promise<void> {
+  if (_runsSchemaEnsured) return;
   const sql = requireSql();
+  await sql`
+    create table if not exists pipeline_runs (
+      id             uuid primary key default gen_random_uuid(),
+      city_id        text,
+      started_at     timestamptz not null default now(),
+      finished_at    timestamptz,
+      status         text not null default 'running',
+      stage          text,
+      considered     integer not null default 0,
+      prefilter_pass integer not null default 0,
+      result_summary text,
+      queue_id       uuid,
+      error          text
+    )
+  `;
+  await sql`create index if not exists pipeline_runs_started_idx on pipeline_runs(started_at desc)`;
   await sql`alter table pipeline_runs add column if not exists city_name text`;
   await sql`alter table pipeline_runs add column if not exists queued_count integer not null default 0`;
   await sql`alter table pipeline_runs add column if not exists trigger text`;
-  _runsColumnsEnsured = true;
+  _runsSchemaEnsured = true;
 }
 
 async function recordRun(
@@ -554,7 +573,7 @@ async function recordRun(
   errorMsg?: string
 ): Promise<void> {
   try {
-    await ensureRunsColumns();
+    await ensureRunsSchema();
     const sql = requireSql();
     await sql`
       insert into pipeline_runs
