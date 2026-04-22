@@ -85,43 +85,27 @@ export const ONCE_RULES = `RULES:
   or *buy something*? Reject. Does it read like a witness noticed a
   small truth and told you? Pass.
 
-- SEPARATE THE FOCAL EVENT FROM THE CONTEXT.
-  Every Once story has ONE focal event — a single act, ruling,
-  decision, observation that happens in roughly one moment. The
-  rest is CONTEXT: backstory, prior acts, relationships, secrets,
-  contradictions that press on that moment from behind. Context
-  can span months or years; the focal event is a pinpoint.
+- THE READER TEST IS THE GATE. Format does not decide.
+  A still scene you could photograph is one common shape; a focal
+  event with months of context loading it is another; a small
+  chain of acts around one object is another. None of these is
+  required and none is sufficient. The only thing that matters is
+  whether a reader, after the last line, can answer yes to all
+  three:
+    (a) Did she see something specific, not an abstraction?
+    (b) Did she supply the meaning herself, rather than be handed it?
+    (c) After the last sentence, did she pause for one more second?
+  If yes → Once. If no → write the honest surface and stop.
 
-  Example (lottery):
-    Focal event: the lottery win is ruled invalid.
-    Context: he won 2M, told no one at home, gave the ticket to
-    someone he was seeing. Those earlier acts don't need to happen
-    "in the moment" — they are the contradictions that make the
-    focal ruling heavy. The story IS about a single moment; the
-    other beats are what give that moment its weight.
-
-  A still scene you could photograph (one person, one shop, one
-  object in someone's hand) is the cleanest shape for the focal
-  event, and a GOOD-TO-HAVE — not a must. The focal event can
-  also be a ruling, a refusal, a discovery, a small act with a
-  long shadow behind it.
-
-  REJECT only when there's no pinpoint AT ALL — a summary of
-  weeks of activity ("residents have been protesting for a month")
-  with no single act to stand inside.
-
-  Never an abstraction ("residents," "the public," "Gen Z," "the
-  market") — the focal event must happen to someone or something
-  specific.
-
-- CONTRADICTIONS ARE B-LAYER FUEL. If the focal event carries
-  contradictions that make the reader's heart move — loyalty
-  and betrayal in the same act, tenderness and cruelty held
-  together, fate outmaneuvering calculation, a small dignity
-  wrapped in failure — that IS the B-layer, regardless of
-  whether the plot is "still scene" shaped or "event with
-  backstory" shaped. Refuse moral closure; let the reader hold
-  the contradiction.
+  Guidance, not hard rules:
+  * A specific person, place, or object usually helps (a).
+  * Contradictions held without closure — loyalty tangled with
+    betrayal, tenderness with concealment, calculation undone by
+    fate, a small dignity inside failure — usually give (b) and
+    (c) their weight. Refuse moral closure; let the reader hold
+    the contradiction.
+  * Avoid abstractions as subjects ("residents," "the public,"
+    "Gen Z," "the market") unless the sentence still produces (a).
 
 - KEEP proper nouns when the source provides them: street names,
   shop names, numbers, times. NEVER invent them.
