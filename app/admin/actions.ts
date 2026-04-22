@@ -84,17 +84,11 @@ export async function addAction(formData: FormData): Promise<void> {
       where id = ${queueId}
     `;
 
-    // If the AI filtered it out, auto-reject it so it doesn't clutter the queue.
-    if (!result.passed_filter) {
-      await sql`
-        update moderation_queue
-        set status='rejected',
-            rejected_reason=${"AI filter: " + result.rationale},
-            reviewed_at=now(),
-            reviewer='ai'
-        where id=${queueId}
-      `;
-    }
+    // Manual submissions stay in pending regardless of the AI's
+    // passed_filter verdict — the editor chose to submit this, and
+    // the AI's rationale (already stored on ai_rationale) is advisory,
+    // not a gate. For automated RSS ingest the gate matters because
+    // volume is high; for a manual paste the editor is the authority.
   } catch (err) {
     failureMsg = err instanceof Error ? err.message : String(err);
     await sql`
