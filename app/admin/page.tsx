@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ReviewActionForm } from "./_components/ReviewActions";
 import RerollButton from "./_components/RerollButton";
+import PhotoRow from "./_components/PhotoRow";
 import { requireSql, dbAvailable } from "@/lib/db";
 import { ensurePhotoColumns } from "@/lib/ogImage";
 import {
@@ -329,56 +330,56 @@ export default async function QueuePage({
             </details>
 
             {tab === "pending" ? (
-              <div className="photo-row">
-                {r.photo_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={r.photo_url} alt="hero candidate" className="photo-thumb" />
-                ) : (
-                  <div className="photo-thumb photo-thumb-empty">no photo yet</div>
-                )}
-                <div className="photo-meta">
-                  {r.photo_source ? (
-                    <div className="photo-meta-line">
-                      <span className={`photo-src src-${r.photo_source}`}>
-                        {r.photo_source}
-                      </span>
-                      {r.photo_vision_score != null ? (
-                        <span className="photo-score" title={r.photo_vision_reason ?? ""}>
-                          vision {r.photo_vision_score}/10
+              // Plain form — reroll updates the card, doesn't remove it.
+              // The form wraps PhotoRow so its useFormStatus sees pending.
+              <form action={rerollPhotoAction}>
+                <input type="hidden" name="id" value={r.id} />
+                <PhotoRow>
+                  {r.photo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={r.photo_url} alt="hero candidate" className="photo-thumb" />
+                  ) : (
+                    <div className="photo-thumb photo-thumb-empty">no photo yet</div>
+                  )}
+                  <div className="photo-meta">
+                    {r.photo_source ? (
+                      <div className="photo-meta-line">
+                        <span className={`photo-src src-${r.photo_source}`}>
+                          {r.photo_source}
                         </span>
-                      ) : null}
-                      {r.photo_cost_usd != null && r.photo_cost_usd > 0 ? (
-                        <span className="photo-cost">
-                          ~${r.photo_cost_usd.toFixed(4)}
-                        </span>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  {r.photo_query ? (
-                    <div className="photo-meta-line mono">
-                      query: <span className="photo-q">{r.photo_query}</span>
-                    </div>
-                  ) : null}
-                  {r.photo_attribution_url ? (
-                    <div className="photo-meta-line">
-                      <a
-                        href={r.photo_attribution_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="photo-attr"
-                      >
-                        {r.photo_attribution_name || "source"} ↗
-                      </a>
-                    </div>
-                  ) : null}
-                  {/* Plain form — reroll updates the card, doesn't remove it.
-                      ReviewActionForm would fade the card out. */}
-                  <form action={rerollPhotoAction}>
-                    <input type="hidden" name="id" value={r.id} />
+                        {r.photo_vision_score != null ? (
+                          <span className="photo-score" title={r.photo_vision_reason ?? ""}>
+                            vision {r.photo_vision_score}/10
+                          </span>
+                        ) : null}
+                        {r.photo_cost_usd != null && r.photo_cost_usd > 0 ? (
+                          <span className="photo-cost">
+                            ~${r.photo_cost_usd.toFixed(4)}
+                          </span>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    {r.photo_query ? (
+                      <div className="photo-meta-line mono">
+                        query: <span className="photo-q">{r.photo_query}</span>
+                      </div>
+                    ) : null}
+                    {r.photo_attribution_url ? (
+                      <div className="photo-meta-line">
+                        <a
+                          href={r.photo_attribution_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="photo-attr"
+                        >
+                          {r.photo_attribution_name || "source"} ↗
+                        </a>
+                      </div>
+                    ) : null}
                     <RerollButton hasPhoto={!!r.photo_url} />
-                  </form>
-                </div>
-              </div>
+                  </div>
+                </PhotoRow>
+              </form>
             ) : null}
 
             {tab === "pending" ? (
