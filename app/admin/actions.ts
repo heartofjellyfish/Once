@@ -225,11 +225,12 @@ export async function runIngestAction(formData: FormData): Promise<void> {
     errorMsg = err instanceof Error ? err.message : String(err);
   }
 
+  revalidatePath("/admin/runs");
   revalidatePath("/admin");
   if (errorMsg) {
-    redirect(`/admin?ingest_err=${encodeURIComponent(errorMsg)}`);
+    redirect(`/admin/runs?ingest_err=${encodeURIComponent(errorMsg)}`);
   }
-  redirect(`/admin?ingest_ok=${encodeURIComponent(summary)}`);
+  redirect(`/admin/runs?ingest_ok=${encodeURIComponent(summary)}`);
 }
 
 /**
