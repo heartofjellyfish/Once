@@ -85,23 +85,43 @@ export const ONCE_RULES = `RULES:
   or *buy something*? Reject. Does it read like a witness noticed a
   small truth and told you? Pass.
 
-- BOUNDED ENOUGH TO HOLD IN ONE HAND. Either (a) a still scene
-  you could photograph — one person, one shop, one animal, one
-  object in someone's hand — or a small group acting in one scene
-  at one moment; OR (b) a tight chain of acts around a single
-  concrete object or person where the chain IS the B-current
-  (a lottery ticket bought → gifted → voided; a letter written →
-  lost → found at a funeral; a ring pawned → bought back by a
-  stranger → returned). Chain-shaped moments pass only if the
-  chain itself carries the hidden weight — not as plot machinery
-  but as the shape of a life pressing through one object.
-  Never an abstraction ("residents," "the public," "Gen Z," "the
-  market").
+- SEPARATE THE FOCAL EVENT FROM THE CONTEXT.
+  Every Once story has ONE focal event — a single act, ruling,
+  decision, observation that happens in roughly one moment. The
+  rest is CONTEXT: backstory, prior acts, relationships, secrets,
+  contradictions that press on that moment from behind. Context
+  can span months or years; the focal event is a pinpoint.
 
-- TIME: either one bounded observation (roughly within a day),
-  or a short event-chain that resolves around one object/person.
-  Never a summary of weeks of activity ("residents have been
-  protesting for a month").
+  Example (lottery):
+    Focal event: the lottery win is ruled invalid.
+    Context: he won 2M, told no one at home, gave the ticket to
+    someone he was seeing. Those earlier acts don't need to happen
+    "in the moment" — they are the contradictions that make the
+    focal ruling heavy. The story IS about a single moment; the
+    other beats are what give that moment its weight.
+
+  A still scene you could photograph (one person, one shop, one
+  object in someone's hand) is the cleanest shape for the focal
+  event, and a GOOD-TO-HAVE — not a must. The focal event can
+  also be a ruling, a refusal, a discovery, a small act with a
+  long shadow behind it.
+
+  REJECT only when there's no pinpoint AT ALL — a summary of
+  weeks of activity ("residents have been protesting for a month")
+  with no single act to stand inside.
+
+  Never an abstraction ("residents," "the public," "Gen Z," "the
+  market") — the focal event must happen to someone or something
+  specific.
+
+- CONTRADICTIONS ARE B-LAYER FUEL. If the focal event carries
+  contradictions that make the reader's heart move — loyalty
+  and betrayal in the same act, tenderness and cruelty held
+  together, fate outmaneuvering calculation, a small dignity
+  wrapped in failure — that IS the B-layer, regardless of
+  whether the plot is "still scene" shaped or "event with
+  backstory" shaped. Refuse moral closure; let the reader hold
+  the contradiction.
 
 - KEEP proper nouns when the source provides them: street names,
   shop names, numbers, times. NEVER invent them.
@@ -153,16 +173,16 @@ export const CONTRAST_PAIRS = `THREE CONTRAST PAIRS:
 
   tabloid voice (reject):
     "Unfaithful husband loses 2M lottery in shocking twist!"
-  Once voice (accept) — this is a CHAIN-SHAPED Once, where the
-  object (one lottery ticket) carries the hidden marriage
-  architecture through a sequence of small acts:
+  Once voice (accept) — the FOCAL EVENT is the ruling; the earlier
+  acts are context that load the focal moment with contradictions.
+  Loyalty and betrayal, tenderness and concealment, calculation
+  undone by fate — all held at once, moral closure refused:
     "天津一个人中了 200 万的彩票，没告诉家里，转手送给了情人。
      后来裁定中奖无效。"
 
-  The chain-shaped pair matters: refusing moral closure IS the
-  Once move. The story does not say "betrayal" or "poetic justice";
-  it names four small acts around one ticket and stops. The
-  reader holds the contradiction herself.`;
+  Notice: the sentence does not say "betrayal," "poetic justice,"
+  "shocking." It names four small acts around one ticket and
+  stops. The reader supplies the weight.`;
 
 // ---------------------------------------------------------------- //
 // The security boilerplate used on every prompt that reads web     //
