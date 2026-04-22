@@ -16,6 +16,7 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const MODEL = "claude-haiku-4-5";
 const DEFAULT_THRESHOLD = 5; // 0–10; >=5 keeps the OG image.
+const RELEVANCE_THRESHOLD = 5;
 
 let _client: Anthropic | null = null;
 function client(): Anthropic | null {
@@ -75,6 +76,70 @@ export async function judgeOgImage(
     const block = res.content.find((b) => b.type === "text");
     const raw = block && "text" in block ? block.text : "";
     // Haiku sometimes wraps JSON in prose — pull the first {...}.
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    const parsed = JSON.parse(match[0]) as { score?: number; reason?: string };
+    const score = Number(parsed.score);
+    if (!Number.isFinite(score)) return null;
+    return {
+      keep: score >= threshold,
+      score,
+      reason: (parsed.reason || "").slice(0, 60)
+    };
+  } catch {
+    return null;
+  }
+}
+
+const RELEVANCE_SYSTEM = `You judge whether a photograph is RELATED to a short news vignette. Unsplash often matches on one keyword and returns an image that shares the city name but not the subject — a ferris wheel returned for a "lottery ticket" story, a generic skyline returned for a "bakery" story.
+
+Score 0–10 on topical relevance:
+  10 = the image clearly depicts the subject the vignette is about (a lottery counter for a lottery story; a flooded street for a flood story)
+   5 = adjacent context (a street in the right city for a bakery story; a market scene for a food vendor story)
+   0 = unrelated (a ferris wheel for a lottery story; a beach for a protest story)
+
+Prefer rejecting a loosely-related image over keeping one. The chain has more queries to try.
+
+Return strict JSON: { "score": integer 0-10, "reason": short phrase under 10 words }.`;
+
+export async function judgeUnsplashRelevance(
+  imageUrl: string,
+  storyText: string,
+  threshold = RELEVANCE_THRESHOLD
+): Promise<{ keep: boolean; score: number; reason: string } | null> {
+  const c = client();
+  if (!c || !imageUrl || !storyText) return null;
+
+  try {
+    const res = await c.messages.create({
+      model: MODEL,
+      max_tokens: 80,
+      system: [
+        {
+          type: "text",
+          text: RELEVANCE_SYSTEM,
+          cache_control: { type: "ephemeral" }
+        }
+      ],
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image",
+              source: { type: "url", url: imageUrl }
+            },
+            {
+              type: "text",
+              text: `Story:\n${storyText.slice(0, 400)}\n\nScore this image's relevance.`
+            }
+          ]
+        }
+      ]
+    });
+
+    const block = res.content.find((b) => b.type === "text");
+    const raw = block && "text" in block ? block.text : "";
     const match = raw.match(/\{[\s\S]*\}/);
     if (!match) return null;
     const parsed = JSON.parse(match[0]) as { score?: number; reason?: string };

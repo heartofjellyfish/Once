@@ -111,7 +111,12 @@ export async function addAction(formData: FormData): Promise<void> {
         const photo = await resolveHeroImage(
           sourceUrl || "",
           queueId,
-          { lat: result.lat, lng: result.lng, unsplashQueries }
+          {
+            lat: result.lat,
+            lng: result.lng,
+            unsplashQueries,
+            storyText: rewriteText
+          }
         );
         await sql`
           update moderation_queue set
@@ -401,7 +406,8 @@ export async function restorePendingAction(formData: FormData): Promise<void> {
       const photo = await resolveHeroImage(q.source_url ?? "", queueId, {
         lat: q.lat != null ? Number(q.lat) : null,
         lng: q.lng != null ? Number(q.lng) : null,
-        unsplashQueries
+        unsplashQueries,
+        storyText: rewriteText
       });
       await sql`
         update moderation_queue set
@@ -464,6 +470,7 @@ export async function rerollPhotoAction(formData: FormData): Promise<void> {
       lat: q.lat != null ? Number(q.lat) : null,
       lng: q.lng != null ? Number(q.lng) : null,
       unsplashQueries,
+      storyText: rewriteText,
       forceSkipOg: true
     }
   );

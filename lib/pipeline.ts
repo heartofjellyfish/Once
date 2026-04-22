@@ -1170,7 +1170,12 @@ async function writeQueue(args: {
   const photo = await resolveHeroImage(
     entry.link,
     `${city.id}-${entry.title}`,
-    { lat: city.lat, lng: city.lng, unsplashQueries }
+    {
+      lat: city.lat,
+      lng: city.lng,
+      unsplashQueries,
+      storyText: rewriteForQuery
+    }
   );
   const photoUrl = photo.url;
 

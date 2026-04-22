@@ -15,7 +15,7 @@
 
 import { watercolorMapUrl } from "./map";
 import { searchUnsplash } from "./unsplash";
-import { judgeOgImage } from "./photoVision";
+import { judgeOgImage, judgeUnsplashRelevance } from "./photoVision";
 import { requireSql } from "./db";
 
 /**
@@ -299,6 +299,8 @@ export async function resolveHeroImage(
     lng: number | null | undefined;
     /** Ladder of Unsplash queries, most-specific first. */
     unsplashQueries?: string[] | null;
+    /** Story text for relevance judging of Unsplash hits. */
+    storyText?: string | null;
     /** Skip OG entirely — used by the admin reroll button. */
     forceSkipOg?: boolean;
   }
@@ -334,18 +336,33 @@ export async function resolveHeroImage(
     }
   }
 
-  // Try each query in the ladder, stop at the first Unsplash hit.
+  // Try each query in the ladder; each hit gets a Haiku relevance
+  // check against the story text so Unsplash's low-precision matching
+  // (e.g. returning a ferris wheel because it tagged "Tianjin" but not
+  // "lottery") gets filtered out. First hit that's both returned AND
+  // judged relevant wins. Fall through to watercolor if every hit is
+  // either missing or judged irrelevant.
+  const storyText = fallback?.storyText?.trim() || "";
   for (const q of queries) {
     const found = await searchUnsplash(q);
-    if (found) {
+    if (!found) continue;
+
+    let verdict: Awaited<ReturnType<typeof judgeUnsplashRelevance>> = null;
+    if (storyText) {
+      verdict = await judgeUnsplashRelevance(found.url, storyText);
+      if (verdict) cost += COST_VISION_JUDGE;
+    }
+    // If we can't judge (no ANTHROPIC_API_KEY, error), keep the hit —
+    // don't regress to "works worse without Anthropic key".
+    if (!verdict || verdict.keep) {
       return {
         url: found.url,
         source: "unsplash",
         query: q,
         attribution_url: found.attribution || null,
         attribution_name: found.author || "Unsplash",
-        vision_score: null,
-        vision_reason: null,
+        vision_score: verdict?.score ?? null,
+        vision_reason: verdict?.reason ?? null,
         cost_usd: cost
       };
     }

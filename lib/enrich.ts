@@ -234,7 +234,8 @@ export async function enrichAndPublish(input: EnrichInput): Promise<EnrichResult
       : resolveHeroImage(input.sourceUrl ?? "", seed, {
           lat: city.lat,
           lng: city.lng,
-          unsplashQueries
+          unsplashQueries,
+          storyText: rewriteForQuery
         })
   ]);
   const photoUrl = photoResolved.url;
