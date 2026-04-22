@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { addAction } from "../actions";
 import { estimateCurateCost } from "@/lib/curate";
+import SendButton from "./SendButton";
 
 type Mode = "url" | "text";
 
@@ -72,9 +73,7 @@ export default async function ManualPage({
         </div>
 
         <div className="buttons">
-          <button type="submit" className="primary">
-            send to queue
-          </button>
+          <SendButton />
           <span className="cost-hint">
             est. cost: ~${floor.toFixed(5)}+ per call (warm cache)
           </span>
