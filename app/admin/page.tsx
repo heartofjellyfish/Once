@@ -19,6 +19,32 @@ import { currentHour } from "@/lib/stories";
 
 type Tab = "pending" | "approved" | "rejected";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function journeyLabel(s: any): string {
+  switch (s?.step) {
+    case "og_skipped":
+      return `og: skipped — ${s.reason}`;
+    case "og_scraped":
+      return s.url ? `og: scraped ${truncate(s.url, 60)}` : "og: scrape returned nothing";
+    case "og_judged":
+      return `og vision: ${s.score}/10 "${s.reason}" → ${s.kept ? "kept" : "rejected"}`;
+    case "og_judge_unavailable":
+      return "og vision: unavailable (kept by default)";
+    case "library_query":
+      return `${s.library}: "${s.query}" → ${s.hit ? "hit" : "no hit"}`;
+    case "relevance_judged":
+      return `${s.library} vision: ${s.score}/10 "${s.reason}" → ${s.kept ? "kept ✓" : "rejected"}`;
+    case "fallback":
+      return `fallback → ${s.to} (${s.reason})`;
+    default:
+      return JSON.stringify(s);
+  }
+}
+
+function truncate(s: string, n: number): string {
+  return s.length > n ? s.slice(0, n) + "…" : s;
+}
+
 interface PhotoMeta {
   photo_source: string | null;
   photo_query: string | null;
@@ -27,6 +53,8 @@ interface PhotoMeta {
   photo_vision_score: number | null;
   photo_vision_reason: string | null;
   photo_cost_usd: number | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  photo_journey: any[] | null;
 }
 
 interface QueueRow extends Partial<PhotoMeta> {
@@ -141,6 +169,7 @@ export default async function QueuePage({
       q.photo_attribution_url, q.photo_attribution_name,
       q.photo_vision_score, q.photo_vision_reason,
       q.photo_cost_usd::float8 as photo_cost_usd,
+      q.photo_journey,
       s.selected_hour::int8 as story_selected_hour,
       s.published_at::text as story_published_at
     from moderation_queue q
@@ -375,6 +404,16 @@ export default async function QueuePage({
                           {r.photo_attribution_name || "source"} ↗
                         </a>
                       </div>
+                    ) : null}
+                    {Array.isArray(r.photo_journey) && r.photo_journey.length > 0 ? (
+                      <details className="photo-journey">
+                        <summary>journey ({r.photo_journey.length} steps)</summary>
+                        <ol>
+                          {r.photo_journey.map((s, i) => (
+                            <li key={i}>{journeyLabel(s)}</li>
+                          ))}
+                        </ol>
+                      </details>
                     ) : null}
                     <RerollButton hasPhoto={!!r.photo_url} />
                   </div>
@@ -876,6 +915,26 @@ export default async function QueuePage({
         .photo-attr:hover {
           color: var(--ink);
         }
+        .photo-journey {
+          margin-top: 2px;
+          font-size: 11px;
+        }
+        .photo-journey summary {
+          color: var(--ink-faint);
+          cursor: pointer;
+          user-select: none;
+          letter-spacing: 0.02em;
+        }
+        .photo-journey summary:hover { color: var(--ink-muted); }
+        .photo-journey ol {
+          margin: 6px 0 4px;
+          padding-left: 20px;
+          color: var(--ink-muted);
+          font-family: var(--mono);
+          font-size: 11px;
+          line-height: 1.5;
+        }
+        .photo-journey li { margin-bottom: 2px; }
 
         .good-btn, .reject-btn {
           font-family: var(--sans);

@@ -35,6 +35,7 @@ export async function ensurePhotoColumns(): Promise<void> {
   await sql`alter table moderation_queue add column if not exists photo_vision_score integer`;
   await sql`alter table moderation_queue add column if not exists photo_vision_reason text`;
   await sql`alter table moderation_queue add column if not exists photo_cost_usd numeric(8,5)`;
+  await sql`alter table moderation_queue add column if not exists photo_journey jsonb`;
   _photoColumnsEnsured = true;
 }
 
@@ -263,6 +264,22 @@ export async function scrapeOgImage(sourceUrl: string): Promise<string | null> {
   return best.url;
 }
 
+export type PhotoJourneyStep =
+  | { step: "og_skipped"; reason: string }
+  | { step: "og_scraped"; url: string | null }
+  | { step: "og_judged"; score: number; reason: string; kept: boolean }
+  | { step: "og_judge_unavailable" }
+  | { step: "library_query"; library: "unsplash" | "pexels"; query: string; hit: boolean }
+  | {
+      step: "relevance_judged";
+      library: "unsplash" | "pexels";
+      query: string;
+      score: number;
+      reason: string;
+      kept: boolean;
+    }
+  | { step: "fallback"; to: "watercolor" | "picsum"; reason: string };
+
 export interface PhotoResult {
   url: string;
   source: "og" | "unsplash" | "pexels" | "watercolor" | "picsum";
@@ -277,6 +294,8 @@ export interface PhotoResult {
   vision_reason: string | null;
   /** Rough USD cost of AI calls made during this resolve. */
   cost_usd: number;
+  /** Ordered log of every step taken to reach this result. */
+  journey: PhotoJourneyStep[];
 }
 
 // Rough fixed estimates — token counts barely vary for these prompts.
@@ -307,6 +326,7 @@ export async function resolveHeroImage(
   }
 ): Promise<PhotoResult> {
   let cost = 0;
+  const journey: PhotoJourneyStep[] = [];
   const queries = (fallback?.unsplashQueries || [])
     .map((q) => q?.trim())
     .filter((q): q is string => !!q);
@@ -316,13 +336,32 @@ export async function resolveHeroImage(
   const host = hostOf(sourceUrl);
   const skipOg =
     fallback?.forceSkipOg || (host ? OG_SKIP_HOSTS.has(host) : false);
+  if (skipOg) {
+    journey.push({
+      step: "og_skipped",
+      reason: fallback?.forceSkipOg
+        ? "forceSkipOg (admin reroll)"
+        : `known stock host: ${host}`
+    });
+  }
   const scraped = skipOg ? null : await scrapeOgImage(sourceUrl);
+  if (!skipOg) journey.push({ step: "og_scraped", url: scraped });
 
   // Step 2: Haiku vision judges OG. Keep if it passes; fall through if
   // it scores stocky. If the judge is unreachable, keep the OG image.
   if (scraped) {
     const verdict = await judgeOgImage(scraped);
-    if (verdict) cost += COST_VISION_JUDGE;
+    if (verdict) {
+      cost += COST_VISION_JUDGE;
+      journey.push({
+        step: "og_judged",
+        score: verdict.score,
+        reason: verdict.reason,
+        kept: verdict.keep
+      });
+    } else {
+      journey.push({ step: "og_judge_unavailable" });
+    }
     if (!verdict || verdict.keep) {
       return {
         url: scraped,
@@ -332,7 +371,8 @@ export async function resolveHeroImage(
         attribution_name: host,
         vision_score: verdict?.score ?? null,
         vision_reason: verdict?.reason ?? null,
-        cost_usd: cost
+        cost_usd: cost,
+        journey
       };
     }
   }
@@ -356,12 +396,28 @@ export async function resolveHeroImage(
   for (const q of queries) {
     for (const lib of libs) {
       const found = await lib.search(q);
+      journey.push({
+        step: "library_query",
+        library: lib.name,
+        query: q,
+        hit: !!found
+      });
       if (!found) continue;
 
       let verdict: Awaited<ReturnType<typeof judgeUnsplashRelevance>> = null;
       if (storyText) {
         verdict = await judgeUnsplashRelevance(found.url, storyText);
-        if (verdict) cost += COST_VISION_JUDGE;
+        if (verdict) {
+          cost += COST_VISION_JUDGE;
+          journey.push({
+            step: "relevance_judged",
+            library: lib.name,
+            query: q,
+            score: verdict.score,
+            reason: verdict.reason,
+            kept: verdict.keep
+          });
+        }
       }
       if (!verdict || verdict.keep) {
         return {
@@ -372,7 +428,8 @@ export async function resolveHeroImage(
           attribution_name: found.author || lib.credit,
           vision_score: verdict?.score ?? null,
           vision_reason: verdict?.reason ?? null,
-          cost_usd: cost
+          cost_usd: cost,
+          journey
         };
       }
     }
@@ -390,20 +447,29 @@ export async function resolveHeroImage(
       height: 480,
       zoom: 12
     });
+    journey.push({
+      step: "fallback",
+      to: "watercolor",
+      reason: "no library hit was judged relevant"
+    });
     return {
       url: wc,
       source: "watercolor",
-      // Show the whole ladder that was tried so the reviewer can see
-      // at a glance what Unsplash didn't have.
       query: queries.length > 0 ? queries.join(" → ") + " (all 0)" : null,
       attribution_url: "https://stadiamaps.com",
       attribution_name: "Stamen Watercolor · Stadia",
       vision_score: null,
       vision_reason: null,
-      cost_usd: cost
+      cost_usd: cost,
+      journey
     };
   }
 
+  journey.push({
+    step: "fallback",
+    to: "picsum",
+    reason: "no lat/lng for watercolor"
+  });
   return {
     url: placeholderImage(seedKey),
     source: "picsum",
@@ -412,6 +478,7 @@ export async function resolveHeroImage(
     attribution_name: null,
     vision_score: null,
     vision_reason: null,
-    cost_usd: cost
+    cost_usd: cost,
+    journey
   };
 }

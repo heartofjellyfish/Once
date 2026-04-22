@@ -1255,7 +1255,8 @@ async function writeQueue(args: {
       photo_attribution_name = ${photo.attribution_name},
       photo_vision_score     = ${photo.vision_score},
       photo_vision_reason    = ${photo.vision_reason},
-      photo_cost_usd         = ${photo.cost_usd}
+      photo_cost_usd         = ${photo.cost_usd},
+      photo_journey          = ${JSON.stringify(photo.journey)}
     where id = ${id}
   `;
 

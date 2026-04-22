@@ -127,7 +127,8 @@ export async function addAction(formData: FormData): Promise<void> {
             photo_attribution_name = ${photo.attribution_name},
             photo_vision_score     = ${photo.vision_score},
             photo_vision_reason    = ${photo.vision_reason},
-            photo_cost_usd         = ${photo.cost_usd}
+            photo_cost_usd         = ${photo.cost_usd},
+            photo_journey          = ${JSON.stringify(photo.journey)}
           where id = ${queueId}
         `;
       } catch (err) {
@@ -484,7 +485,8 @@ export async function rerollPhotoAction(formData: FormData): Promise<void> {
       photo_attribution_name = ${next.attribution_name},
       photo_vision_score     = ${next.vision_score},
       photo_vision_reason    = ${next.vision_reason},
-      photo_cost_usd         = ${next.cost_usd}
+      photo_cost_usd         = ${next.cost_usd},
+      photo_journey          = ${JSON.stringify(next.journey)}
     where id = ${queueId}
   `;
   revalidatePath("/admin");
