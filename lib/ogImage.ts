@@ -366,7 +366,9 @@ export async function resolveHeroImage(
     return {
       url: wc,
       source: "watercolor",
-      query: queries[0] ?? null,
+      // Show the whole ladder that was tried so the reviewer can see
+      // at a glance what Unsplash didn't have.
+      query: queries.length > 0 ? queries.join(" → ") + " (all 0)" : null,
       attribution_url: "https://stadiamaps.com",
       attribution_name: "Stamen Watercolor · Stadia",
       vision_score: null,
@@ -378,7 +380,7 @@ export async function resolveHeroImage(
   return {
     url: placeholderImage(seedKey),
     source: "picsum",
-    query: queries[0] ?? null,
+    query: queries.length > 0 ? queries.join(" → ") + " (all 0)" : null,
     attribution_url: null,
     attribution_name: null,
     vision_score: null,
