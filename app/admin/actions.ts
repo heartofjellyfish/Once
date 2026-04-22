@@ -28,7 +28,7 @@ function shortId(): string {
 /**
  * ADD — paste raw source text (from a news item, a social post, or your
  * own observation). AI resolves city + rewrites in Once voice + drops it
- * into the pending queue for your review. Two UI modes under /admin/add
+ * into the pending queue for your review. Two UI modes under /admin/manual
  * (from-source vs write-your-own) both hit this same action.
  */
 export async function addAction(formData: FormData): Promise<void> {
@@ -38,7 +38,7 @@ export async function addAction(formData: FormData): Promise<void> {
 
   if (sourceText.length < 10) {
     redirect(
-      `/admin/add?err=${encodeURIComponent("text is too short (min 10 chars)")}`
+      `/admin/manual?err=${encodeURIComponent("text is too short (min 10 chars)")}`
     );
   }
 

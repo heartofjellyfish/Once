@@ -64,7 +64,7 @@ lib/
   prompts.ts         ONCE_PRINCIPLE + ONCE_RULES + ONCE_HEADER (shared)
   articleBody.ts     Readability + JSON-LD + OG body extractor
                      (lazy-imports jsdom to keep admin routes lean)
-  curate.ts          /admin/add manual curator (two-mode: paste source or write your own)
+  curate.ts          /admin/manual curator (two-mode: paste source or write your own)
   sources.ts         RSS fetch + 7-day window + source_host utilities
   enrich.ts          publish flow: city → rewrite → weather/photo → stories
   cityResolver.ts    free-text city → canonical row (AI geocode if new)
@@ -84,7 +84,7 @@ app/
     actions.ts       approve / reject / mark-good / pin / patch actions
     sources/         manage cities + RSS feeds
     runs/            pipeline run history
-    add/             manual add — paste source text or write your own,
+    manual/          manual entry — paste source text or write your own,
                      both land in the pending queue for review
   api/cron/
     ingest/          daily 3:30 UTC batch

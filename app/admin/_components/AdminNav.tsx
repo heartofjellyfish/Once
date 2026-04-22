@@ -7,7 +7,7 @@ const LINKS: { href: string; label: string; exact?: boolean }[] = [
   { href: "/admin", label: "queue", exact: true },
   { href: "/admin/runs", label: "runs" },
   { href: "/admin/sources", label: "sources" },
-  { href: "/admin/add", label: "add" },
+  { href: "/admin/manual", label: "manual" },
 ];
 
 export default function AdminNav() {

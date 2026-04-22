@@ -4,7 +4,7 @@ import { estimateCurateCost } from "@/lib/curate";
 
 type Mode = "url" | "text";
 
-export default async function AddPage({
+export default async function ManualPage({
   searchParams
 }: {
   searchParams: Promise<{ mode?: string; err?: string }>;
@@ -16,7 +16,7 @@ export default async function AddPage({
 
   return (
     <section>
-      <h2>add</h2>
+      <h2>manual</h2>
       <p className="lede">
         {mode === "url"
           ? "Paste a news item, social post, or snippet you want Once to consider. GPT-4o-mini renders it in the local language and drops it in the queue for your review."
@@ -25,14 +25,14 @@ export default async function AddPage({
 
       <div className="tabs">
         <Link
-          href="/admin/add?mode=url"
+          href="/admin/manual?mode=url"
           className={mode === "url" ? "active" : ""}
           aria-current={mode === "url" ? "page" : undefined}
         >
           from source
         </Link>
         <Link
-          href="/admin/add?mode=text"
+          href="/admin/manual?mode=text"
           className={mode === "text" ? "active" : ""}
           aria-current={mode === "text" ? "page" : undefined}
         >
