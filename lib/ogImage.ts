@@ -16,6 +16,26 @@
 import { watercolorMapUrl } from "./map";
 import { searchUnsplash } from "./unsplash";
 import { judgeOgImage } from "./photoVision";
+import { requireSql } from "./db";
+
+/**
+ * Add columns for photo metadata the first time any resolve fires.
+ * Idempotent. Surfaced so the admin pending card can show source /
+ * query / cost alongside the thumbnail.
+ */
+let _photoColumnsEnsured = false;
+export async function ensurePhotoColumns(): Promise<void> {
+  if (_photoColumnsEnsured) return;
+  const sql = requireSql();
+  await sql`alter table moderation_queue add column if not exists photo_source text`;
+  await sql`alter table moderation_queue add column if not exists photo_query text`;
+  await sql`alter table moderation_queue add column if not exists photo_attribution_url text`;
+  await sql`alter table moderation_queue add column if not exists photo_attribution_name text`;
+  await sql`alter table moderation_queue add column if not exists photo_vision_score integer`;
+  await sql`alter table moderation_queue add column if not exists photo_vision_reason text`;
+  await sql`alter table moderation_queue add column if not exists photo_cost_usd numeric(8,5)`;
+  _photoColumnsEnsured = true;
+}
 
 // Hosts whose OG images are consistently stocky / press-release / generic.
 // Compiled from reviewer experience (see docs/photo.md). For these
@@ -242,15 +262,34 @@ export async function scrapeOgImage(sourceUrl: string): Promise<string | null> {
   return best.url;
 }
 
+export interface PhotoResult {
+  url: string;
+  source: "og" | "unsplash" | "watercolor" | "picsum";
+  /** Unsplash query used (null if not reached). */
+  query: string | null;
+  /** Link to the source article or photographer page, when known. */
+  attribution_url: string | null;
+  /** Photographer / source name for credit. */
+  attribution_name: string | null;
+  /** Haiku vision verdict on the OG image, if it was judged. */
+  vision_score: number | null;
+  vision_reason: string | null;
+  /** Rough USD cost of AI calls made during this resolve. */
+  cost_usd: number;
+}
+
+// Rough fixed estimates — token counts barely vary for these prompts.
+// keyword extract: gpt-4o-mini ~150 input + 20 output = ~$0.00004
+// Haiku vision judge: ~400 input + 40 output (image tokens dominate)
+//   Haiku 4.5 price * typical image = ~$0.003
+const COST_VISION_JUDGE = 0.003;
+
 /**
- * Top-level: always returns a URL. Preference order:
- *   1. Best OG / twitter image we could scrape from the source article.
+ * Top-level: always returns a PhotoResult. Preference order:
+ *   1. OG image from the source article, gated by Haiku vision judge.
  *   2. Unsplash keyword search — if an `unsplashQuery` is supplied.
- *      Bakeoff showed Unsplash has the most on-brand film/documentary
- *      aesthetic among free image libraries.
- *   3. Stamen Watercolor map of the story's city (if lat/lng provided) —
- *      brand-coherent with the postmark stamp, always works.
- *   4. Deterministic picsum placeholder keyed on seedKey — last resort.
+ *   3. Stamen Watercolor map of the story's city.
+ *   4. Deterministic picsum placeholder keyed on seedKey.
  */
 export async function resolveHeroImage(
   sourceUrl: string,
@@ -262,30 +301,50 @@ export async function resolveHeroImage(
     /** Skip OG entirely — used by the admin reroll button. */
     forceSkipOg?: boolean;
   }
-): Promise<string> {
+): Promise<PhotoResult> {
+  let cost = 0;
+  const query = fallback?.unsplashQuery?.trim() || null;
+
   // Step 1: OG scrape — unless the source host is on the known-stocky
-  // skip list (e.g. nippon.com) or the caller forced skip (admin reroll),
-  // in which case jump straight to Unsplash.
+  // skip list (e.g. nippon.com) or the caller forced skip (admin reroll).
   const host = hostOf(sourceUrl);
   const skipOg =
     fallback?.forceSkipOg || (host ? OG_SKIP_HOSTS.has(host) : false);
   const scraped = skipOg ? null : await scrapeOgImage(sourceUrl);
 
-  // Step 2: if we got an OG image, ask Haiku vision whether it's the
-  // kind of photo Once wants (documentary / ordinary-moment) or a
-  // stocky / press-release / logo one. If the judge passes, keep it.
-  // If the judge says no, fall through to Unsplash. If the judge is
-  // unreachable (no key, network error), keep the OG image — current
-  // behavior, don't regress.
+  // Step 2: Haiku vision judges OG. Keep if it passes; fall through if
+  // it scores stocky. If the judge is unreachable, keep the OG image.
   if (scraped) {
     const verdict = await judgeOgImage(scraped);
-    if (!verdict || verdict.keep) return scraped;
+    if (verdict) cost += COST_VISION_JUDGE;
+    if (!verdict || verdict.keep) {
+      return {
+        url: scraped,
+        source: "og",
+        query,
+        attribution_url: sourceUrl || null,
+        attribution_name: host,
+        vision_score: verdict?.score ?? null,
+        vision_reason: verdict?.reason ?? null,
+        cost_usd: cost
+      };
+    }
   }
 
-  const query = fallback?.unsplashQuery?.trim();
   if (query) {
     const found = await searchUnsplash(query);
-    if (found) return found;
+    if (found) {
+      return {
+        url: found.url,
+        source: "unsplash",
+        query,
+        attribution_url: found.attribution || null,
+        attribution_name: found.author || "Unsplash",
+        vision_score: null,
+        vision_reason: null,
+        cost_usd: cost
+      };
+    }
   }
 
   if (
@@ -295,14 +354,31 @@ export async function resolveHeroImage(
     Number.isFinite(fallback.lat) &&
     Number.isFinite(fallback.lng)
   ) {
-    // Request a large 3:2 watercolor panel — matches the polaroid's
-    // aspect ratio so object-fit: cover doesn't clip anything important.
-    return watercolorMapUrl(fallback.lat, fallback.lng, {
+    const wc = watercolorMapUrl(fallback.lat, fallback.lng, {
       size: 720,
       height: 480,
       zoom: 12
     });
+    return {
+      url: wc,
+      source: "watercolor",
+      query,
+      attribution_url: "https://stadiamaps.com",
+      attribution_name: "Stamen Watercolor · Stadia",
+      vision_score: null,
+      vision_reason: null,
+      cost_usd: cost
+    };
   }
 
-  return placeholderImage(seedKey);
+  return {
+    url: placeholderImage(seedKey),
+    source: "picsum",
+    query,
+    attribution_url: null,
+    attribution_name: null,
+    vision_score: null,
+    vision_reason: null,
+    cost_usd: cost
+  };
 }

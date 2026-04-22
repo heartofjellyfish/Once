@@ -7,7 +7,7 @@ import { curate } from "@/lib/curate";
 import { runIngest } from "@/lib/pipeline";
 import { enrichAndPublish } from "@/lib/enrich";
 import { currentHour } from "@/lib/stories";
-import { resolveHeroImage } from "@/lib/ogImage";
+import { resolveHeroImage, ensurePhotoColumns } from "@/lib/ogImage";
 import { extractPhotoKeyword } from "@/lib/photoKeywords";
 
 /** Slug helper for generated story IDs. ASCII-only, kebab. */
@@ -103,17 +103,27 @@ export async function addAction(formData: FormData): Promise<void> {
       // we do it here so both RSS-ingest and manual paths end up with
       // a photo_url on the queue row.
       try {
+        await ensurePhotoColumns();
         const rewriteText = (result.english_text || result.original_text || "").trim();
         const unsplashQuery = rewriteText
           ? await extractPhotoKeyword(rewriteText, result.city)
           : result.city;
-        const photoUrl = await resolveHeroImage(
+        const photo = await resolveHeroImage(
           sourceUrl || "",
           queueId,
           { lat: result.lat, lng: result.lng, unsplashQuery }
         );
         await sql`
-          update moderation_queue set photo_url = ${photoUrl} where id = ${queueId}
+          update moderation_queue set
+            photo_url              = ${photo.url},
+            photo_source           = ${photo.source},
+            photo_query            = ${photo.query},
+            photo_attribution_url  = ${photo.attribution_url},
+            photo_attribution_name = ${photo.attribution_name},
+            photo_vision_score     = ${photo.vision_score},
+            photo_vision_reason    = ${photo.vision_reason},
+            photo_cost_usd         = ${photo.cost_usd}
+          where id = ${queueId}
         `;
       } catch (err) {
         console.warn("[addAction] photo resolve failed:", (err as Error).message);
@@ -365,6 +375,51 @@ export async function restorePendingAction(formData: FormData): Promise<void> {
     where id=${queueId}
   `;
 
+  // If the row never had a photo resolved (rejected rows from the old
+  // AI-gate path often didn't), resolve one now so it shows on the
+  // pending card. Every pending row should have a preview.
+  try {
+    const rows = (await sql`
+      select photo_url, source_url, city, lat, lng, english_text, original_text
+      from moderation_queue where id = ${queueId}
+    `) as unknown as {
+      photo_url: string | null;
+      source_url: string | null;
+      city: string | null;
+      lat: number | null;
+      lng: number | null;
+      english_text: string | null;
+      original_text: string | null;
+    }[];
+    const q = rows[0];
+    if (q && !q.photo_url && q.city) {
+      await ensurePhotoColumns();
+      const rewriteText = (q.english_text || q.original_text || "").trim();
+      const unsplashQuery = rewriteText
+        ? await extractPhotoKeyword(rewriteText, q.city)
+        : q.city;
+      const photo = await resolveHeroImage(q.source_url ?? "", queueId, {
+        lat: q.lat,
+        lng: q.lng,
+        unsplashQuery
+      });
+      await sql`
+        update moderation_queue set
+          photo_url              = ${photo.url},
+          photo_source           = ${photo.source},
+          photo_query            = ${photo.query},
+          photo_attribution_url  = ${photo.attribution_url},
+          photo_attribution_name = ${photo.attribution_name},
+          photo_vision_score     = ${photo.vision_score},
+          photo_vision_reason    = ${photo.vision_reason},
+          photo_cost_usd         = ${photo.cost_usd}
+        where id = ${queueId}
+      `;
+    }
+  } catch (err) {
+    console.warn("[restorePending] photo resolve failed:", (err as Error).message);
+  }
+
   revalidatePath("/admin");
   redirect("/admin?tab=rejected");
 }
@@ -401,6 +456,7 @@ export async function rerollPhotoAction(formData: FormData): Promise<void> {
     ? await extractPhotoKeyword(rewriteText, cityName)
     : cityName;
 
+  await ensurePhotoColumns();
   const next = await resolveHeroImage(
     q.source_url ?? "",
     queueId,
@@ -412,7 +468,18 @@ export async function rerollPhotoAction(formData: FormData): Promise<void> {
     }
   );
 
-  await sql`update moderation_queue set photo_url = ${next} where id = ${queueId}`;
+  await sql`
+    update moderation_queue set
+      photo_url              = ${next.url},
+      photo_source           = ${next.source},
+      photo_query            = ${next.query},
+      photo_attribution_url  = ${next.attribution_url},
+      photo_attribution_name = ${next.attribution_name},
+      photo_vision_score     = ${next.vision_score},
+      photo_vision_reason    = ${next.vision_reason},
+      photo_cost_usd         = ${next.cost_usd}
+    where id = ${queueId}
+  `;
   revalidatePath("/admin");
 }
 

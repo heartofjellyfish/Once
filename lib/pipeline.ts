@@ -9,7 +9,7 @@ import {
   type UsageBreakdown
 } from "./budget";
 import { fetchWeatherLabel } from "./weather";
-import { resolveHeroImage } from "./ogImage";
+import { resolveHeroImage, ensurePhotoColumns } from "./ogImage";
 import { extractPhotoKeyword } from "./photoKeywords";
 import type { City } from "./types";
 import { ONCE_HEADER, SECURITY_NOTE } from "./prompts";
@@ -1166,11 +1166,13 @@ async function writeQueue(args: {
   const unsplashQuery = rewriteForQuery
     ? await extractPhotoKeyword(rewriteForQuery, city.name)
     : city.name;
-  const photoUrl = await resolveHeroImage(
+  await ensurePhotoColumns();
+  const photo = await resolveHeroImage(
     entry.link,
     `${city.id}-${entry.title}`,
     { lat: city.lat, lng: city.lng, unsplashQuery }
   );
+  const photoUrl = photo.url;
 
   // Skip if this URL is already sitting in the pending queue — avoids
   // duplicates when seen_urls has been cleared (e.g. manual reruns)
@@ -1236,6 +1238,21 @@ async function writeQueue(args: {
   `) as unknown as { id: string }[];
 
   const id = rows[0].id;
+
+  // Photo metadata (source/query/attribution/cost) lives in separate
+  // columns added on the fly; write it as a follow-up update so the
+  // main insert stays readable.
+  await sql`
+    update moderation_queue set
+      photo_source           = ${photo.source},
+      photo_query            = ${photo.query},
+      photo_attribution_url  = ${photo.attribution_url},
+      photo_attribution_name = ${photo.attribution_name},
+      photo_vision_score     = ${photo.vision_score},
+      photo_vision_reason    = ${photo.vision_reason},
+      photo_cost_usd         = ${photo.cost_usd}
+    where id = ${id}
+  `;
 
   await logDecision({
     city_id: city.id,

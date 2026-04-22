@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ReviewActionForm } from "./_components/ReviewActions";
 import { requireSql, dbAvailable } from "@/lib/db";
+import { ensurePhotoColumns } from "@/lib/ogImage";
 import {
   approveAction,
   rejectAction,
@@ -16,7 +17,17 @@ import { currentHour } from "@/lib/stories";
 
 type Tab = "pending" | "approved" | "rejected";
 
-interface QueueRow {
+interface PhotoMeta {
+  photo_source: string | null;
+  photo_query: string | null;
+  photo_attribution_url: string | null;
+  photo_attribution_name: string | null;
+  photo_vision_score: number | null;
+  photo_vision_reason: string | null;
+  photo_cost_usd: number | null;
+}
+
+interface QueueRow extends Partial<PhotoMeta> {
   id: string;
   status: string;
   created_at: string;
@@ -100,6 +111,10 @@ export default async function QueuePage({
     }
   }
 
+  // Photo metadata columns are added lazily on first resolve; ensure
+  // them here so SELECTing them on a fresh DB doesn't error.
+  await ensurePhotoColumns();
+
   // Main query, joined with stories for the approved tab so we can show
   // whether a story is currently pinned to the homepage.
   const rows = (await sql`
@@ -120,6 +135,10 @@ export default async function QueuePage({
       q.eggs_price_usd::float8   as eggs_price_usd,
       q.score_specificity, q.score_resonance, q.score_register,
       q.rank, q.city_id,
+      q.photo_source, q.photo_query,
+      q.photo_attribution_url, q.photo_attribution_name,
+      q.photo_vision_score, q.photo_vision_reason,
+      q.photo_cost_usd::float8 as photo_cost_usd,
       s.selected_hour::int8 as story_selected_hour,
       s.published_at::text as story_published_at
     from moderation_queue q
@@ -316,12 +335,48 @@ export default async function QueuePage({
                 ) : (
                   <div className="photo-thumb photo-thumb-empty">no photo yet</div>
                 )}
-                <ReviewActionForm action={rerollPhotoAction}>
-                  <input type="hidden" name="id" value={r.id} />
-                  <button type="submit" className="secondary-sm">
-                    {r.photo_url ? "reroll photo" : "resolve photo"}
-                  </button>
-                </ReviewActionForm>
+                <div className="photo-meta">
+                  {r.photo_source ? (
+                    <div className="photo-meta-line">
+                      <span className={`photo-src src-${r.photo_source}`}>
+                        {r.photo_source}
+                      </span>
+                      {r.photo_vision_score != null ? (
+                        <span className="photo-score" title={r.photo_vision_reason ?? ""}>
+                          vision {r.photo_vision_score}/10
+                        </span>
+                      ) : null}
+                      {r.photo_cost_usd != null && r.photo_cost_usd > 0 ? (
+                        <span className="photo-cost">
+                          ~${r.photo_cost_usd.toFixed(4)}
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {r.photo_query ? (
+                    <div className="photo-meta-line mono">
+                      query: <span className="photo-q">{r.photo_query}</span>
+                    </div>
+                  ) : null}
+                  {r.photo_attribution_url ? (
+                    <div className="photo-meta-line">
+                      <a
+                        href={r.photo_attribution_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="photo-attr"
+                      >
+                        {r.photo_attribution_name || "source"} ↗
+                      </a>
+                    </div>
+                  ) : null}
+                  <ReviewActionForm action={rerollPhotoAction}>
+                    <input type="hidden" name="id" value={r.id} />
+                    <button type="submit" className="secondary-sm">
+                      {r.photo_url ? "reroll photo" : "resolve photo"}
+                    </button>
+                  </ReviewActionForm>
+                </div>
               </div>
             ) : null}
 
@@ -739,8 +794,8 @@ export default async function QueuePage({
         .actions form { display: inline-flex; gap: 6px; align-items: center; }
         .photo-row {
           display: flex;
-          gap: 10px;
-          align-items: center;
+          gap: 14px;
+          align-items: flex-start;
           margin: 10px 0;
         }
         .photo-thumb {
@@ -765,6 +820,58 @@ export default async function QueuePage({
           font-size: 11px;
           letter-spacing: 0.08em;
           text-transform: uppercase;
+        }
+        .photo-meta {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          font-size: 12px;
+          color: var(--ink-muted);
+          flex: 1;
+        }
+        .photo-meta-line {
+          display: flex;
+          gap: 10px;
+          align-items: baseline;
+        }
+        .photo-meta-line.mono {
+          font-family: var(--mono);
+          font-size: 11.5px;
+        }
+        .photo-src {
+          display: inline-block;
+          padding: 1px 8px;
+          border-radius: 3px;
+          font-size: 10.5px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          font-weight: 500;
+        }
+        .src-og        { background: #e8d4c0; color: #5a3a1a; }
+        .src-unsplash  { background: #d4e3d0; color: #2d4a2a; }
+        .src-watercolor{ background: #d4dde8; color: #2a3a5a; }
+        .src-picsum    { background: #eadad4; color: #6a3a2a; }
+        .photo-score {
+          font-family: var(--mono);
+          font-size: 11px;
+          color: var(--ink-faint);
+          cursor: help;
+        }
+        .photo-cost {
+          font-family: var(--mono);
+          font-size: 11px;
+          color: var(--ink-faint);
+        }
+        .photo-q {
+          color: var(--ink);
+        }
+        .photo-attr {
+          color: var(--ink-muted);
+          text-decoration: none;
+          font-size: 11.5px;
+        }
+        .photo-attr:hover {
+          color: var(--ink);
         }
 
         .good-btn, .reject-btn {

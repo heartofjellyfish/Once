@@ -227,16 +227,17 @@ export async function enrichAndPublish(input: EnrichInput): Promise<EnrichResult
   const unsplashQuery = rewriteForQuery
     ? await extractPhotoKeyword(rewriteForQuery, city.name)
     : city.name;
-  const [weather, photoUrl] = await Promise.all([
+  const [weather, photoResolved] = await Promise.all([
     fetchWeatherLabel(city.lat, city.lng),
     input.photoUrl?.trim()
-      ? Promise.resolve(input.photoUrl.trim())
+      ? Promise.resolve({ url: input.photoUrl.trim() })
       : resolveHeroImage(input.sourceUrl ?? "", seed, {
           lat: city.lat,
           lng: city.lng,
           unsplashQuery
         })
   ]);
+  const photoUrl = photoResolved.url;
 
   // 4. Pricing: prefer city-level cache, else warn (ResolvedCity should
   //    always provide these, but be defensive).

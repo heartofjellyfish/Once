@@ -1,27 +1,28 @@
 /**
  * Unsplash image search — one of the fallbacks in the hero-photo chain.
  *
- * Called when OG scrape of the source article fails (or returns a logo
- * shape). We search Unsplash with a keyword built from the story's city
- * plus a visual noun pulled from the rewrite, and return the best-looking
- * result.
+ * Called when OG scrape of the source article fails (or the vision
+ * judge rejects it). We search Unsplash with a keyword built from the
+ * story's city plus a visual noun pulled from the rewrite, and return
+ * the best-looking result along with attribution info.
  *
  * Why Unsplash (not Openverse, Pexels, Pixabay): a bakeoff on real Once
  * stories showed Unsplash has the most coherent, film-like aesthetic —
- * closest to Once's register. Openverse has broader CC coverage but the
- * average photo is documentary/amateur, less on-brand.
- *
- * License: Unsplash's license permits use without attribution, though
- * crediting the photographer is encouraged. We store the photo URL only
- * for now; attribution is a future upgrade.
+ * closest to Once's register.
  */
 const UNSPLASH_SEARCH = "https://api.unsplash.com/search/photos";
 const FETCH_TIMEOUT_MS = 6000;
 
+export interface UnsplashHit {
+  url: string;
+  attribution: string; // link to photographer's Unsplash page for credit
+  author: string;
+}
+
 export async function searchUnsplash(
   query: string,
   perPage = 3
-): Promise<string | null> {
+): Promise<UnsplashHit | null> {
   const key = process.env.UNSPLASH_ACCESS_KEY;
   if (!key || !query) return null;
 
@@ -38,12 +39,20 @@ export async function searchUnsplash(
     });
     if (!res.ok) return null;
     const j = (await res.json()) as {
-      results?: Array<{ urls?: { regular?: string; full?: string } }>;
+      results?: Array<{
+        urls?: { regular?: string; full?: string };
+        links?: { html?: string };
+        user?: { name?: string };
+      }>;
     };
     const first = j.results?.[0];
-    // `regular` is ~1080w, fine for hero display. Fall back to `full`
-    // only if regular is missing.
-    return first?.urls?.regular || first?.urls?.full || null;
+    const picked = first?.urls?.regular || first?.urls?.full;
+    if (!picked) return null;
+    return {
+      url: picked,
+      attribution: first?.links?.html || "",
+      author: first?.user?.name || ""
+    };
   } catch {
     return null;
   } finally {
