@@ -27,16 +27,33 @@ function client(): OpenAI {
 
 const MODEL = process.env.INGEST_PREFILTER_MODEL || "gpt-4o-mini";
 
-const SYSTEM = `You generate a ladder of Unsplash search queries for a short news vignette from a specific city. The photo chain tries each query in order; first hit wins.
+const SYSTEM = `You generate a ladder of Unsplash search queries for a short news vignette from a specific city. The photo chain tries each query in order; a vision judge confirms relevance; first relevant hit wins.
 
-Rules:
-- **Always English.** Unsplash's index is English-dominant.
-- **Length 3–5 queries**, most specific first, most generic last.
-- **Start specific**: the scene's core visual noun + the city name.
-- **Then pivot by context**: if the specific combination is rare on Unsplash, drop to the scene's cultural/regional backdrop. Example: if the story is about a Tianjin lottery ruling, the ladder might be lottery ticket Tianjin → lottery shop China → lottery ticket counter → street kiosk China.
-- **End generic**: the last query should almost certainly return something — a mood or setting word Unsplash always has ("street", "kitchen", "morning light", "neighborhood").
+**Ladder philosophy**
+- Unsplash's index is English-dominant and Western-skewed. Long, narrow queries ("lottery ticket booth Tianjin") almost never return ANYTHING relevant — Unsplash falls back to matching on a single keyword and returns a ferris wheel because it shares the city name.
+- The winning strategy is to START WIDE, not narrow. A 2-word query with ONE subject noun + ONE place beats a 4-word descriptive phrase.
+- Each subsequent query changes ONE dimension only (city → country; subject noun → adjacent subject; or drop the place entirely).
+
+**Rules**
+- **Always English.** No Chinese, Japanese, Arabic, Cyrillic.
+- **Length 4–6 queries**, widest-relevant first, most generic last.
+- **Query #1 = 2 words**: one concrete subject noun + the city name. No descriptive modifiers ("ticket booth", "shop counter", "morning"). Example for a Tianjin lottery story: "lottery Tianjin" (NOT "lottery ticket Tianjin").
+- **Query #2**: swap city for country, keep the same subject noun. "lottery China".
+- **Query #3**: drop the place entirely, widen the subject if needed. "lottery ticket".
+- **Query #4–5**: pivot to cultural/regional backdrop of the scene. "Chinese street", "Beijing alley" — places the subject plausibly occurs.
+- **Query #6 (last)**: a generic mood/setting word that Unsplash always has — "street", "kitchen", "morning light", "neighborhood".
 - **No proper nouns of people**, no verbs, no abstract nouns ("betrayal", "grief"). Only things a photographer frames.
-- **Prefer 2–4 word phrases** over single words. "old bazaar Skopje" beats "bazaar".
+
+**Examples**
+
+Story: Tianjin lottery invalidated, ticket gifted to lover.
+  ladder: ["lottery Tianjin", "lottery China", "lottery ticket", "Chinese street", "neighborhood"]
+
+Story: Old Bazaar borek shop ran out of cheese in Skopje.
+  ladder: ["bazaar Skopje", "bazaar Macedonia", "borek", "balkan bakery", "old market", "street"]
+
+Story: Tianjin flooded, man rowing inflatable boat through crosswalk.
+  ladder: ["flood Tianjin", "flooded street China", "inflatable boat", "heavy rain city", "street"]
 
 Return strict JSON: { "queries": string[] }.`;
 
@@ -60,7 +77,7 @@ export async function extractPhotoQueries(
           content: `City: ${city}\n\nStory:\n${text.slice(0, 800)}`
         }
       ],
-      max_tokens: 150,
+      max_tokens: 220,
       temperature: 0.2
     });
     const raw = res.choices?.[0]?.message?.content || "{}";
@@ -69,7 +86,7 @@ export async function extractPhotoQueries(
       .map((q) => (q || "").trim())
       .filter((q) => q.length > 0 && q.length < 100);
     if (queries.length === 0) return fallback;
-    return queries.slice(0, 5);
+    return queries.slice(0, 6);
   } catch {
     return fallback;
   }
