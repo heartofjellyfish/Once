@@ -26,15 +26,20 @@ function shortId(): string {
 }
 
 /**
- * INGEST — paste raw source, AI produces a candidate, lands in queue.
+ * ADD — paste raw source text (from a news item, a social post, or your
+ * own observation). AI resolves city + rewrites in Once voice + drops it
+ * into the pending queue for your review. Two UI modes under /admin/add
+ * (from-source vs write-your-own) both hit this same action.
  */
-export async function ingestAction(formData: FormData): Promise<void> {
+export async function addAction(formData: FormData): Promise<void> {
   const sourceText = String(formData.get("source_text") ?? "").trim();
   const cityHint = String(formData.get("city_hint") ?? "").trim();
   const sourceUrl = String(formData.get("source_url") ?? "").trim();
 
   if (sourceText.length < 10) {
-    throw new Error("Source text is too short.");
+    redirect(
+      `/admin/add?err=${encodeURIComponent("text is too short (min 10 chars)")}`
+    );
   }
 
   const sql = requireSql();
@@ -104,50 +109,6 @@ export async function ingestAction(formData: FormData): Promise<void> {
 
   revalidatePath("/admin");
   redirect(failureMsg ? `/admin?err=${encodeURIComponent(failureMsg)}` : "/admin");
-}
-
-/**
- * COMPOSE — minimal manual entry.
- *
- * Only asks for: headline, city (free text), optional body, photo, source.
- * `enrichAndPublish` resolves the city (inserting a canonical cities row
- * if needed), rewrites the headline in Once voice + the city's language,
- * scrapes / fallbacks the photo, fetches weather, and pulls everything
- * else (timezone, currency, prices, language, location_summary) from
- * the canonical city record. Pins to the current hour so it shows up
- * on the homepage immediately.
- */
-export async function composeAction(formData: FormData): Promise<void> {
-  const f = (k: string) => String(formData.get(k) ?? "").trim();
-
-  const headline = f("headline");
-  const cityText = f("city");
-
-  if (!headline || !cityText) {
-    redirect(
-      `/admin/compose?err=${encodeURIComponent(
-        "headline and city are required"
-      )}`
-    );
-  }
-
-  try {
-    await enrichAndPublish({
-      headline,
-      body: f("body") || undefined,
-      cityText,
-      sourceUrl: f("source_url") || undefined,
-      sourceName: f("source_name") || undefined,
-      photoUrl: f("photo_url") || undefined
-    });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    redirect(`/admin/compose?err=${encodeURIComponent(msg)}`);
-  }
-
-  revalidatePath("/");
-  revalidatePath("/admin");
-  redirect("/admin?tab=approved&pinned=1");
 }
 
 /**
