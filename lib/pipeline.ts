@@ -917,7 +917,8 @@ async function runIngestInner(
         completion_tokens: rewrite.meta.completion_tokens,
         cost_usd: rewrite.meta.cost_usd,
         ms: rewrite.meta.ms,
-        length: rewrite.original_text.length
+        length: rewrite.original_text.length,
+        preview: rewrite.original_text.slice(0, 120)
       });
 
       const enriched: FullResult = {
@@ -1182,7 +1183,8 @@ async function runFullPass(
     chars: bodyText.length,
     paywalled,
     ms: bodyMs,
-    error: fetched.error
+    error: fetched.error,
+    preview: bodyText.slice(0, 120)
   };
 
   const userContent = [

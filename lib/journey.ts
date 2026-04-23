@@ -50,6 +50,8 @@ export interface JourneyBody {
   paywalled: boolean;
   ms: number;
   error?: string;
+  /** First ~120 chars of the recovered body, for reviewer preview. */
+  preview?: string;
 }
 
 export interface JourneyScore {
@@ -72,6 +74,8 @@ export interface JourneyRewrite {
   cost_usd: number;
   ms: number;
   length: number;
+  /** First ~120 chars of the rewrite, for reviewer preview. */
+  preview?: string;
 }
 
 /**
