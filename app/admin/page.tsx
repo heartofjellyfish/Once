@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ReviewActionForm } from "./_components/ReviewActions";
 import RerollButton from "./_components/RerollButton";
 import PhotoRow from "./_components/PhotoRow";
+import { CardJourney } from "./_components/CardJourney";
 import { requireSql, dbAvailable } from "@/lib/db";
 import { ensurePhotoColumns } from "@/lib/ogImage";
 
@@ -103,6 +104,8 @@ interface QueueRow extends Partial<PhotoMeta> {
   score_register: number | null;
   rank: number | null;
   city_id: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  journey: any | null;
   // Joined from stories (approved tab only)
   story_selected_hour: number | null;
   story_published_at: string | null;
@@ -181,6 +184,7 @@ export default async function QueuePage({
       q.photo_vision_score, q.photo_vision_reason,
       q.photo_cost_usd::float8 as photo_cost_usd,
       q.photo_journey,
+      q.journey,
       s.selected_hour::int8 as story_selected_hour,
       s.published_at::text as story_published_at
     from moderation_queue q
@@ -373,6 +377,8 @@ export default async function QueuePage({
               <summary>original input</summary>
               <pre>{r.source_input}</pre>
             </details>
+
+            <CardJourney journey={r.journey} />
 
             {tab === "pending" ? (
               // Plain form — reroll updates the card, doesn't remove it.

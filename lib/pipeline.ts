@@ -14,6 +14,7 @@ import { extractPhotoQueries } from "./photoKeywords";
 import type { City } from "./types";
 import { ONCE_HEADER, SECURITY_NOTE } from "./prompts";
 import { fetchArticleBody } from "./articleBody";
+import { Journey, type JourneyPhoto } from "./journey";
 
 // Prefilter uses a lean security note — we DON'T want the full
 // photograph-test / amplifier rules injected here, or the model
@@ -786,13 +787,14 @@ async function runIngestInner(
   const scored: Array<{
     entry: FeedEntry;
     full: FullResult;
+    prefilterMeta: PrefilterMeta;
   }> = [];
 
   const errors: string[] = [];
-  for (const e of topN) {
+  for (const { entry: e, meta: prefMeta } of topN) {
     try {
       const full = await runFullPass(e, city);
-      scored.push({ entry: e, full });
+      scored.push({ entry: e, full, prefilterMeta: prefMeta });
     } catch (err) {
       const msg = (err as Error).message;
       console.warn("[pipeline] full pass failed:", msg);
@@ -853,6 +855,8 @@ async function runIngestInner(
   const weather = await fetchWeatherLabel(city.lat, city.lng);
 
   // 8. Rewrite (gpt-4o) for each survivor, then write top-K to queue.
+  //    Build a Journey along the way so each card carries a per-stage
+  //    trace visible in /admin.
   const toQueue = queueable.slice(0, TOP_PER_CITY);
   const queuedIds: string[] = [];
   for (let i = 0; i < toQueue.length; i++) {
@@ -863,11 +867,63 @@ async function runIngestInner(
     );
     const clearedThreshold = minFit >= SCORE_THRESHOLD; // both strong_fit
     try {
+      // Assemble Journey with the metadata we've already collected.
+      const journey = new Journey({
+        kind: "rss",
+        city_id: city.id,
+        city_name: city.name,
+        feed_url: s.entry.feed_url,
+        source_url: s.entry.link,
+        source_host: s.entry.source_host,
+        entry_title: s.entry.title,
+        pub_date: s.entry.pub_date
+          ? s.entry.pub_date.toISOString()
+          : null
+      });
+      journey.addPrefilter({
+        model: s.prefilterMeta.model,
+        pass: s.prefilterMeta.pass,
+        why: s.prefilterMeta.why,
+        prompt_tokens: s.prefilterMeta.prompt_tokens,
+        cached_tokens: s.prefilterMeta.cached_tokens,
+        completion_tokens: s.prefilterMeta.completion_tokens,
+        cost_usd: s.prefilterMeta.cost_usd,
+        ms: s.prefilterMeta.ms
+      });
+      if (s.full._bodyMeta) {
+        journey.addBody(s.full._bodyMeta);
+      }
+      if (s.full._scoreMeta) {
+        journey.addScore({
+          model: s.full._scoreMeta.model,
+          c1: intToFit(s.full.score_specificity),
+          c2: intToFit(s.full.score_resonance),
+          rationale: s.full.rationale,
+          prompt_tokens: s.full._scoreMeta.prompt_tokens,
+          cached_tokens: s.full._scoreMeta.cached_tokens,
+          completion_tokens: s.full._scoreMeta.completion_tokens,
+          cost_usd: s.full._scoreMeta.cost_usd,
+          ms: s.full._scoreMeta.ms
+        });
+      }
+
       const body = s.full._bodyText ?? s.entry.snippet;
-      const rewrite = await runRewriteIngest(s.entry, city, body);
+      const rewriteT0 = Date.now();
+      const rewrite = await runRewriteIngestWithMeta(s.entry, city, body);
+      journey.addRewrite({
+        model: rewrite.meta.model,
+        prompt_tokens: rewrite.meta.prompt_tokens,
+        cached_tokens: rewrite.meta.cached_tokens,
+        completion_tokens: rewrite.meta.completion_tokens,
+        cost_usd: rewrite.meta.cost_usd,
+        ms: rewrite.meta.ms,
+        length: rewrite.original_text.length
+      });
+
       const enriched: FullResult = {
         ...s.full,
-        original_language: rewrite.original_language || s.full.original_language,
+        original_language:
+          rewrite.original_language || s.full.original_language,
         original_text: rewrite.original_text,
         english_text: rewrite.english_text
       };
@@ -877,11 +933,15 @@ async function runIngestInner(
         full: enriched,
         passedFilter: clearedThreshold,
         weather,
-        rank: i + 1
+        rank: i + 1,
+        journey
       });
       queuedIds.push(id);
     } catch (err) {
-      console.warn("[pipeline] rewrite/writeQueue failed:", (err as Error).message);
+      console.warn(
+        "[pipeline] rewrite/writeQueue failed:",
+        (err as Error).message
+      );
     }
   }
 
@@ -956,15 +1016,37 @@ export async function runBatchIngest(): Promise<{
 
 // --- pre-filter -----------------------------------------------------
 
+interface PrefilterMeta {
+  model: string;
+  pass: boolean;
+  why: string;
+  prompt_tokens: number;
+  cached_tokens: number;
+  completion_tokens: number;
+  cost_usd: number;
+  ms: number;
+}
+
 async function runPrefilter(
   entries: FeedEntry[],
   city: City
-): Promise<FeedEntry[]> {
-  const kept: FeedEntry[] = [];
+): Promise<Array<{ entry: FeedEntry; meta: PrefilterMeta }>> {
+  const kept: Array<{ entry: FeedEntry; meta: PrefilterMeta }> = [];
 
   for (const e of entries) {
+    const t0 = Date.now();
     let pass = false;
     let why = "";
+    let meta: PrefilterMeta = {
+      model: PREFILTER_MODEL,
+      pass: false,
+      why: "",
+      prompt_tokens: 0,
+      cached_tokens: 0,
+      completion_tokens: 0,
+      cost_usd: 0,
+      ms: 0
+    };
     try {
       const resp = await client().chat.completions.create({
         model: PREFILTER_MODEL,
@@ -997,16 +1079,23 @@ async function runPrefilter(
       why = (j.why || "").slice(0, 200);
       const titleEn = (j.title_en || "").slice(0, 300).trim() || null;
 
-      await recordSpend(
-        {
-          model: PREFILTER_MODEL,
-          promptTokens: resp.usage?.prompt_tokens ?? 0,
-          cachedTokens: resp.usage?.prompt_tokens_details?.cached_tokens ?? 0,
-          completionTokens: resp.usage?.completion_tokens ?? 0
-        },
-        "ingest_prefilter",
-        null
-      );
+      const usage = {
+        model: PREFILTER_MODEL,
+        promptTokens: resp.usage?.prompt_tokens ?? 0,
+        cachedTokens: resp.usage?.prompt_tokens_details?.cached_tokens ?? 0,
+        completionTokens: resp.usage?.completion_tokens ?? 0
+      };
+      const cost = await recordSpend(usage, "ingest_prefilter", null);
+      meta = {
+        model: PREFILTER_MODEL,
+        pass,
+        why,
+        prompt_tokens: usage.promptTokens,
+        cached_tokens: usage.cachedTokens,
+        completion_tokens: usage.completionTokens,
+        cost_usd: cost,
+        ms: Date.now() - t0
+      };
 
       await logDecision({
         city_id: city.id,
@@ -1020,9 +1109,10 @@ async function runPrefilter(
       });
     } catch (err) {
       console.warn("[pipeline] prefilter error:", (err as Error).message);
+      meta.ms = Date.now() - t0;
     }
 
-    if (pass) kept.push(e);
+    if (pass) kept.push({ entry: e, meta });
   }
 
   return kept;
@@ -1048,6 +1138,22 @@ interface FullResult {
   _bodyText?: string;
   _bodySource?: string;
   _paywalled?: boolean;
+  /** Journey-style metadata captured at each stage of runFullPass. */
+  _bodyMeta?: {
+    method: "jsonld" | "readability" | "og" | "rss_fallback" | "error";
+    chars: number;
+    paywalled: boolean;
+    ms: number;
+    error?: string;
+  };
+  _scoreMeta?: {
+    model: string;
+    prompt_tokens: number;
+    cached_tokens: number;
+    completion_tokens: number;
+    cost_usd: number;
+    ms: number;
+  };
 }
 
 async function runFullPass(
@@ -1057,7 +1163,9 @@ async function runFullPass(
   // Try to recover the real article body so the scorer and (later)
   // rewrite pass have substance to work with. Falls back to RSS
   // content/snippet if the site is paywalled or blocks scrapers.
+  const bodyT0 = Date.now();
   const fetched = await fetchArticleBody(entry.link);
+  const bodyMs = Date.now() - bodyT0;
   const rssBody =
     entry.content && entry.content.length > entry.snippet.length
       ? entry.content
@@ -1068,6 +1176,14 @@ async function runFullPass(
     : rssBody;
   const bodySource = fetched.text ? fetched.source : "rss";
   const paywalled = fetched.paywalled;
+  const bodyMeta = {
+    method: (fetched.text ? fetched.source : "rss_fallback") as
+      "jsonld" | "readability" | "og" | "rss_fallback" | "error",
+    chars: bodyText.length,
+    paywalled,
+    ms: bodyMs,
+    error: fetched.error
+  };
 
   const userContent = [
     `CITY: ${city.name}, ${city.country}`,
@@ -1086,6 +1202,7 @@ async function runFullPass(
   ].join("\n");
 
   // ---------- SCORING PASS (cheap model) ----------
+  const scoreT0 = Date.now();
   const scoreResp = await client().chat.completions.create({
     model: SCORE_MODEL,
     temperature: 0.4,
@@ -1123,16 +1240,21 @@ async function runFullPass(
   const minFit = Math.min(c1Int, c2Int);
   const passed = minFit >= 1; // at least basic_fit on both axes
 
-  await recordSpend(
-    {
-      model: SCORE_MODEL,
-      promptTokens: scoreResp.usage?.prompt_tokens ?? 0,
-      cachedTokens: scoreResp.usage?.prompt_tokens_details?.cached_tokens ?? 0,
-      completionTokens: scoreResp.usage?.completion_tokens ?? 0
-    },
-    "ingest_score",
-    null
-  );
+  const scoreUsage = {
+    model: SCORE_MODEL,
+    promptTokens: scoreResp.usage?.prompt_tokens ?? 0,
+    cachedTokens: scoreResp.usage?.prompt_tokens_details?.cached_tokens ?? 0,
+    completionTokens: scoreResp.usage?.completion_tokens ?? 0
+  };
+  const scoreCost = await recordSpend(scoreUsage, "ingest_score", null);
+  const scoreMeta = {
+    model: SCORE_MODEL,
+    prompt_tokens: scoreUsage.promptTokens,
+    cached_tokens: scoreUsage.cachedTokens,
+    completion_tokens: scoreUsage.completionTokens,
+    cost_usd: scoreCost,
+    ms: Date.now() - scoreT0
+  };
 
   await logDecision({
     city_id: city.id,
@@ -1163,7 +1285,9 @@ async function runFullPass(
     english_text: "",
     _bodyText: bodyText,
     _bodySource: bodySource,
-    _paywalled: paywalled
+    _paywalled: paywalled,
+    _bodyMeta: bodyMeta,
+    _scoreMeta: scoreMeta
   };
 }
 
@@ -1172,11 +1296,26 @@ async function runFullPass(
  * (gpt-4o by default). Called only for candidates that cleared the
  * score floor and are about to be queued.
  */
-async function runRewriteIngest(
+interface RewriteMeta {
+  model: string;
+  prompt_tokens: number;
+  cached_tokens: number;
+  completion_tokens: number;
+  cost_usd: number;
+  ms: number;
+}
+
+async function runRewriteIngestWithMeta(
   entry: FeedEntry,
   city: City,
   bodyText: string
-): Promise<{ original_language: string; original_text: string; english_text: string }> {
+): Promise<{
+  original_language: string;
+  original_text: string;
+  english_text: string;
+  meta: RewriteMeta;
+}> {
+  const t0 = Date.now();
   const userContent = [
     `CITY: ${city.name}, ${city.country}`,
     `LOCAL LANGUAGE: ${city.original_language ?? "en"}`,
@@ -1216,16 +1355,13 @@ async function runRewriteIngest(
     english_text: string;
   };
 
-  await recordSpend(
-    {
-      model: REWRITE_MODEL_INGEST,
-      promptTokens: resp.usage?.prompt_tokens ?? 0,
-      cachedTokens: resp.usage?.prompt_tokens_details?.cached_tokens ?? 0,
-      completionTokens: resp.usage?.completion_tokens ?? 0
-    },
-    "ingest_rewrite",
-    null
-  );
+  const usage = {
+    model: REWRITE_MODEL_INGEST,
+    promptTokens: resp.usage?.prompt_tokens ?? 0,
+    cachedTokens: resp.usage?.prompt_tokens_details?.cached_tokens ?? 0,
+    completionTokens: resp.usage?.completion_tokens ?? 0
+  };
+  const cost = await recordSpend(usage, "ingest_rewrite", null);
 
   // Force english_text empty when the city is anglophone — the
   // renderer uses that to decide whether to show the translation block.
@@ -1233,7 +1369,17 @@ async function runRewriteIngest(
     out.english_text = "";
     out.original_language = "en";
   }
-  return out;
+  return {
+    ...out,
+    meta: {
+      model: REWRITE_MODEL_INGEST,
+      prompt_tokens: usage.promptTokens,
+      cached_tokens: usage.cachedTokens,
+      completion_tokens: usage.completionTokens,
+      cost_usd: cost,
+      ms: Date.now() - t0
+    }
+  };
 }
 
 // --- writers --------------------------------------------------------
@@ -1245,8 +1391,9 @@ async function writeQueue(args: {
   passedFilter: boolean;
   weather: string | null;
   rank: number;
+  journey?: Journey;
 }): Promise<string> {
-  const { city, entry, full, passedFilter, weather, rank } = args;
+  const { city, entry, full, passedFilter, weather, rank, journey } = args;
   const sql = requireSql();
 
   // Hero image. Try OG scrape of the source article first; if that
@@ -1350,6 +1497,25 @@ async function writeQueue(args: {
       photo_journey          = ${JSON.stringify(photo.journey)}
     where id = ${id}
   `;
+
+  // Fold photo info into the Journey trace + persist journey column.
+  if (journey) {
+    const photoMeta: JourneyPhoto = {
+      source: photo.source,
+      // Haiku is the only vision model in use; set whenever OG was judged.
+      model: photo.vision_score != null ? "claude-haiku-4-5" : null,
+      query: photo.query,
+      vision_score: photo.vision_score,
+      cost_usd: photo.cost_usd ?? 0,
+      ms: 0, // ogImage doesn't currently expose per-resolve ms
+      steps: photo.journey ?? []
+    };
+    journey.addPhoto(photoMeta);
+    await sql`
+      update moderation_queue set journey = ${JSON.stringify(journey.toJSON())}
+      where id = ${id}
+    `;
+  }
 
   await logDecision({
     city_id: city.id,

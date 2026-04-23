@@ -397,6 +397,7 @@ export async function seedCitiesAction(): Promise<void> {
   // Queue: rank within ingest cycle + city_id for grouping.
   await sql`alter table moderation_queue add column if not exists rank smallint default 1`;
   await sql`alter table moderation_queue add column if not exists city_id text`;
+  await sql`alter table moderation_queue add column if not exists journey jsonb`;
   await sql`create index if not exists queue_pending_city_rank_idx on moderation_queue (city_id, rank, created_at desc) where status = 'pending'`;
 
   // Dedup table for ingest pipeline.

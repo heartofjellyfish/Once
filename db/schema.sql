@@ -104,6 +104,11 @@ alter table moderation_queue add column if not exists score_register    smallint
 alter table moderation_queue add column if not exists rank              smallint default 1;
 -- city_id for grouping in /admin/review (mirrors the cities row).
 alter table moderation_queue add column if not exists city_id           text;
+-- Full per-card pipeline trace: source / dedup / prefilter / body /
+-- score / rewrite / photo + totals. Written on insert by writeQueue.
+-- Null for historic rows. Rendered on the admin card in a collapsed
+-- "how this got here" section.
+alter table moderation_queue add column if not exists journey          jsonb;
 
 create index if not exists queue_status_created_idx
   on moderation_queue (status, created_at desc);
