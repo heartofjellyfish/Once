@@ -4,6 +4,17 @@ import RerollButton from "./_components/RerollButton";
 import PhotoRow from "./_components/PhotoRow";
 import { requireSql, dbAvailable } from "@/lib/db";
 import { ensurePhotoColumns } from "@/lib/ogImage";
+
+/**
+ * Map the 2-axis C1/C2 fit integer (0/1/2) to its Chinese label.
+ * Stored as integer in score_specificity (C1) + score_resonance (C2)
+ * for back-compat with the older 3-axis schema's columns.
+ */
+function fitLabel(n: number): string {
+  if (n >= 2) return "非常符合";
+  if (n === 1) return "基本符合";
+  return "不符合";
+}
 import {
   approveAction,
   rejectAction,
@@ -252,9 +263,14 @@ export default async function QueuePage({
                 ) : null}
               </div>
               <div className="meta">
-                {r.score_specificity != null && r.score_resonance != null && r.score_register != null ? (
-                  <span className="scores" title="specificity · resonance · register">
-                    s{r.score_specificity}·r{r.score_resonance}·g{r.score_register}
+                {r.score_specificity != null && r.score_resonance != null ? (
+                  <span className="scores" title="C1 有看头 · C2 人类共同困境">
+                    <span className={`fit fit-${r.score_specificity}`}>
+                      看头 {fitLabel(r.score_specificity)}
+                    </span>
+                    <span className={`fit fit-${r.score_resonance}`}>
+                      困境 {fitLabel(r.score_resonance)}
+                    </span>
                   </span>
                 ) : null}
                 {r.timezone ? ` · ${r.timezone}` : ""}
@@ -674,13 +690,32 @@ export default async function QueuePage({
           font-variant-numeric: tabular-nums;
         }
         .scores {
-          font-family: var(--mono);
-          font-size: 11px;
-          color: var(--ink-muted);
-          padding: 1px 5px;
-          border: 1px solid var(--hairline);
-          border-radius: 2px;
+          display: inline-flex;
+          gap: 5px;
+          align-items: center;
+        }
+        .fit {
+          font-family: var(--sans);
+          font-size: 10px;
           letter-spacing: 0;
+          padding: 2px 6px;
+          border-radius: 2px;
+          border: 1px solid var(--hairline);
+          color: var(--ink-muted);
+          background: transparent;
+        }
+        .fit-0 {
+          color: var(--accent-dark, #8a3520);
+          border-color: rgba(168, 90, 60, 0.3);
+        }
+        .fit-1 {
+          color: var(--ink-muted);
+          border-color: var(--hairline);
+        }
+        .fit-2 {
+          color: #3f5e28;
+          border-color: rgba(109, 140, 72, 0.4);
+          background: rgba(109, 140, 72, 0.05);
         }
         .pin-tag.stale {
           background: var(--hairline);

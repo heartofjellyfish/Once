@@ -42,10 +42,10 @@ const REWRITE_MODEL_INGEST = process.env.INGEST_REWRITE_MODEL || "gpt-4o";
 // Kept for historical compat in writeQueue's ai_model column.
 const FULL_MODEL = REWRITE_MODEL_INGEST;
 
-// Threshold: any story with all three scores >= this is flagged as
-// ai_passed_filter=true. If nothing reaches it, the top-scored entries
-// are saved anyway — "always have something to review."
-const SCORE_THRESHOLD = 7;
+// Threshold (2-axis fit enum): when BOTH axes are strong_fit (int 2),
+// the candidate is flagged as ai_passed_filter=true on the queue card.
+// Still queued otherwise as long as neither axis is no_fit.
+const SCORE_THRESHOLD = 2; // strong_fit on both axes
 
 // Up to N entries go through the expensive full pass per city per run.
 const TOP_N_FOR_FULL_PASS = 8;
@@ -184,28 +184,70 @@ genuinely doesn't provide a weight-carrying detail, write the
 honest surface (A+B) and stop — do NOT fabricate weight. Fake
 depth is worse than honest shallow.
 
-## HOW TO WRITE
+## HOW TO WRITE — three language axes
 
-Cinematically. The rewrite should read like the opening frame of
-a short film — specific objects, specific bodies, a frame you
-could photograph.
+The rewrite should satisfy THREE language axes. All three matter; a
+failure on any one drops the quality floor.
+
+### L1 · 顺畅 (smoothness)
+
+Outsider readers must be able to read without stumbling. Minimise
+proper nouns, local labels, and foreign words. When a local term
+earns its place, give an inline translation.
+
+  ✓ "busy Ikebukuro Station" (not bare "Ikebukuro Station")
+  ✓ "an old-fashioned penny candy shop (dagashiya)" (not bare "dagashiya")
+  ✓ "the foggy Oregon coast town of Cannon Beach" (name + texture)
+  ✗ "Na avenida Presidente Castelo Branco, dois adolescentes..."
+  ✗ "在池袋駅から徒歩10分の雑司ヶ谷鬼子母神で"
+
+### L2 · 语言质地 (texture of language)
+
+The language itself — selection, word order, sentence length,
+punctuation, segmentation, pace, silence, metaphor, tone, tense,
+narrative distance — should carry its own presence and match the
+subject. Quiet subjects want sparse texture (Carver). Dense subjects
+can carry more weight (Tolstoy). ONE style does not fit all.
+
+ALLOWED:
+- Warmth toward the human subject, even when the subject is cruel
+  or absurd. A rewrite can offer small healing without being
+  sentimental.
+- A small metaphor, embedded in a concrete image
+  ("the absent chair took the shape of her mother's silence" — OK)
+
+BOUNDARY — avoid 文绉绉 / 矫情 / 装饰性:
+- NOT "his sorrow was a vast ocean" (too big, decorative)
+- NOT three adjectives stacked ("beautiful, tender, unforgettable")
+- NOT "like a ~" twice in one rewrite
+- NOT a metaphor that announces itself; a good metaphor reads as
+  observation, not ornament
+
+Every word must do the work of showing the story. Not of
+showing the writer.
+
+### L3 · 画面感 (show, don't tell)
 
 Pull into the rewrite, when the body provides them:
+- A NEAR scene — one concrete action, object, or bodily detail
+  (a hand steadying a scooter; a pot of broth on a stove; leaves
+  covering an empty pool). **At least one near-scene should be
+  present whenever the body gives one.**
+- A MID scene — the situation around the person (the quiet market,
+  the bus stop in the dark, the temple's cold morning)
+- A FAR scene — the background dimension that supplies weight
+  (the city's construction priorities, the centuries of a statue,
+  the sixty years of a family recipe)
 - Named physical objects with defining detail
-  ("10-litre stainless steel buckets" not "containers";
-   "fallen leaves covering an abandoned swimming pool" not "an old pool")
-- Specific bodies and gestures
-  ("hands clasped in prayer", "holding a scooter up proudly")
+  ("10-litre stainless steel buckets" not "containers")
 - Stakes embedded as fact, not rhetoric
-  ("fewer than 80 left" > "endangered";
-   "2000 sheep now, from 100 a decade ago" > "recovering")
-- Inline translations for outsider readers
-  ("busy Ikebukuro Station" not "Ikebukuro Station";
-   "an old-fashioned penny candy shop (dagashiya)" not "dagashiya")
-- ONE complicating detail that refuses flat moral framing
-  when the body provides it
-  (the thief's age, the success's compromise, the caregiver's
-   own hour of doubt)
+  ("fewer than 80 left" > "endangered")
+- ONE complicating detail that refuses flat moral framing, when
+  the body provides it (the thief's age, the caregiver's own
+  doubt)
+
+Third-person limited POV. Stay close to one consciousness without
+becoming first-person memoir.
 
 ## HARD FORBIDS
 
@@ -286,124 +328,153 @@ Return JSON only: { original_language, original_text, english_text }.`;
 
 const FULL_SYSTEM = `${ONCE_HEADER}
 
-YOUR JOB: evaluate one candidate entry. Score the UNDERLYING MOMENT's
-potential to become a Once story, then — if it has potential — write
-the Once rewrite.
+YOUR JOB: you are Once's content connoisseur. Judge whether the
+UNDERLYING MOMENT has potential to become a Once story. Answer
+only TWO questions, each with THREE levels of "fit":
 
-CRITICAL — score the MOMENT, not the source prose.
+  非常符合 (strong_fit)   — clearly yes
+  基本符合 (basic_fit)    — yes but thin / borderline
+  不符合   (no_fit)        — clearly no
 
-**LOOK PAST THE FRAMING.** A piece headlined as a trend piece, a
-product launch, or a generic scene can CONTAIN a buried Once
-moment (a minor character's specific act, an overheard remark,
-a concrete one-sentence anchor the editor almost cut). Scan the
-BODY. If you find a zoomable A+B moment inside, SCORE THE CANDIDATE
-ON THAT BURIED MOMENT, not on the article's headline framing.
-Don't refuse to see what's inside just because the outside is
-commercial.
+No numeric scores. Language is coarse on purpose — the model should
+not try to distinguish "7 vs 8". 3 levels is what you can honestly do.
 
-**LANGUAGE DISCIPLINE — READ CAREFULLY.** The city's LOCAL LANGUAGE
-is passed in the user prompt. original_text MUST be written in
-that exact language — nothing else. If the city's local_language is
-"en", original_text is IN ENGLISH and english_text is empty string.
-If it's "ja", original_text is in Japanese. If it's "vi", Vietnamese.
-Do NOT default to Chinese or any other language. Match the city.
+**LOOK PAST THE FRAMING.** A piece titled as a trend piece, product
+launch, or generic scene can CONTAIN a buried Once moment (a minor
+character's specific act, an overheard remark, a concrete anchor
+the editor almost cut). Scan the BODY. If you find one, JUDGE ON
+THAT BURIED MOMENT, not on the headline framing.
 
-The source is often written in newspaper voice with amplifier words
-("defies odds", "incredibly", "stunning", "must-see"). THAT IS FINE.
-Your rewrite will strip those. Judge whether there's a real, specific,
-bounded, memorable human moment underneath. If yes, score generously
-and rewrite; if not, score low.
+---
 
-BE CALIBRATED. Don't hover at 5-6 out of habit — use the full scale.
-The rubric is anchored to specific phenomena, not just vibes.
+## AXIS 1 · C1 · 有看头 (watchable)
 
-**HARD FLOORS (apply BEFORE the rubric):**
-  • If NO human is present or implicit in the underlying moment
-    (no baker, no crew, no crowd, no person's hand, no congregation
-    — just objects, places, flora, statues, products, facts) —
-    specificity is CAPPED AT 4 and resonance is CAPPED AT 3. A
-    flower field with nobody in it, a statue with nobody visiting
-    it, a product announcement — all hit these caps.
-  • If the piece reads as commercial (product launch, event
-    promotion, tourist pitch, retail anniversary) — register is
-    CAPPED AT 3, regardless of how calmly it's written. Quirky /
-    cute framing does NOT earn commercial pieces a pass.
-  • If the piece is a first-person memoir / reflection / "how I
-    learned" essay — resonance is CAPPED AT 3, regardless of
-    specificity. Once is third-person observation, not self-reflection.
+Is this real life, recent, with a human pulse, more dramatic than a
+typical mundane day — something worth telling at a dinner line?
 
-**THEN SCORE:**
+  非常符合: all of: real + recent + has human + 比日常更 dramatic +
+           can be told as a dinner-line anecdote
+           e.g. four deaf delivery riders chat in sign language, one
+           proudly showing his new electric scooter
+           e.g. a stroke survivor who once considered suicide now
+           travels the country to sit with isolated caregivers
+           e.g. free roadside water coolers appear on Saigon's
+           sidewalks, shopkeepers cleaning and icing them each morning
 
-- specificity (1-10): does the underlying moment have named anchors
-  around a human?
-    1  = pure abstraction ("spring has come")
-    4  = some detail but no human ("5 million flowers in bloom",
-         "a temple's 11-headed statue") — CAP for no-human pieces
-    6  = ONE concrete anchor (named place OR named person) + a verb
-         a human is doing
-    8  = multiple named anchors + a specific human action at a
-         specific time
-    10 = photographable scene with sensory detail, a real person
-         doing a real thing
+  基本符合: real + recent + has human but either too mundane
+           (every-day event) or the drama is isolated with no lift
+           e.g. a 75-year-old goes missing Friday, is found safe
+           e.g. a Brooklyn musician practices an unusual fiddle
+           e.g. two teens caught with a stolen motorcycle
 
-- resonance (1-10): after reading a faithful rewrite of the
-  body's most specific moment, would the reader pause for a
-  second? This is the MOST IMPORTANT axis. Judge on the reader's
-  experience, NOT on whether the article checks any particular
-  shape.
-    1  = no pause; pure surface fact, nothing transfers
-         ("flowers are blooming", "bars can open later")
-    3  = faint pull but it dissolves immediately — CAP for
-         commercial pieces, memoirs, pure statistics
-    5  = a small pull; a reader could describe it at dinner and
-         get "huh", but wouldn't carry it home
-         ("61-year-old survives capsize" — dignity is there, but
-          neither a shift nor an echo develops)
-    7  = something quietly weighs more than itself when the body
-         is read attentively. The reader pauses.
-         ("market stalls left a flower at the absent baker's empty
-          spot" — a routine absence, now a ritual)
-    9-10 = the moment turns over in the reader's head the next
-         day. Multiple sources of weight convene on one detail.
+  不符合:   no human / not recent / statistics only / policy / memoir
+           e.g. "spring has come, cherry blossoms blooming"
+           e.g. "Huatulco received 132,000 tourists last Easter"
+           e.g. "Langovest installs pilot filtration system at LASUTH"
+           e.g. "Yunnan childhood among animals" (memoir, not recent)
 
-  Judge the BODY, not just the headline. A surface-thin article
-  can still carry a detail in paragraph four that earns a 7 when
-  the rewrite zooms in on it. Conversely, a richly-framed article
-  whose actual content is a product launch scores low.
+HARD FLOORS → C1 = 不符合:
+  • NO human present or implicit (pure objects, flora, statues,
+    products, statistics) → 不符合
+  • First-person memoir / reflection / "how I learned to" /
+    "looking back at my childhood" → 不符合
+  • Not recent (events more than ~2 weeks old, except as brief
+    context for a current moment) → 不符合
+  • Commercial / PR / event promotion / product launch / exhibition
+    opening / tourism statistics — reads as selling-clicks, not
+    observing — → 不符合
 
-- register (1-10): would a restrained rewrite land in Once's voice,
-  or is the underlying situation un-salvageable?
-    1  = pure politics, markets, gossip; cannot be rewritten
-    3  = casualty-focused disaster coverage; promotional/commercial
-         pieces (CAP)
-    5  = neutral-enough news brief; the source has amplifiers
-         ("defies odds", "stunning", "must-visit") but the facts
-         underneath are calm
-    7  = clean; minimal amplifier stripping needed
-    10 = already in Once's voice; no lift required
+---
 
-Return scores + one-sentence rationale + local_hour + approximate
-prices. **DO NOT produce a rewrite here** — a separate, more
-capable pass handles rewrites for candidates that clear the score
-floor. Your job ends at scoring.
+## AXIS 2 · C2 · 人类共同困境 (shared human condition)
 
-- score_specificity, score_resonance, score_register: integers 1-10
-- rationale: one sentence for the editor explaining YOUR VERDICT
-- local_hour (0-23): infer from phrasing; 12 if unknown
-- milk_price_local / eggs_price_local / milk_price_usd /
-  eggs_price_usd: approximate current prices. 0 if unknown
+Does the story touch a tension humans cannot resolve — one that
+crosses cultures, eras, languages? Possible directions (NOT a
+checklist, just pointers): life vs death, love vs loss, freedom vs
+fate, absurdity vs meaning, memory vs forgetting, loneliness vs
+belonging, the individual vs their era, body vs spirit, dignity
+vs circumstance, etc. The sources of human tension are not
+enumerable; don't pre-specify.
+
+**Single test:** strip every local detail (place names, personal
+names, specific products, local culture-specific references). Is
+there a human tension left? If yes strongly → 非常符合. If thinly →
+基本符合. If nothing but local fact remains → 不符合.
+
+  非常符合: stripping locality leaves a clear human tension
+           e.g. deaf riders (stripped: disabled workers share a
+             moment of pride) → tension: dignity vs marginality
+           e.g. 彩票送情人 (stripped: person wins something, gives
+             to the wrong person, justice intervenes) → tension:
+             love vs law; absurdity vs fortune
+           e.g. interfaith flight kindness (stripped: strangers
+             set down their joy to hold another's grief) → tension:
+             self vs other, momentary transcendence
+
+  基本符合: stripping locality leaves a thin or one-dimensional
+           human theme, or tension exists but the article doesn't
+           develop it
+           e.g. free water coolers (stripped: strangers give
+             strangers relief from heat) → kindness, single layer
+           e.g. helicopter crash, everyone survives (stripped: chance
+             + fragility, but story doesn't develop either)
+           e.g. missing elderly woman found (stripped: family fear
+             + relief — brief, no sustained tension)
+
+  不符合:   stripping locality leaves only administrative or
+           informational content, or a curiosity with no tension
+           e.g. Langovest filter system (stripped: a company
+             installed something) → no tension
+           e.g. bars stay open later for World Cup (stripped: a
+             regulation change) → no tension
+           e.g. Norwegian fiddle practice (stripped: a musician
+             practices an instrument) → curiosity, no tension
+
+---
+
+Return:
+  c1: one of "strong_fit" | "basic_fit" | "no_fit"
+  c2: one of "strong_fit" | "basic_fit" | "no_fit"
+  rationale: one sentence explaining YOUR verdict — name the
+             buried moment (for c1) and the human tension (for c2).
+             If either is "no_fit", briefly say why.
+  local_hour (0-23): infer from the body; 12 if unknown
+  milk_price_local / eggs_price_local / milk_price_usd /
+  eggs_price_usd: approximate current prices. 0 if unknown.
+
+**DO NOT produce a rewrite here** — a separate, more capable pass
+handles rewrites for candidates that clear the floor. Your job
+ends at scoring.
 
 Always return valid JSON matching the schema.`;
+
+// Fit-level enum used by the 2-axis content scoring.
+// Ordered semantically: no_fit < basic_fit < strong_fit.
+const FIT_LEVEL = ["no_fit", "basic_fit", "strong_fit"] as const;
+type FitLevel = typeof FIT_LEVEL[number];
+
+// Map enum → int for sortability + compat with existing integer columns
+// in the moderation_queue + ai_decisions tables.
+//   no_fit     = 0 (reject)
+//   basic_fit  = 1 (marginal, maybe queue)
+//   strong_fit = 2 (strong, definitely queue)
+function fitToInt(f: FitLevel): number {
+  return FIT_LEVEL.indexOf(f);
+}
+function intToFit(n: number | null): FitLevel {
+  if (n == null) return "no_fit";
+  if (n <= 0) return "no_fit";
+  if (n === 1) return "basic_fit";
+  return "strong_fit";
+}
 
 const SCORE_SCHEMA = {
   type: "object",
   additionalProperties: false,
   properties: {
-    score_specificity: { type: "integer", minimum: 1, maximum: 10 },
-    score_resonance: { type: "integer", minimum: 1, maximum: 10 },
-    score_register: { type: "integer", minimum: 1, maximum: 10 },
+    c1: { type: "string", enum: FIT_LEVEL },
+    c2: { type: "string", enum: FIT_LEVEL },
     rationale: { type: "string" },
-    passed: { type: "boolean" },
     local_hour: { type: "integer", minimum: 0, maximum: 23 },
     milk_price_local: { type: "number", minimum: 0 },
     eggs_price_local: { type: "number", minimum: 0 },
@@ -411,11 +482,9 @@ const SCORE_SCHEMA = {
     eggs_price_usd: { type: "number", minimum: 0 }
   },
   required: [
-    "score_specificity",
-    "score_resonance",
-    "score_register",
+    "c1",
+    "c2",
     "rationale",
-    "passed",
     "local_hour",
     "milk_price_local",
     "eggs_price_local",
@@ -744,30 +813,27 @@ async function runIngestInner(
     };
   }
 
-  // 6. Rank by the minimum of the three scores, then by sum as tie-breaker.
-  //    Prefer candidates where NO dimension is weak.
+  // 6. Rank by min-of-two fit axes (C1 in score_specificity column,
+  //    C2 in score_resonance column). Prefer candidates where neither
+  //    axis is weak. Break ties by sum.
   scored.sort((a, b) => {
-    const am = Math.min(a.full.score_specificity, a.full.score_resonance, a.full.score_register);
-    const bm = Math.min(b.full.score_specificity, b.full.score_resonance, b.full.score_register);
+    const am = Math.min(a.full.score_specificity, a.full.score_resonance);
+    const bm = Math.min(b.full.score_specificity, b.full.score_resonance);
     if (bm !== am) return bm - am;
-    const as = a.full.score_specificity + a.full.score_resonance + a.full.score_register;
-    const bs = b.full.score_specificity + b.full.score_resonance + b.full.score_register;
+    const as = a.full.score_specificity + a.full.score_resonance;
+    const bs = b.full.score_specificity + b.full.score_resonance;
     return bs - as;
   });
 
-  // Hard floor: min-of-three < 4 means the candidate is neither
-  // specific enough, nor resonant enough, nor calm enough to ever
-  // be worth the reviewer's time. Dropping them saves attention +
-  // avoids training the reviewer to expect garbage. If nothing
-  // clears the floor, we queue NOTHING for this city — empty queue
-  // is better than false positives.
-  const SCORE_FLOOR = 4;
+  // Hard floor: EITHER axis at "不符合" (fit int 0) drops the candidate.
+  // Both axes must be at least "基本符合" (fit int >= 1) to reach the queue.
+  // Empty queue is better than reviewer-attention-wasting false positives.
+  const SCORE_FLOOR = 1; // basic_fit on both axes
   const queueable = scored.filter(
     (s) =>
       Math.min(
         s.full.score_specificity,
-        s.full.score_resonance,
-        s.full.score_register
+        s.full.score_resonance
       ) >= SCORE_FLOOR
   );
 
@@ -791,12 +857,11 @@ async function runIngestInner(
   const queuedIds: string[] = [];
   for (let i = 0; i < toQueue.length; i++) {
     const s = toQueue[i];
-    const minScore = Math.min(
+    const minFit = Math.min(
       s.full.score_specificity,
-      s.full.score_resonance,
-      s.full.score_register
+      s.full.score_resonance
     );
-    const clearedThreshold = minScore >= SCORE_THRESHOLD;
+    const clearedThreshold = minFit >= SCORE_THRESHOLD; // both strong_fit
     try {
       const body = s.full._bodyText ?? s.entry.snippet;
       const rewrite = await runRewriteIngest(s.entry, city, body);
@@ -823,8 +888,7 @@ async function runIngestInner(
   const winner = toQueue[0];
   const winnerMin = Math.min(
     winner.full.score_specificity,
-    winner.full.score_resonance,
-    winner.full.score_register
+    winner.full.score_resonance
   );
 
   return {
@@ -832,13 +896,13 @@ async function runIngestInner(
     city_name: city.name,
     queued_id: queuedIds[0] ?? null,
     queued_ids: queuedIds,
-    reason: `queued ${queuedIds.length} (rank 1 min=${winnerMin}, ${dedupedOut} dedup'd)`,
+    reason: `queued ${queuedIds.length} (rank 1 min=${intToFit(winnerMin)}, ${dedupedOut} dedup'd)`,
     entries_considered: rawEntries.length,
     entries_prefilter_pass: prefiltered.length,
     scores: {
       specificity: winner.full.score_specificity,
       resonance: winner.full.score_resonance,
-      register: winner.full.score_register
+      register: 0
     }
   };
 }
@@ -1040,10 +1104,24 @@ async function runFullPass(
     }
   });
   const scoreRaw = scoreResp.choices[0]?.message?.content ?? "{}";
-  const scored = JSON.parse(scoreRaw) as Omit<
-    FullResult,
-    "original_language" | "original_text" | "english_text" | "_bodyText" | "_bodySource" | "_paywalled"
-  >;
+  const parsed = JSON.parse(scoreRaw) as {
+    c1: FitLevel;
+    c2: FitLevel;
+    rationale: string;
+    local_hour: number;
+    milk_price_local: number;
+    eggs_price_local: number;
+    milk_price_usd: number;
+    eggs_price_usd: number;
+  };
+
+  // Map the 2-axis fit enum to the legacy integer columns so DB storage
+  // + historic queries keep working. C1 -> score_specificity column,
+  // C2 -> score_resonance column, score_register retired (null).
+  const c1Int = fitToInt(parsed.c1);
+  const c2Int = fitToInt(parsed.c2);
+  const minFit = Math.min(c1Int, c2Int);
+  const passed = minFit >= 1; // at least basic_fit on both axes
 
   await recordSpend(
     {
@@ -1062,15 +1140,24 @@ async function runFullPass(
     source_title: entry.title,
     source_snippet: entry.snippet,
     stage: "score",
-    verdict: scored.passed ? "pass" : "fail",
-    score_specificity: scored.score_specificity,
-    score_resonance: scored.score_resonance,
-    score_register: scored.score_register,
-    rationale: scored.rationale
+    verdict: passed ? "pass" : "fail",
+    score_specificity: c1Int,
+    score_resonance: c2Int,
+    score_register: undefined,
+    rationale: parsed.rationale
   });
 
   return {
-    ...scored,
+    score_specificity: c1Int,
+    score_resonance: c2Int,
+    score_register: 0,
+    rationale: parsed.rationale,
+    passed,
+    local_hour: parsed.local_hour,
+    milk_price_local: parsed.milk_price_local,
+    eggs_price_local: parsed.eggs_price_local,
+    milk_price_usd: parsed.milk_price_usd,
+    eggs_price_usd: parsed.eggs_price_usd,
     original_language: city.original_language ?? "en",
     original_text: "",
     english_text: "",
