@@ -20,12 +20,10 @@ import {
   approveAction,
   rejectAction,
   restorePendingAction,
-  markGoodAction,
   rerollPhotoAction
 } from "./actions";
 
 import { formatLocal, formatUsd } from "@/lib/format";
-import { currentHour } from "@/lib/stories";
 
 type Tab = "pending" | "approved" | "rejected";
 
@@ -105,7 +103,6 @@ interface QueueRow extends Partial<PhotoMeta> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   journey: any | null;
   // Joined from stories (approved tab only)
-  story_selected_hour: number | null;
   story_published_at: string | null;
 }
 
@@ -120,20 +117,16 @@ export default async function QueuePage({
   searchParams: Promise<{
     err?: string;
     tab?: string;
-    pinned?: string;
     patched?: string;
     rejected?: string;
-    marked?: string;
     approved?: string;
   }>;
 }) {
   const sp = await searchParams;
   const errMsg = sp.err;
   const tab = parseTab(sp.tab);
-  const pinnedFlash = sp.pinned === "1";
   const patchedFlash = sp.patched === "1";
   const rejectedFlash = sp.rejected === "1";
-  const markedGoodFlash = sp.marked === "good";
   const approvedFlash = sp.approved === "1";
 
   if (!dbAvailable()) {
@@ -185,7 +178,6 @@ export default async function QueuePage({
       q.photo_cost_usd::float8 as photo_cost_usd,
       q.photo_journey,
       q.journey,
-      s.selected_hour::int8 as story_selected_hour,
       s.published_at::text as story_published_at
     from moderation_queue q
     left join stories s on s.id = q.published_as_id
@@ -197,8 +189,6 @@ export default async function QueuePage({
     limit 200
   `) as unknown as QueueRow[];
 
-  const nowHour = currentHour();
-
   return (
     <>
       {errMsg ? <div className="err">⚠ {errMsg}</div> : null}
@@ -208,14 +198,8 @@ export default async function QueuePage({
           <Link href="/admin/schedule">schedule</Link> to publish it.
         </div>
       ) : null}
-      {pinnedFlash ? (
-        <div className="ok">✓ Scheduled.</div>
-      ) : null}
       {patchedFlash ? (
         <div className="ok">✓ Story updated.</div>
-      ) : null}
-      {markedGoodFlash ? (
-        <div className="ok">✓ Marked as good (training signal recorded).</div>
       ) : null}
       {rejectedFlash ? (
         <div className="no">✗ Rejected (reason recorded).</div>
@@ -249,11 +233,6 @@ export default async function QueuePage({
       ) : null}
 
       {rows.map((r) => {
-        const isPinnedNow =
-          r.story_selected_hour != null && Number(r.story_selected_hour) === nowHour;
-        const isPinnedFuture =
-          r.story_selected_hour != null && Number(r.story_selected_hour) !== nowHour;
-
         return (
           <article
             key={r.id}
@@ -265,12 +244,6 @@ export default async function QueuePage({
                   <span className="rank">#{r.rank}</span>
                 ) : null}
                 {[r.city, r.region, r.country].filter(Boolean).join(" · ") || "—"}
-                {tab === "approved" && isPinnedNow ? (
-                  <span className="pin-tag">PINNED NOW</span>
-                ) : null}
-                {tab === "approved" && isPinnedFuture ? (
-                  <span className="pin-tag stale">pinned (h{r.story_selected_hour})</span>
-                ) : null}
               </div>
               <div className="meta">
                 {r.score_specificity != null && r.score_resonance != null ? (
@@ -451,16 +424,10 @@ export default async function QueuePage({
 
             {tab === "pending" ? (
               <div className="actions">
-                <ReviewActionForm action={markGoodAction} className="good-form">
-                  <input type="hidden" name="id" value={r.id} />
-                  <input
-                    type="text"
-                    name="note"
-                    placeholder="note (optional)"
-                    className="reason"
-                  />
-                  <button type="submit" className="good-btn">
-                    ✓ mark good
+                <ReviewActionForm action={approveAction} className="approve-form">
+                  <ApproveHidden row={r} />
+                  <button type="submit" className="approve-btn">
+                    ✓ approve — add to library
                   </button>
                 </ReviewActionForm>
 
@@ -477,20 +444,9 @@ export default async function QueuePage({
                   </button>
                 </ReviewActionForm>
 
-                <details className="publish-slot">
-                  <summary>approve…</summary>
-                  <div className="publish-body">
-                    <ReviewActionForm action={approveAction}>
-                      <ApproveHidden row={r} />
-                      <button type="submit" className="publish-btn">
-                        approve (adds to library)
-                      </button>
-                    </ReviewActionForm>
-                    <a className="secondary-sm" href={`/admin/edit/${r.id}`}>
-                      edit first…
-                    </a>
-                  </div>
-                </details>
+                <a className="secondary-sm" href={`/admin/edit/${r.id}`}>
+                  edit first…
+                </a>
               </div>
             ) : null}
             {tab !== "pending" ? (
@@ -662,15 +618,6 @@ export default async function QueuePage({
           flex-wrap: wrap;
         }
 
-        .pin-tag {
-          font-family: var(--sans);
-          font-size: 9px;
-          letter-spacing: 0.16em;
-          padding: 2px 6px;
-          border-radius: 2px;
-          background: var(--ink);
-          color: var(--bg);
-        }
         .rank {
           font-family: var(--mono);
           font-size: 10px;
@@ -709,11 +656,6 @@ export default async function QueuePage({
           border-color: rgba(109, 140, 72, 0.4);
           background: rgba(109, 140, 72, 0.05);
         }
-        .pin-tag.stale {
-          background: var(--hairline);
-          color: var(--ink-muted);
-        }
-
         .meta {
           font-family: var(--mono);
           font-size: 11px;
@@ -963,7 +905,7 @@ export default async function QueuePage({
         }
         .photo-journey li { margin-bottom: 2px; }
 
-        .good-btn, .reject-btn {
+        .approve-btn, .reject-btn {
           font-family: var(--sans);
           font-size: 12px;
           letter-spacing: 0.1em;
@@ -974,57 +916,23 @@ export default async function QueuePage({
           border: 1px solid transparent;
           color: #fffaf0;
         }
-        .good-btn {
+        .approve-btn {
           background: #3f5e28;
           border-color: #3f5e28;
         }
-        .good-btn:hover { opacity: 0.88; }
+        .approve-btn:hover { opacity: 0.88; }
         .reject-btn {
           background: #8a3520;
           border-color: #8a3520;
         }
         .reject-btn:hover { opacity: 0.88; }
-        .publish-slot {
-          margin-left: auto;
-          font-family: var(--sans);
-          font-size: 11px;
-        }
-        .publish-slot summary {
-          cursor: pointer;
-          color: var(--ink-faint);
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          user-select: none;
-          padding: 6px 10px;
-          border: 1px dashed var(--hairline);
-          border-radius: 3px;
-          list-style: none;
-        }
-        .publish-slot[open] summary { color: var(--ink-muted); }
-        .publish-body {
-          display: flex;
-          gap: 8px;
-          align-items: center;
-          margin-top: 8px;
-        }
-        .publish-btn {
-          font-family: var(--sans);
-          font-size: 11px;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          padding: 6px 10px;
-          border-radius: 3px;
-          border: 1px solid var(--hairline);
-          background: transparent;
-          color: var(--ink-muted);
-          cursor: pointer;
-        }
-        .publish-btn:hover { color: var(--ink); background: var(--hairline); }
         .secondary-sm {
           font-size: 11px;
           color: var(--ink-faint);
           text-decoration: none;
           border-bottom: 1px dotted var(--hairline);
+          margin-left: auto;
+          align-self: center;
         }
 
         button, .secondary {
@@ -1044,10 +952,6 @@ export default async function QueuePage({
         button:hover, .secondary:hover { background: var(--hairline); }
         .primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
         .primary:hover { opacity: 0.9; background: var(--ink); }
-        .primary.pin {
-          background: var(--accent-dark, #8a3520);
-          border-color: var(--accent-dark, #8a3520);
-        }
         .danger { color: var(--ink-muted); }
         .danger:hover { color: var(--ink); }
 

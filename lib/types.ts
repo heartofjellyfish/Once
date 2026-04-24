@@ -29,7 +29,6 @@ export interface Story {
   eggs_price_usd: number;
 
   published_at?: string; // ISO datetime
-  selected_hour?: number; // optional pinned slot
 
   /** Original news source URL (shown as a small link below the moment). */
   source_url?: string;

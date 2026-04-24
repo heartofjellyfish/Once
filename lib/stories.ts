@@ -24,7 +24,7 @@ export async function loadStories(): Promise<Story[]> {
         eggs_price_local::float8  as eggs_price_local,
         milk_price_usd::float8    as milk_price_usd,
         eggs_price_usd::float8    as eggs_price_usd,
-        published_at, selected_hour::int4 as selected_hour,
+        published_at,
         lat::float8 as lat,
         lng::float8 as lng,
         source_url, source_name,
@@ -65,15 +65,20 @@ export function localHourIn(timezone: string, now: Date = new Date()): number {
 /** Widest "fresh" window — moment was this many hours ago, locally. */
 const FRESH_WINDOW_HOURS = 4;
 
-/** Pure selection logic — exported so tests/scripts can use it. */
+/**
+ * Pure selection logic — drift / timezone-rotation fallback used only
+ * when publish_schedule has no row for the current hour (or the DB is
+ * unavailable). Primary path is lib/schedule.ts → getScheduledStoryId.
+ *
+ * Rotation: prefer stories whose "moment" happened 1–4 hours ago in
+ * the city's local time. Deterministic per UTC hour.
+ */
 export function selectStory(stories: Story[], now: Date = new Date()): Story {
   if (stories.length === 0) {
     throw new Error("No stories available");
   }
 
   const hour = currentHour(now);
-  const pinned = stories.find((s) => s.selected_hour === hour);
-  if (pinned) return pinned;
 
   const fresh = stories
     .filter((s) => {

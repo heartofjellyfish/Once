@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { scheduleStoryAction, unscheduleHourAction } from "@/app/admin/actions";
 import type { ScheduleSlot, LibraryStory } from "@/lib/schedule";
+
+type Toast = { kind: "ok" | "err"; text: string } | null;
 
 /**
  * Format a UTC-hour integer (hours since Unix epoch) for the calendar
@@ -48,6 +50,21 @@ export default function ScheduleBoard({ nowHour, slots, fresh, used }: Props) {
   const [isPending, startTransition] = useTransition();
   const [dragId, setDragId] = useState<string | null>(null);
   const [dropHour, setDropHour] = useState<number | null>(null);
+  const [toast, setToast] = useState<Toast>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function flash(t: Toast, ms: number = 2500) {
+    setToast(t);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), ms);
+  }
+
+  // Clear timer on unmount.
+  useEffect(() => {
+    return () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+    };
+  }, []);
 
   function handleDragStart(e: React.DragEvent, storyId: string) {
     e.dataTransfer.setData("text/story-id", storyId);
@@ -71,6 +88,11 @@ export default function ScheduleBoard({ nowHour, slots, fresh, used }: Props) {
     setDropHour((cur) => (cur === hour ? null : cur));
   }
 
+  function slotDescription(hour: number): string {
+    const { date, time } = slotLabel(hour);
+    return `${date} ${time}`;
+  }
+
   function handleDrop(e: React.DragEvent, hour: number) {
     if (hour < nowHour) return;
     e.preventDefault();
@@ -82,7 +104,18 @@ export default function ScheduleBoard({ nowHour, slots, fresh, used }: Props) {
     fd.set("story_id", storyId);
     fd.set("hour_utc", String(hour));
     startTransition(async () => {
-      await scheduleStoryAction(fd);
+      try {
+        await scheduleStoryAction(fd);
+        flash({ kind: "ok", text: `Scheduled → ${slotDescription(hour)}` });
+      } catch (err) {
+        flash(
+          {
+            kind: "err",
+            text: `Schedule failed: ${(err as Error).message}`
+          },
+          5000
+        );
+      }
     });
   }
 
@@ -90,12 +123,36 @@ export default function ScheduleBoard({ nowHour, slots, fresh, used }: Props) {
     const fd = new FormData();
     fd.set("hour_utc", String(hour));
     startTransition(async () => {
-      await unscheduleHourAction(fd);
+      try {
+        await unscheduleHourAction(fd);
+        flash({
+          kind: "ok",
+          text: `Cleared ${slotDescription(hour)} — cron will re-fill`
+        });
+      } catch (err) {
+        flash(
+          {
+            kind: "err",
+            text: `Clear failed: ${(err as Error).message}`
+          },
+          5000
+        );
+      }
     });
   }
 
   return (
     <div>
+      {toast ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`toast toast-${toast.kind}`}
+        >
+          {toast.kind === "ok" ? "✓" : "⚠"} {toast.text}
+        </div>
+      ) : null}
+
       <header className="head">
         <h1>schedule</h1>
         <p className="hint">
@@ -244,6 +301,34 @@ export default function ScheduleBoard({ nowHour, slots, fresh, used }: Props) {
       </section>
 
       <style>{`
+        .toast {
+          position: fixed;
+          bottom: 24px;
+          right: 24px;
+          padding: 10px 14px;
+          border-radius: 4px;
+          font-family: var(--mono);
+          font-size: 12px;
+          letter-spacing: 0.02em;
+          z-index: 1000;
+          box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+          animation: toast-in 160ms ease-out;
+          max-width: 380px;
+          line-height: 1.4;
+        }
+        .toast-ok {
+          background: rgba(109, 140, 72, 0.96);
+          color: #fffaf0;
+        }
+        .toast-err {
+          background: rgba(138, 53, 32, 0.96);
+          color: #fffaf0;
+        }
+        @keyframes toast-in {
+          from { opacity: 0; transform: translateY(6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+
         .head { margin-bottom: 18px; }
         .head h1 {
           font-family: var(--serif);
