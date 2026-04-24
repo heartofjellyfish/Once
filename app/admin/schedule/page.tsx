@@ -1,6 +1,10 @@
-import { dbAvailable, requireSql } from "@/lib/db";
+import { dbAvailable } from "@/lib/db";
 import { currentHour } from "@/lib/stories";
-import { loadScheduleWindow, loadLibrary } from "@/lib/schedule";
+import {
+  loadScheduleWindow,
+  loadLibrary,
+  fillAutoSchedule
+} from "@/lib/schedule";
 import ScheduleBoard from "./_components/ScheduleBoard";
 
 export const dynamic = "force-dynamic";
@@ -18,40 +22,28 @@ export const dynamic = "force-dynamic";
  *
  * Drag a card from the library onto any slot in the calendar to pin
  * it to that UTC hour. Past hours are read-only. Slot showing
- * "random" is a cron-populated placeholder — dragging overwrites it.
+ * "randomDummy" is a cron-populated placeholder — dragging overwrites
+ * it.
  */
 export default async function SchedulePage() {
   if (!dbAvailable()) {
     return <p className="empty">Database not available.</p>;
   }
 
-  // Auto-fill the next 24 hours on first visit if the cron hasn't run
-  // yet — keeps the calendar non-blank for the very first time.
-  const sql = requireSql();
-  const { rows: _existing } = (await (async () => {
-    try {
-      // Only fill if the table is empty for the window — otherwise
-      // respect whatever's already in there (manual or auto).
-      const now = currentHour();
-      const r = (await sql`
-        select count(*)::int as n from publish_schedule
-        where hour_utc >= ${now} and hour_utc < ${now + 24}
-      `) as unknown as { n: number }[];
-      if ((r[0]?.n ?? 0) === 0) {
-        const { fillAutoSchedule } = await import("@/lib/schedule");
-        await fillAutoSchedule(now, 24);
-      }
-    } catch (err) {
-      console.warn("[schedule] pre-fill failed:", (err as Error).message);
-    }
-    return { rows: [] };
-  })());
-
   const now = currentHour();
-  const from = now - 2;
-  const to = now + 25; // past 2 + now + next 24
+
+  // Belt-and-suspenders: ensure the next 24 hours are populated so the
+  // calendar never renders blank, even if the daily cron hasn't run
+  // yet. fillAutoSchedule is idempotent — it skips hours that already
+  // have a row (manual or auto), so this is cheap on repeat visits.
+  try {
+    await fillAutoSchedule(now, 24);
+  } catch (err) {
+    console.warn("[schedule] fillAutoSchedule failed:", (err as Error).message);
+  }
+
   const [slots, library] = await Promise.all([
-    loadScheduleWindow(from, to),
+    loadScheduleWindow(now - 2, now + 25), // past 2 + now + next 24
     loadLibrary()
   ]);
 
