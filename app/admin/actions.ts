@@ -9,6 +9,7 @@ import { enrichAndPublish } from "@/lib/enrich";
 import { currentHour } from "@/lib/stories";
 import { resolveHeroImage, ensurePhotoColumns } from "@/lib/ogImage";
 import { extractPhotoQueries } from "@/lib/photoKeywords";
+import { setSchedule, clearSchedule } from "@/lib/schedule";
 
 /** Slug helper for generated story IDs. ASCII-only, kebab. */
 function slug(input: string): string {
@@ -242,7 +243,8 @@ export async function approveAction(formData: FormData): Promise<void> {
 
   revalidatePath("/");
   revalidatePath("/admin");
-  redirect("/admin?tab=approved&pinned=1");
+  revalidatePath("/admin/schedule");
+  redirect("/admin?tab=approved&approved=1");
 }
 
 /** Manually trigger the ingest pipeline. Optional city override. */
@@ -509,4 +511,37 @@ export async function rejectAction(formData: FormData): Promise<void> {
 
   revalidatePath("/admin");
   redirect("/admin?tab=pending&rejected=1");
+}
+
+/**
+ * SCHEDULE — assign a story to a specific UTC hour on the homepage.
+ * Called by /admin/schedule when the editor drops a card onto a slot.
+ * Overwrites whatever was there (including a randomDummyStory auto-fill).
+ */
+export async function scheduleStoryAction(formData: FormData): Promise<void> {
+  const storyId = String(formData.get("story_id") ?? "").trim();
+  const hourRaw = String(formData.get("hour_utc") ?? "").trim();
+  const hour = Number(hourRaw);
+  if (!storyId) throw new Error("story_id required");
+  if (!Number.isFinite(hour)) throw new Error("hour_utc required");
+
+  await setSchedule(hour, storyId, "manualApprovedStory", "editor");
+
+  revalidatePath("/");
+  revalidatePath("/admin/schedule");
+}
+
+/**
+ * UNSCHEDULE — remove a slot entirely. The next cron run will re-fill
+ * it with a randomDummyStory.
+ */
+export async function unscheduleHourAction(formData: FormData): Promise<void> {
+  const hourRaw = String(formData.get("hour_utc") ?? "").trim();
+  const hour = Number(hourRaw);
+  if (!Number.isFinite(hour)) throw new Error("hour_utc required");
+
+  await clearSchedule(hour);
+
+  revalidatePath("/");
+  revalidatePath("/admin/schedule");
 }

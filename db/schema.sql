@@ -233,3 +233,28 @@ create table if not exists pipeline_runs (
 create index if not exists pipeline_runs_started_idx on pipeline_runs(started_at desc);
 create index if not exists pipeline_runs_running_idx on pipeline_runs(status)
   where status = 'running';
+
+-- publish_schedule — authoritative mapping of UTC hour → story shown on
+-- the homepage. Populated two ways:
+--   * manualApprovedStory: the editor dragged an approved story onto a
+--     future slot from /admin/schedule. These are what we actually want
+--     people to see.
+--   * randomDummyStory: the daily cron pre-fills every empty slot in the
+--     next 24 hours with a random story from the approved library. If
+--     the editor doesn't get to it, the random one shows instead of a
+--     blank homepage. One row per hour globally — everyone on earth at
+--     the same UTC hour sees the same story.
+--
+-- hour_utc is "hours since Unix epoch" (matches lib/stories.ts
+-- currentHour()). Using an int PK (not timestamptz) because our
+-- homepage selector already bucketises to the hour integer.
+create table if not exists publish_schedule (
+  hour_utc       bigint primary key,
+  story_id       text references stories(id) on delete set null,
+  source         text not null check (source in ('manualApprovedStory','randomDummyStory')),
+  scheduled_at   timestamptz not null default now(),
+  scheduled_by   text
+);
+
+create index if not exists publish_schedule_story_idx
+  on publish_schedule (story_id);

@@ -247,10 +247,10 @@ export async function enrichAndPublish(input: EnrichInput): Promise<EnrichResult
   const milkU = city.milk_price_usd ?? 0;
   const eggsU = city.eggs_price_usd ?? 0;
 
-  // 5. Pin to current hour so homepage shows it immediately. Freshness
-  //    rotation picks up again next hour.
-  const selectedHour = Math.floor(Date.now() / (1000 * 60 * 60));
-
+  // Publishing only creates the story row. Whether it appears on the
+  // homepage is decided separately via publish_schedule — either
+  // randomDummyStory auto-fill by cron, or the editor dragging this
+  // story onto a slot in /admin/schedule.
   const id = seed;
 
   const sql = requireSql();
@@ -263,8 +263,7 @@ export async function enrichAndPublish(input: EnrichInput): Promise<EnrichResult
       milk_price_usd, eggs_price_usd,
       source_url, source_name,
       lat, lng,
-      weather_current, location_summary, fetched_at,
-      selected_hour
+      weather_current, location_summary, fetched_at
     ) values (
       ${id}, ${photoUrl}, ${city.country}, ${city.region},
       ${city.name}, ${city.timezone}, ${12},
@@ -274,15 +273,8 @@ export async function enrichAndPublish(input: EnrichInput): Promise<EnrichResult
       ${milkU}, ${eggsU},
       ${input.sourceUrl || null}, ${input.sourceName || null},
       ${city.lat}, ${city.lng},
-      ${weather}, ${city.location_summary}, now(),
-      ${selectedHour}
+      ${weather}, ${city.location_summary}, now()
     )
-  `;
-
-  // Clear any other pin on the same hour.
-  await sql`
-    update stories set selected_hour = null
-    where selected_hour = ${selectedHour} and id <> ${id}
   `;
 
   return {

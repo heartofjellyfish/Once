@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { runIngest, runBatchIngest } from "@/lib/pipeline";
+import { fillAutoSchedule } from "@/lib/schedule";
 import { dbAvailable } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -62,7 +63,31 @@ export async function GET(req: Request) {
     }
 
     const batch = await runBatchIngest();
-    return NextResponse.json({ ok: true, batch: true, ...batch });
+
+    // After ingest, pre-fill the next 24 hours of publish_schedule
+    // with randomDummyStory picks. Editor-scheduled (manual) rows are
+    // left alone. If this fails we still return the batch result —
+    // homepage has a drift fallback.
+    let schedule_filled = 0;
+    let schedule_skipped = 0;
+    try {
+      const r = await fillAutoSchedule();
+      schedule_filled = r.filled;
+      schedule_skipped = r.skipped;
+    } catch (err) {
+      console.warn(
+        "[cron/ingest] fillAutoSchedule failed:",
+        (err as Error).message
+      );
+    }
+
+    return NextResponse.json({
+      ok: true,
+      batch: true,
+      ...batch,
+      schedule_filled,
+      schedule_skipped
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[cron/ingest] error:", msg);

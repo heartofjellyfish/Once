@@ -19,8 +19,6 @@ function fitLabel(n: number): string {
 import {
   approveAction,
   rejectAction,
-  pinStoryAction,
-  unpinStoryAction,
   restorePendingAction,
   markGoodAction,
   rerollPhotoAction
@@ -126,6 +124,7 @@ export default async function QueuePage({
     patched?: string;
     rejected?: string;
     marked?: string;
+    approved?: string;
   }>;
 }) {
   const sp = await searchParams;
@@ -135,6 +134,7 @@ export default async function QueuePage({
   const patchedFlash = sp.patched === "1";
   const rejectedFlash = sp.rejected === "1";
   const markedGoodFlash = sp.marked === "good";
+  const approvedFlash = sp.approved === "1";
 
   if (!dbAvailable()) {
     return <p className="empty">Database not available — see header notice.</p>;
@@ -202,8 +202,14 @@ export default async function QueuePage({
   return (
     <>
       {errMsg ? <div className="err">⚠ {errMsg}</div> : null}
+      {approvedFlash ? (
+        <div className="ok">
+          ✓ Approved. Story is in the library — drag it onto a slot in{" "}
+          <Link href="/admin/schedule">schedule</Link> to publish it.
+        </div>
+      ) : null}
       {pinnedFlash ? (
-        <div className="ok">✓ Pinned to homepage for this hour.</div>
+        <div className="ok">✓ Scheduled.</div>
       ) : null}
       {patchedFlash ? (
         <div className="ok">✓ Story updated.</div>
@@ -472,12 +478,12 @@ export default async function QueuePage({
                 </ReviewActionForm>
 
                 <details className="publish-slot">
-                  <summary>publish…</summary>
+                  <summary>approve…</summary>
                   <div className="publish-body">
                     <ReviewActionForm action={approveAction}>
                       <ApproveHidden row={r} />
                       <button type="submit" className="publish-btn">
-                        approve &amp; publish now
+                        approve (adds to library)
                       </button>
                     </ReviewActionForm>
                     <a className="secondary-sm" href={`/admin/edit/${r.id}`}>
@@ -491,29 +497,9 @@ export default async function QueuePage({
               <div className="actions">
                 {tab === "approved" && r.published_as_id ? (
                   <>
-                    {isPinnedNow ? (
-                      <form action={unpinStoryAction}>
-                        <input
-                          type="hidden"
-                          name="story_id"
-                          value={r.published_as_id}
-                        />
-                        <button type="submit" className="secondary">
-                          unpin
-                        </button>
-                      </form>
-                    ) : (
-                      <form action={pinStoryAction}>
-                        <input
-                          type="hidden"
-                          name="story_id"
-                          value={r.published_as_id}
-                        />
-                        <button type="submit" className="primary pin">
-                          show on homepage now
-                        </button>
-                      </form>
-                    )}
+                    <Link className="primary" href="/admin/schedule">
+                      schedule →
+                    </Link>
                     <a
                       className="secondary"
                       href={`/admin/story/${r.published_as_id}`}
@@ -532,7 +518,7 @@ export default async function QueuePage({
                 ) : null}
 
                 {tab === "approved" && !r.published_as_id ? (
-                  <span className="meta">training-only (not published)</span>
+                  <span className="meta">training-only (not in library)</span>
                 ) : null}
 
                 {tab === "rejected" ? (

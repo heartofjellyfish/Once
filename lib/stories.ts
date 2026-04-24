@@ -94,6 +94,27 @@ export function selectStory(stories: Story[], now: Date = new Date()): Story {
 
 export async function getCurrentStory(now: Date = new Date()): Promise<Story> {
   const stories = await loadStories();
+
+  // Primary path: publish_schedule (UTC-hour → story_id). This is
+  // populated by the daily cron (randomDummyStory) and overwritten by
+  // editor drags on /admin/schedule (manualApprovedStory). Same story
+  // for everyone on earth in the same UTC hour.
+  try {
+    const { getScheduledStoryId } = await import("./schedule");
+    const scheduledId = await getScheduledStoryId(currentHour(now));
+    if (scheduledId) {
+      const hit = stories.find((s) => s.id === scheduledId);
+      if (hit) return hit;
+    }
+  } catch (err) {
+    console.warn(
+      "[once] publish_schedule lookup failed, falling back to drift:",
+      (err as Error).message
+    );
+  }
+
+  // Safety net: old drift selector (time-zone rotation). Only reached
+  // if publish_schedule is empty or broken.
   return selectStory(stories, now);
 }
 
