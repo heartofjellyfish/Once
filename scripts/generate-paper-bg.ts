@@ -8,15 +8,17 @@
 import OpenAI from "openai";
 import { writeFile } from "node:fs/promises";
 
-const PROMPT = `A warm tan kraft paper / aged rice paper texture,
-flat overhead view, no objects on it. Soft natural fibers visible
-throughout. A few faint pencil scratches and small flecks scattered
-sparsely. Subtle darker edges from age and handling, slightly worn
-corners. Color: warm khaki tan, similar to vintage manila or
-unbleached card stock (#D5B57F range).
+const PROMPT = `A pale cream / ivory rice paper texture, flat
+overhead view, no objects on it. Very soft natural fibers visible
+throughout, like aged Japanese washi or unbleached linen paper.
+A handful of faint specks scattered sparsely, almost imperceptible.
+Color: pale ivory with the gentlest hint of warmth, like vintage
+manuscript paper or museum-quality cotton rag — much lighter than
+kraft, closer to champagne or off-white (#F0E8D4 range, NOT yellow).
 
 No text. No drawings. No objects. Pure paper texture only — should
-work as a background for a website. Even tone across the whole frame.
+work as a subtle, almost-white background for a website. Even tone
+across the whole frame, no dark edges.
 
 Aspect: 1536×1024 (landscape).`;
 

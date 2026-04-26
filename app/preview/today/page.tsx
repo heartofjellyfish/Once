@@ -118,14 +118,14 @@ export default function PreviewToday() {
 
       <style>{`
         :root {
-          --paper:    #d4b07a;
-          --paper-2:  #c39a64;
+          --paper:    #f0e8d4;
+          --paper-2:  #e6dcc4;
           --ink:      #2A241D;
           --ink-2:    #4a3f30;
-          --ink-faint:#7a6a52;
+          --ink-faint:#8b7e63;
           --rust:     #8a3520;
           --sage:     #5a6a48;
-          --hairline: rgba(42, 36, 29, 0.18);
+          --hairline: rgba(42, 36, 29, 0.16);
         }
 
         .page {
