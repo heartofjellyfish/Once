@@ -1,93 +1,62 @@
 "use client";
 
 /**
- * /preview/today-v2 — testimony voice experiment.
+ * /preview/today-v2 — testimony voice + ink-developing reveal.
  *
  * The bet: switch Once from "cinematic third-person description"
- * (which is beautiful but cold) to "philosophical testimony anchored
- * in place" — a sentence that's true about being human, attached to
- * a city. Closer to Mary Oliver, Issa, HONY captions than to a
- * literary travel column.
+ * to "philosophical testimony anchored in place" (closer to Mary
+ * Oliver, Issa, HONY captions than to a literary travel column),
+ * AND restore the slow character-by-character reveal that forces
+ * the reader to actually read each word — using the existing
+ * PencilText component (app/_components/PencilText.tsx).
  *
- * Reader's gift: ONE line at the top that they take with them,
- * plus 9 short truths from 9 cities. Whole page reads in 30 seconds.
+ * Reading rhythm:
+ *  - Page fades in
+ *  - Breath line writes itself
+ *  - Hero atlas appears
+ *  - Take-away line writes slowly, with a small pause after the
+ *    period (PencilText's natural punctuation rest)
+ *  - As you scroll, each testimony writes itself when it enters
+ *    the viewport — the reader cannot skim past unwritten ink.
  *
- * Layout deliberately departs from v1's byōbu grid (which the editor
- * felt was buried below the fold). Single column, big breath, fewer
- * visual elements, more pause.
+ * The animation is the medicine. Without it the page becomes a
+ * list to scan; with it, each line lands.
  */
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import PencilText from "@/app/_components/PencilText";
 
 const TODAY = {
   date: "april 25 · 2026",
-  /** The single line the reader takes with them. Set in big italic
-   * serif, alone in a paragraph of its own. */
   takeAway: "Some days, one good thing is enough.",
-  /** Optional — a felt thread connecting all 9 cities for editor.
-   * Not displayed prominently; appears subtly under the take-away. */
   thread: "small beginnings"
 };
 
 interface Testimony {
   city: string;
-  /** Local time of the moment. Tiny, mono. */
   time: string;
-  /** The testimony itself — 12–25 words. Universal truth + place anchor. */
   line: string;
 }
 
-// Hand-written. Each is an attempt to: (a) say something true about
-// being human, (b) anchor in something specific that could only have
-// happened in this city. The user (editor) will write these for real
-// each morning — these are placeholder samples, but written in the
-// voice we're testing.
 const TESTIMONIES: Testimony[] = [
-  {
-    city: "Tokyo",
-    time: "7:14 am",
-    line: "There are mornings where no one should speak yet. The teacup helps."
-  },
-  {
-    city: "Beijing",
-    time: "6:14 am",
-    line: "Old men play chess at three. They have stopped trying to win."
-  },
-  {
-    city: "Mumbai",
-    time: "3:44 am",
-    line: "The fishing trucks arrive before the gulls. Some hungers wake earlier than others."
-  },
-  {
-    city: "Istanbul",
-    time: "1:14 am",
-    line: "Some prayers are not for anything in particular. The mist still listens."
-  },
-  {
-    city: "Lagos",
-    time: "11:14 pm",
-    line: "A market can open with one stall. That is already a beginning."
-  },
-  {
-    city: "London",
-    time: "10:14 pm",
-    line: "Rain in a city is permission to move slowly. The bakery agrees."
-  },
-  {
-    city: "São Paulo",
-    time: "7:14 pm",
-    line: "Someone forgot a bag under a jacaranda. That is how you know the evening went well."
-  },
-  {
-    city: "San Francisco",
-    time: "3:14 pm",
-    line: "The fog forgives everyone. It does not ask why you are out so early."
-  },
-  {
-    city: "Sydney",
-    time: "8:14 am",
-    line: "First light is still light, even when no one watches the boat unmoor."
-  }
+  { city: "Tokyo",         time: "7:14 am",
+    line: "There are mornings where no one should speak yet. The teacup helps." },
+  { city: "Beijing",       time: "6:14 am",
+    line: "Old men play chess at three. They have stopped trying to win." },
+  { city: "Mumbai",        time: "3:44 am",
+    line: "The fishing trucks arrive before the gulls. Some hungers wake earlier than others." },
+  { city: "Istanbul",      time: "1:14 am",
+    line: "Some prayers are not for anything in particular. The mist still listens." },
+  { city: "Lagos",         time: "11:14 pm",
+    line: "A market can open with one stall. That is already a beginning." },
+  { city: "London",        time: "10:14 pm",
+    line: "Rain in a city is permission to move slowly. The bakery agrees." },
+  { city: "São Paulo",     time: "7:14 pm",
+    line: "Someone forgot a bag under a jacaranda. That is how you know the evening went well." },
+  { city: "San Francisco", time: "3:14 pm",
+    line: "The fog forgives everyone. It does not ask why you are out so early." },
+  { city: "Sydney",        time: "8:14 am",
+    line: "First light is still light, even when no one watches the boat unmoor." }
 ];
 
 export default function PreviewTodayV2() {
@@ -104,8 +73,15 @@ export default function PreviewTodayV2() {
       </header>
 
       <main className="main">
-        {/* Breath line. Tiny, italic, easy to skip. */}
-        <p className="breath">take three. then we begin.</p>
+        {/* Breath line. Writes itself slowly so the reader literally
+            takes the breath while the words appear. */}
+        <div className="breath">
+          <PencilText
+            text="take three. then we begin."
+            speed={70}
+            startDelay={400}
+          />
+        </div>
 
         {/* Hero atlas — same image as v1 but smaller and quieter. */}
         <figure className="hero">
@@ -116,24 +92,35 @@ export default function PreviewTodayV2() {
           />
         </figure>
 
-        {/* The line the reader takes away. */}
+        {/* Take-away line — writes after hero settles, slower per
+            character so each word feels weighed. */}
         <section className="take">
-          <p className="takeline">&ldquo;{TODAY.takeAway}&rdquo;</p>
-          <p className="threadline">— today&rsquo;s thread: <em>{TODAY.thread}</em></p>
+          <div className="takeline-wrap">
+            <PencilText
+              text={`“${TODAY.takeAway}”`}
+              speed={75}
+              periodPauseMs={520}
+              startDelay={1700}
+              className="takeline"
+            />
+          </div>
+          <p className="threadline">
+            today&rsquo;s thread: <em>{TODAY.thread}</em>
+          </p>
         </section>
 
         <hr className="divider" />
 
-        {/* Nine testimonies, single column. Each city ~12-25 words. */}
+        {/* Nine testimonies. Each writes itself when scrolled into
+            view — the reader cannot skim past unwritten ink. */}
         <section className="testimonies">
           {TESTIMONIES.map((t) => (
-            <Testimony key={t.city} t={t} />
+            <TestimonyRow key={t.city} t={t} />
           ))}
         </section>
 
         <hr className="divider" />
 
-        {/* Permission. Frees the reader. */}
         <p className="permission">
           you don&rsquo;t have to read all of it. one is enough.
         </p>
@@ -155,7 +142,6 @@ export default function PreviewTodayV2() {
           --sage:     #5a6a48;
           --hairline: rgba(42, 36, 29, 0.16);
         }
-
         .page {
           background:
             url("/preview/paper-bg.jpg") center / cover fixed,
@@ -163,16 +149,13 @@ export default function PreviewTodayV2() {
           color: var(--ink);
           min-height: 100vh;
           font-family: "EB Garamond", "Source Serif 4", Georgia, serif;
-          /* Soft fade-in at page load so it feels like the page is
-             arriving rather than appearing. */
-          animation: page-arrive 1200ms ease-out both;
+          animation: page-arrive 1100ms ease-out both;
         }
         @keyframes page-arrive {
           from { opacity: 0; }
           to   { opacity: 1; }
         }
 
-        /* ── masthead ─────────────────────────────── */
         .masthead {
           max-width: 720px;
           margin: 0 auto;
@@ -213,7 +196,6 @@ export default function PreviewTodayV2() {
         .vlink.active { color: var(--ink); }
         .vsep { color: var(--hairline); }
 
-        /* ── main column ──────────────────────────── */
         .main {
           max-width: 580px;
           margin: 0 auto;
@@ -221,19 +203,15 @@ export default function PreviewTodayV2() {
         }
 
         .breath {
+          text-align: center;
+          margin: 36px 0 24px;
+        }
+        .breath p {
           font-style: italic;
           font-size: 13px;
           color: var(--ink-faint);
-          text-align: center;
-          margin: 36px 0 24px;
+          margin: 0;
           letter-spacing: 0.04em;
-          /* Slightly delayed fade-in to invite the actual breath */
-          opacity: 0;
-          animation: fade-in 1500ms ease-out 600ms both;
-        }
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(2px); }
-          to   { opacity: 1; transform: translateY(0); }
         }
 
         .hero {
@@ -248,23 +226,32 @@ export default function PreviewTodayV2() {
             0 1px 0 rgba(42,36,29,0.06),
             0 18px 36px -28px rgba(42,36,29,0.32);
           opacity: 0;
-          animation: fade-in 1800ms ease-out 1100ms both;
+          animation: img-arrive 1600ms ease-out 1100ms both;
+        }
+        @keyframes img-arrive {
+          from { opacity: 0; transform: scale(0.99); }
+          to   { opacity: 1; transform: scale(1); }
         }
 
-        /* ── take-away line ───────────────────────── */
         .take {
           text-align: center;
-          margin: 38px 0 32px;
-          opacity: 0;
-          animation: fade-in 1800ms ease-out 1900ms both;
+          margin: 38px 0 28px;
         }
-        .takeline {
+        .takeline-wrap {
+          /* reserve vertical space so the page doesn't jump while the
+             take-away ink develops */
+          min-height: 90px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        :global(.takeline) {
           font-family: "EB Garamond", Georgia, serif;
           font-style: italic;
           font-size: 28px;
           line-height: 1.35;
           color: var(--ink);
-          margin: 0 0 14px;
+          margin: 0;
           letter-spacing: 0.005em;
         }
         .threadline {
@@ -273,7 +260,13 @@ export default function PreviewTodayV2() {
           color: var(--ink-faint);
           letter-spacing: 0.14em;
           text-transform: uppercase;
-          margin: 0;
+          margin: 14px 0 0;
+          opacity: 0;
+          animation: thread-fade 1500ms ease-out 4500ms both;
+        }
+        @keyframes thread-fade {
+          from { opacity: 0; }
+          to   { opacity: 0.8; }
         }
         .threadline em {
           color: var(--ink-2);
@@ -291,14 +284,10 @@ export default function PreviewTodayV2() {
           width: 100%;
         }
 
-        /* ── testimonies ──────────────────────────── */
         .testimonies {
           margin: 24px 0;
-          opacity: 0;
-          animation: fade-in 1800ms ease-out 2400ms both;
         }
 
-        /* ── permission ───────────────────────────── */
         .permission {
           text-align: center;
           font-style: italic;
@@ -308,7 +297,6 @@ export default function PreviewTodayV2() {
           letter-spacing: 0.02em;
         }
 
-        /* ── colophon ─────────────────────────────── */
         .colophon {
           max-width: 720px;
           margin: 36px auto 60px;
@@ -337,11 +325,34 @@ export default function PreviewTodayV2() {
 }
 
 /**
- * One testimony row. Hover reveals a small ⊕ button on the right that
- * copies the line to the clipboard — a tiny "take it with you" gesture.
+ * One testimony row. Uses IntersectionObserver so PencilText only
+ * starts writing when the line enters the viewport — when the user
+ * lingers, the words arrive; if they scroll past quickly, each line
+ * still gets its turn when revisited.
+ *
+ * Reserves layout space via an invisible static placeholder so the
+ * page doesn't jump as ink develops.
  */
-function Testimony({ t }: { t: Testimony }) {
+function TestimonyRow({ t }: { t: Testimony }) {
+  const [inView, setInView] = useState(false);
   const [copied, setCopied] = useState(false);
+  const ref = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    const el = ref.current;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setInView(true);
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.4, rootMargin: "0px 0px -8% 0px" }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
 
   async function handleCopy() {
     try {
@@ -354,12 +365,29 @@ function Testimony({ t }: { t: Testimony }) {
   }
 
   return (
-    <article className="row">
+    <article ref={ref} className="row">
       <div className="lead">
         <span className="city">{t.city}</span>
         <span className="time">{t.time}</span>
       </div>
-      <p className="line">{t.line}</p>
+
+      <div className="line-wrap">
+        {inView ? (
+          <PencilText
+            text={t.line}
+            speed={48}
+            periodPauseMs={420}
+            commaPauseMs={220}
+            startDelay={120}
+            className="line"
+          />
+        ) : (
+          // Layout placeholder — same text, invisible. Same font/size
+          // so the row reserves the right height before ink arrives.
+          <p className="line placeholder" aria-hidden="true">{t.line}</p>
+        )}
+      </div>
+
       <button
         type="button"
         className={`copy ${copied ? "copied" : ""}`}
@@ -401,7 +429,11 @@ function Testimony({ t }: { t: Testimony }) {
           color: var(--ink-faint);
           font-variant-numeric: tabular-nums;
         }
-        .line {
+        .line-wrap {
+          grid-column: 1;
+          grid-row: 2;
+        }
+        :global(.line) {
           margin: 0;
           font-family: "EB Garamond", Georgia, serif;
           font-size: 17px;
@@ -409,6 +441,9 @@ function Testimony({ t }: { t: Testimony }) {
           color: var(--ink);
           font-style: italic;
           letter-spacing: 0.005em;
+        }
+        :global(.line.placeholder) {
+          opacity: 0;
         }
         .copy {
           grid-row: 2;
