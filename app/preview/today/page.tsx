@@ -67,7 +67,9 @@ export default function PreviewToday() {
         <div className="brand">ONCE</div>
         <div className="date">april 25 · 2026</div>
         <div className="nav">
-          <Link href="/preview/archive">archive →</Link>
+          <span className="vlink active">v1</span>
+          <span className="vsep">·</span>
+          <Link href="/preview/today-v2" className="vlink">v2</Link>
         </div>
       </header>
 
@@ -162,16 +164,22 @@ export default function PreviewToday() {
           text-transform: uppercase;
           color: var(--ink-2);
         }
-        .nav a {
+        .nav {
+          display: flex;
+          gap: 6px;
+          align-items: baseline;
           font-family: "JetBrains Mono", ui-monospace, monospace;
           font-size: 11px;
           letter-spacing: 0.16em;
           text-transform: uppercase;
+        }
+        .vlink {
           color: var(--ink-faint);
           text-decoration: none;
-          border-bottom: 1px dotted var(--hairline);
         }
-        .nav a:hover { color: var(--ink); }
+        .vlink:hover { color: var(--ink); }
+        .vlink.active { color: var(--ink); }
+        .vsep { color: var(--hairline); }
 
         /* ── hero atlas ───────────────────────────── */
         .hero {
