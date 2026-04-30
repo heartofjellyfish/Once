@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Caveat, Caveat_Brush } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -71,7 +72,10 @@ export default function RootLayout({
       lang="en"
       className={`${fraunces.variable} ${caveat.variable} ${caveatBrush.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
